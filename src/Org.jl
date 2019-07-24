@@ -23,7 +23,7 @@ abstract type AbstractOrg end
 
 abstract type ContainerOrg <: AbstractOrg end
 abstract type InlineOrg <: AbstractOrg end
-abstract type OneLineOrg <: ContainerOrg end
+abstract type InterruptibleOrg <: ContainerOrg end
 
 # Forward array interface methods
 size(a::ContainerOrg) = size(a.content)
@@ -66,7 +66,7 @@ function parser!(::AbstractString, ::OrgDocument, ::Type{<:ContainerOrg},
     nothing
 end
 
-struct NoContext <: ContainerOrg end
+struct NoContext <: InterruptibleOrg end
 const nocontext = NoContext()
 
 # *** Paragraph
@@ -76,22 +76,13 @@ const nocontext = NoContext()
 # *bold*, /italics/, _underline_, [[links][https://julialang.org]], but for right
 # now, we just hold them as plain text.
 
-mutable struct Paragraph <: ContainerOrg
+mutable struct Paragraph <: InterruptibleOrg
     content::Vector{Union{InlineOrg,String}}
 end#struct
 Paragraph() = Paragraph(Vector{Union{InlineOrg,String}}())
 
-# Paragraphs, single line elements, and nocontext are only context that can be
-# interrupted without a line that explicitly concludes them.
-const InterruptibleContext = Union{Paragraph, NoContext, OneLineOrg}
-
-"Finds and returns the last paragraph in document if its last `ContainerOrg`."
-last_paragraph(org::ContainerOrg) =
-    isempty(org) ? nothing : last_paragraph(last(org))
-last_paragraph(org::Paragraph) = org
-
 function parser!(line::AbstractString, org::OrgDocument, ::Type{Paragraph},
-                 ::NoContext)
+                 ::InterruptibleOrg)
     isempty(line) && return nocontext
 
     paragraph = Paragraph()
@@ -112,7 +103,7 @@ end#function
 
 # *** Headline
 
-struct Headline <: OneLineOrg
+struct Headline <: InterruptibleOrg
     title::String
     level::Int8
     tags::Vector{String}
@@ -122,7 +113,7 @@ end#struct
 level(hl::Headline) = hl.level
 
 function parser!(line::AbstractString, org::OrgDocument, ::Type{Headline},
-                 ::InterruptibleContext)
+                 ::InterruptibleOrg)
     # Determine headline level and whether validly formatted
     level = 0
     for c in line
