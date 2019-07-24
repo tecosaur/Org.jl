@@ -12,26 +12,28 @@
 
 using Test, Org
 
+nc = Org.nocontext
+
 @testset "parser!" begin
     @testset "Headline" begin
         org = OrgDocument()
-        @test parser!("***", org, Headline) === nothing
-        @test parser!("***hello", org, Headline) === nothing
-        @test parser!("hello world", org, Headline) === nothing
+        @test parser!("***", org, Headline, nc) === nothing
+        @test parser!("***hello", org, Headline, nc) === nothing
+        @test parser!("hello world", org, Headline, nc) === nothing
         @test isempty(org)
-        hl = parser!("* Basic Headline :with:tags:", org, Headline)
+        hl = parser!("* Basic Headline :with:tags:", org, Headline, nc)
         @test hl.level == 1
         @test hl.tags == ["with", "tags"]
         @test hl.title == "Basic Headline"
         @test isempty(hl)
         @test isa(first(org), Headline)
-        hl2 = parser!("** Basic headline without tags", org, Headline)
+        hl2 = parser!("** Basic headline without tags", org, Headline, nc)
         @test hl2.level == 2
         @test isempty(hl2.tags)
         @test hl2.title == "Basic headline without tags"
         @test isempty(hl2)
         @test first(first(org)).title == "Basic headline without tags"
-        hl3 = parser!("** Another basic headline", org, Headline)
+        hl3 = parser!("** Another basic headline", org, Headline, nc)
         @test length(first(org)) == 2
         @test last(first(org)).title == "Another basic headline"
     end#@testset
@@ -39,34 +41,32 @@ using Test, Org
     @testset "Paragraph" begin
         org = OrgDocument()
         # newline without an existing paragraph shouldn't change anything
-        @test isempty(parser!("", org, Paragraph).content)
+        p0 = parser!("", org, Paragraph, nc)
+        @test p0 === nc
         @test isempty(org)
 
-        p1 = parser!("Hello", org, Paragraph)
+        p1 = parser!("Hello", org, Paragraph, nc)
         @test length(p1) == 1
         @test last(p1) == "Hello\n"
-        @test !p1.finished
         @test length(org) == 1
         @test isa(last(org), Paragraph)
         @test last(last(org)) == "Hello\n"
         # Still within same paragraph
-        p2 = parser!("World", org, Paragraph)
+        p2 = parser!("World", org, Paragraph, p1)
         @test p1 === p2
-        @test length(p2) == 1
-        @test !p2.finished
+        @test length(p2) == 2
         @test length(org) == 1
-        @test last(last(org)) == "Hello\nWorld\n"
-        p3 = parser!("", org, Paragraph)
-        @test p1 === p3
-        @test p3.finished
-        @test last(last(org)) == "Hello\nWorld\n"
+        @test last(last(org)) == "World\n"
+        p3 = parser!("", org, Paragraph, p1)
+        @test p3 === nc
+        @test last(org).content == ["Hello\n", "World\n"]
 
         # And now a second paragraph just to make sure
-        p4 = parser!("Foobar foo bar", org, Paragraph)
+        p4 = parser!("Foobar foo bar", org, Paragraph, nc)
         @test p4 !== p1
-        @test !p4.finished
         @test last(p4) == "Foobar foo bar\n"
         @test length(org) == 2
-        @test last(last(org)) == "Foobar foo bar\n"
+        @test last(org).content == ["Foobar foo bar\n"]
+        @test first(org).content == ["Hello\n", "World\n"]
     end
 end#@testset

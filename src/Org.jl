@@ -23,6 +23,7 @@ abstract type AbstractOrg end
 
 abstract type ContainerOrg <: AbstractOrg end
 abstract type InlineOrg <: AbstractOrg end
+abstract type OneLineOrg <: ContainerOrg end
 
 # Forward array interface methods
 size(a::ContainerOrg) = size(a.content)
@@ -49,18 +50,69 @@ find_nesting(org::AbstractOrg, l::Integer=typemax(Int)) =
 # ** Parsers
 
 """
-    parser!(line::AbstractString, org::OrgDocument, T::Type{AbstractOrg})
+    parser!(line, org_document, T::Type{ContainerOrg}, context::ContainerOrg)
 
-Attempt to parse next line from io as T.
+Attempt to parse line as T.
 
 If successful, it returns an instance of `T` that is `push!`ed to
-`org`. If unsuccesful, returns `nothing`.
+`org`. This instance is used as the context to the next call of `parser!`. If
+unsuccessful, returns `nothing`.
 """
-function parser! end
+function parser!(::AbstractString, ::OrgDocument, ::Type{<:ContainerOrg},
+                 ::ContainerOrg)
+    # If a ContainerOrg doesn't recognize a context fallback to not parsing it.
+    # This means we can try to parse with the same set of types even when in a
+    # context that requires closure before another container is added.
+    nothing
+end
+
+struct NoContext <: ContainerOrg end
+const nocontext = NoContext()
+
+# *** Paragraph
+
+# Paragraph is basically the fallback parser if nothing else fits. In
+# the future, we will have inline parsers to look for things like
+# *bold*, /italics/, _underline_, [[links][https://julialang.org]], but for right
+# now, we just hold them as plain text.
+
+mutable struct Paragraph <: ContainerOrg
+    content::Vector{Union{InlineOrg,String}}
+end#struct
+Paragraph() = Paragraph(Vector{Union{InlineOrg,String}}())
+
+# Paragraphs, single line elements, and nocontext are only context that can be
+# interrupted without a line that explicitly concludes them.
+const InterruptibleContext = Union{Paragraph, NoContext, OneLineOrg}
+
+"Finds and returns the last paragraph in document if its last `ContainerOrg`."
+last_paragraph(org::ContainerOrg) =
+    isempty(org) ? nothing : last_paragraph(last(org))
+last_paragraph(org::Paragraph) = org
+
+function parser!(line::AbstractString, org::OrgDocument, ::Type{Paragraph},
+                 ::NoContext)
+    isempty(line) && return nocontext
+
+    paragraph = Paragraph()
+    push!(paragraph, line * '\n')
+    push!(find_nesting(org), paragraph)
+    paragraph
+end#function
+
+function parser!(line::AbstractString, ::OrgDocument, ::Type{Paragraph},
+                 p::Paragraph)
+    if isempty(line)
+        nocontext
+    else
+        push!(p, line * '\n')
+        p
+    end#if
+end#function
 
 # *** Headline
 
-struct Headline <: ContainerOrg
+struct Headline <: OneLineOrg
     title::String
     level::Int8
     tags::Vector{String}
@@ -69,7 +121,8 @@ end#struct
 
 level(hl::Headline) = hl.level
 
-function parser!(line::AbstractString, org::OrgDocument, ::Type{Headline})
+function parser!(line::AbstractString, org::OrgDocument, ::Type{Headline},
+                 ::InterruptibleContext)
     # Determine headline level and whether validly formatted
     level = 0
     for c in line
@@ -104,41 +157,6 @@ function parser!(line::AbstractString, org::OrgDocument, ::Type{Headline})
     hl
 end#function
 
-# *** Paragraph
-
-# Paragraph is basically the fallback parser if nothing else fits. In
-# the future, we will have inline parsers to look for things like
-# *bold*, /italics/, _underline_, [[links][https://julialang.org]], but for right
-# now, we just hold them as plain text.
-
-mutable struct Paragraph <: ContainerOrg
-    content::Vector{Union{InlineOrg,String}}
-    finished::Bool
-end#struct
-Paragraph() = Paragraph(Vector{Union{InlineOrg,String}}(), false)
-
-"Finds and returns the last paragraph in document if its last `ContainerOrg`."
-last_paragraph(org::ContainerOrg) =
-    isempty(org) ? nothing : last_paragraph(last(org))
-last_paragraph(org::Paragraph) = org
-
-function parser!(line::AbstractString, org::OrgDocument, ::Type{Paragraph})
-    paragraph = last_paragraph(org)
-    if isempty(line) && paragraph === nothing
-        # Don't change anything and proceed to next line
-        paragraph = Paragraph()
-    elseif isempty(line)
-        # Otherwise just mark paragraph as finished on empty line
-        paragraph.finished = true
-    elseif paragraph === nothing || paragraph.finished
-        paragraph = Paragraph()
-        push!(paragraph, line * '\n')
-        push!(find_nesting(org), paragraph)
-    else
-        # TODO: should each line be stored separately in `Paragraph`?
-        paragraph.content[end] = paragraph.content[end] * line * '\n'
-    end#if
-    paragraph
-end#function
+# ** End module
 
 end # module
