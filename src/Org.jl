@@ -12,7 +12,10 @@
 
 module Org
 
-import Base: size, getindex, setindex!, IndexStyle, iterate, length
+export parser!, OrgDocument, Headline
+
+import Base: size, getindex, setindex!, IndexStyle, iterate, length,
+    firstindex, lastindex, push!
 
 abstract type AbstractOrg end
 
@@ -23,24 +26,19 @@ setindex!(a::AbstractOrg, i::Int) = setindex!(a.content, i)
 IndexStyle(a::AbstractOrg) = IndexStyle(a.content)
 length(a::AbstractOrg) = length(a.content)
 iterate(a::AbstractOrg, args...) = iterate(a.content, args...)
+firstindex(::AbstractOrg) = 1
+lastindex(a::AbstractOrg) = length(a)
+push!(a::AbstractOrg, items...) = push!(a.content, items...)
 
 struct OrgDocument<:AbstractOrg
     content::Vector{AbstractOrg}
 end#struct
 OrgDocument() = OrgDocument(AbstractOrg[])
 
-function find_nesting(org::OrgDocument, level)
-    # TODO: no this is wrong. I never care about anything but the last element unless it's a paragraph...
-    for i in reverse(org)
-        return if level(i) == level
-            i
-        elseif level(i) > level
-            find_nesting(i, level)
-        else
-            i
-        end#if
-    end#for
-end#function
+level(::AbstractOrg) = typemax(Int)
+
+find_nesting(org::AbstractOrg, l::Integer) =
+    length(org) == 0 || level(last(org)) >= l ? org : find_nesting(last(org), l)
 
 """
     parser!(line::AbstractString, org::OrgDocument, T::Type{AbstractOrg})
@@ -52,14 +50,16 @@ If successful, it returns an instance of `T` that is `push!`ed to
 """
 function parser! end
 
-struct Headline<:AbstractOrg
+struct Headline <: AbstractOrg
     title::String
     level::Int8
     tags::Vector{String}
     content::Vector{AbstractOrg}
 end#struct
 
-function parser(line::AbstractString, org::OrgDocument, ::Type{Headline})
+level(hl::Headline) = hl.level
+
+function parser!(line::AbstractString, org::OrgDocument, ::Type{Headline})
     # Determine headline level and whether validly formatted
     level = 0
     for c in line
@@ -73,7 +73,7 @@ function parser(line::AbstractString, org::OrgDocument, ::Type{Headline})
     # Determine whether tags exist and add all found tags
     tags = String[]
     if endswith(line, ':')
-        for tag in reverse(split(line, ':'))
+        for tag in reverse(split(line, ':'))[2:end]
             if length(tag) != 0 && all(isletter, tag)
                 push!(tags, tag)
             else

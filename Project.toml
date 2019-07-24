@@ -2,3 +2,9 @@ name = "Org"
 uuid = "587fedb0-ad84-11e9-2bd6-d15ea4be1f9e"
 authors = ["Adam Beckmeyer <adam_gpg@thebeckmeyers.xyz>"]
 version = "0.1.0"
+
+[extras]
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+
+[targets]
+test = ["Test"]
