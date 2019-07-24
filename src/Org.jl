@@ -38,7 +38,10 @@ OrgDocument() = OrgDocument(AbstractOrg[])
 level(::AbstractOrg) = typemax(Int)
 
 find_nesting(org::AbstractOrg, l::Integer) =
-    length(org) == 0 || level(last(org)) >= l ? org : find_nesting(last(org), l)
+    level(last(org)) >= l ? org : find_nesting(last(org), l)
+
+find_nesting(org::OrgDocument, l::Integer) =
+    isempty(org) ? org : find_nesting(last(org), l)
 
 """
     parser!(line::AbstractString, org::OrgDocument, T::Type{AbstractOrg})
