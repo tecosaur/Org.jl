@@ -25,5 +25,14 @@ using Test, Org
         @test hl.title == "Basic Headline"
         @test isempty(hl)
         @test isa(first(org), Headline)
+        hl2 = parser!("** Basic headline without tags", org, Headline)
+        @test hl2.level == 2
+        @test isempty(hl2.tags)
+        @test hl2.title == "Basic headline without tags"
+        @test isempty(hl2)
+        @test first(first(org)).title == "Basic headline without tags"
+        hl3 = parser!("** Another basic headline", org, Headline)
+        @test length(first(org)) == 2
+        @test last(first(org)).title == "Another basic headline"
     end#@testset
 end#@testset

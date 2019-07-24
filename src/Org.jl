@@ -73,6 +73,7 @@ function parser!(line::AbstractString, org::OrgDocument, ::Type{Headline})
     # Determine whether tags exist and add all found tags
     tags = String[]
     if endswith(line, ':')
+        # First string is empty for ':' that headline ends with
         for tag in reverse(split(line, ':'))[2:end]
             if length(tag) != 0 && all(isletter, tag)
                 push!(tags, tag)
