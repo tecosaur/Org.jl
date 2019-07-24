@@ -4,3 +4,66 @@
 This is a very incomplete experiment in how quickly I can slap
 together a parser for org-mode files without bothering to gain any
 background in parsing theory.
+
+** TODO Org.jl improvements before it's usable
+
+- [X] Develop architecture that can handle context-sensitivity
+- [X] Parse headlines
+- [X] Parse paragraphs
+- [ ] Hook parsers together to parse whole document instead of only elements
+- [ ] Integrate with [[https://github.com/JuliaDocs/Documenter.jl][Documenter.jl]]
+  - [ ] Export parsed org to whatever format is used by Documenter.jl
+- [ ] Document the package
+- [ ] Register in [[https://github.com/JuliaRegistries/General/][General]]
+
+** TODO Org.jl improvements necessary for purpose
+These are the nice-to-have features. In some cases *very* nice to have.
+
+- [ ] Parse code-blocks
+- [ ] Parse example blocks
+- [ ] Parse lists
+  - [ ] Ordered lists
+  - [ ] Unordered lists
+  - [ ] Description lists
+  - [ ] Checkboxes
+- [ ] Parse image links
+- [ ] Parse inline elements
+  - [ ] bold
+  - [ ] italics
+  - [ ] underline
+  - [ ] links
+    - [ ] internal
+    - [ ] external
+  - [ ] verbatim
+  - [ ] code
+- [ ] Parse tables
+  - [ ] Should [[https://github.com/mauro3/OrgTables.jl][OrgTables.jl]] be re-used?
+- [ ] Writers for org elements and org docs
+
+** TODO Org.jl long-term features
+These are the "if I ever feel the need" features.
+
+- [ ] Advanced table features
+  - [ ] Formula handling
+- [ ] Parse drawers
+- [ ] Parse properties
+  - [ ] Property drawer
+  - [ ] Whole-file properties (=#+PROPERTY: mykey myvalues=, etc.)
+- [ ] Parse quote blocks
+- [ ] Parse more inline elements
+  - [ ] timestamps
+  - [ ] subscripts
+  - [ ] superscripts
+  - [ ] Radio targets (=<<target>>=)
+- [ ] Parse footnotes
+  - [ ] Develop suitable architecture for representing and parsing footnotes
+- [ ] Parse embedded LaTeX
+  - [ ] Fragments between =$=
+  - [ ] =\(= and =\)= delimiters
+  - [ ] =\[= and =\]= delimiters
+  - [ ] =\begin{environment= and =\end{environment}= delimiters
+- [ ] Parse =#+NAME:= constructs
+- [ ] Parse captions (=#+CAPTION:=)
+- [ ] Parse inline elements from headline elements and other non-paragraph
+      locations
+- [ ] TODO list functionality
