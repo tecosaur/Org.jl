@@ -1,4 +1,5 @@
 * Org.jl
+[[https://travis-ci.org/non-Jedi/Org.jl][https://travis-ci.org/non-Jedi/Org.jl.svg?branch=master]] [[https://coveralls.io/github/non-Jedi/Org.jl?branch=master][https://coveralls.io/repos/github/non-Jedi/Org.jl/badge.svg?branch=master]]
 
 This is a very incomplete experiment in how quickly I can slap
 together a parser for org-mode files without bothering to gain any
