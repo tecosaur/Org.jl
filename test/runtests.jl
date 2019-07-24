@@ -35,4 +35,38 @@ using Test, Org
         @test length(first(org)) == 2
         @test last(first(org)).title == "Another basic headline"
     end#@testset
+
+    @testset "Paragraph" begin
+        org = OrgDocument()
+        # newline without an existing paragraph shouldn't change anything
+        @test isempty(parser!("", org, Paragraph).content)
+        @test isempty(org)
+
+        p1 = parser!("Hello", org, Paragraph)
+        @test length(p1) == 1
+        @test last(p1) == "Hello\n"
+        @test !p1.finished
+        @test length(org) == 1
+        @test isa(last(org), Paragraph)
+        @test last(last(org)) == "Hello\n"
+        # Still within same paragraph
+        p2 = parser!("World", org, Paragraph)
+        @test p1 === p2
+        @test length(p2) == 1
+        @test !p2.finished
+        @test length(org) == 1
+        @test last(last(org)) == "Hello\nWorld\n"
+        p3 = parser!("", org, Paragraph)
+        @test p1 === p3
+        @test p3.finished
+        @test last(last(org)) == "Hello\nWorld\n"
+
+        # And now a second paragraph just to make sure
+        p4 = parser!("Foobar foo bar", org, Paragraph)
+        @test p4 !== p1
+        @test !p4.finished
+        @test last(p4) == "Foobar foo bar\n"
+        @test length(org) == 2
+        @test last(last(org)) == "Foobar foo bar\n"
+    end
 end#@testset
