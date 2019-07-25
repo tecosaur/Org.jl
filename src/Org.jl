@@ -14,7 +14,8 @@
 
 module Org
 
-export parser!, parse_org, level, Document, Headline, Paragraph
+export parser!, parse_org, level, nocontext, NoContext, Document, Headline,
+    Paragraph
 
 import Base: size, getindex, setindex!, IndexStyle, iterate, length,
     firstindex, lastindex, push!
@@ -36,11 +37,21 @@ firstindex(::Container) = 1
 lastindex(a::Container) = length(a)
 push!(a::Container, items...) = push!(a.content, items...)
 
+"Represents an org-mode document."
 struct Document <: Container
     content::Vector{Container}
 end#struct
 Document() = Document(Container[])
 
+"""
+    level(org)
+
+Return the folding level of a given org element.
+
+For purpose of this function, "level" is `typemax(Int)` for all elements that
+cannot be folded. Headlines will have a "level" equal to the number of leading
+asterisks.
+"""
 level(::AbstractOrg) = typemax(Int)
 
 find_nesting(org::AbstractOrg, l::Integer=typemax(Int)) =
@@ -56,7 +67,8 @@ Attempt to parse line as T.
 
 If successful, it returns an instance of `T` that is `push!`ed to
 `org`. This instance is used as the context to the next call of `parser!`. If
-unsuccessful, returns `nothing`.
+unsuccessful, returns `nothing`. `nocontext` can be used if there is no ongoing
+org element.
 """
 function parser!(::AbstractString, ::Document, ::Type{<:Container},
                  ::Container)
@@ -66,6 +78,13 @@ function parser!(::AbstractString, ::Document, ::Type{<:Container},
     nothing
 end
 
+"""
+    NoContext()
+
+Represent the state of not needing prior context to parse next line.
+
+`nocontext` is an instance of `NoContext`.
+"""
 struct NoContext <: Interruptible end
 const nocontext = NoContext()
 
@@ -76,6 +95,15 @@ const nocontext = NoContext()
 # *bold*, /italics/, _underline_, [[links][https://julialang.org]], but for right
 # now, we just hold them as plain text.
 
+"""
+    Paragraph()
+
+Represent a paragraph.
+
+A paragraph is any element delimited either by blank lines or the
+start and end of other blocks that is not parsed as another kind of
+element.
+"""
 mutable struct Paragraph <: Interruptible
     content::Vector{Union{Inline,String}}
 end#struct
@@ -103,6 +131,21 @@ end#function
 
 # *** Headline
 
+"""
+    Headline(title, level, tags, content)
+
+An org headline is a container for other blocks.
+
+The headline showed below will be parsed as a title of "Foo Bar" with
+tags "barrr", "foo", "bar", and "foo". It has a `level` of 2 and its
+content is a paragraph containing the text "Hello world. I love you."
+
+```org
+** Foo Bar                                                :barrr:foo:bar:foo:
+
+Hello world. I love you.
+```
+"""
 struct Headline <: Interruptible
     title::String
     level::Int8
@@ -178,6 +221,8 @@ end#function
 Parse a string that contains org.
 """
 parse_org(doc::AbstractString, args...) = parse_org(IOBuffer(doc), args...)
+
+Document(org::Union{IO,AbstractString}) = parse_org(org)
 
 # ** End module
 

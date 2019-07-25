@@ -5,20 +5,28 @@ This is a very incomplete experiment in how quickly I can slap
 together a parser for org-mode files without bothering to gain any
 background in parsing theory.
 
+** Usage
+
+Parse an org string or ~IO~ into an ~Org.Document~ with
+~Org.parse_org~. ~Org.Document~ and all its children elements will
+have a field containing their children elements called
+~contents~. Some types of org constructs may have additional fields
+with information.
+
 ** TODO Org.jl improvements before it's usable
 
 - [X] Develop architecture that can handle context-sensitivity
 - [X] Parse headlines
 - [X] Parse paragraphs
 - [X] Hook parsers together to parse whole document instead of only elements
-- [ ] Integrate with [[https://github.com/JuliaDocs/Documenter.jl][Documenter.jl]]
-  - [ ] Export parsed org to whatever format is used by Documenter.jl
-- [ ] Document the package
+- [X] Document the package
 - [ ] Register in [[https://github.com/JuliaRegistries/General/][General]]
 
 ** TODO Org.jl improvements necessary for purpose
 These are the nice-to-have features. In some cases *very* nice to have.
 
+- [ ] Integrate with [[https://github.com/JuliaDocs/Documenter.jl][Documenter.jl]]
+  - [ ] Export parsed org to whatever format is used by Documenter.jl
 - [ ] Parse code-blocks
 - [ ] Parse example blocks
 - [ ] Parse lists
