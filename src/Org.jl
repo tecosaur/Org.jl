@@ -14,32 +14,32 @@
 
 module Org
 
-export parser!, OrgDocument, Headline, Paragraph
+export parser!, parse_org, level, Document, Headline, Paragraph
 
 import Base: size, getindex, setindex!, IndexStyle, iterate, length,
     firstindex, lastindex, push!
 
 abstract type AbstractOrg end
 
-abstract type ContainerOrg <: AbstractOrg end
-abstract type InlineOrg <: AbstractOrg end
-abstract type InterruptibleOrg <: ContainerOrg end
+abstract type Container <: AbstractOrg end
+abstract type Inline <: AbstractOrg end
+abstract type Interruptible <: Container end
 
 # Forward array interface methods
-size(a::ContainerOrg) = size(a.content)
-getindex(a::ContainerOrg, i::Int) = getindex(a.content, i)
-setindex!(a::ContainerOrg, i::Int) = setindex!(a.content, i)
-IndexStyle(a::ContainerOrg) = IndexStyle(a.content)
-length(a::ContainerOrg) = length(a.content)
-iterate(a::ContainerOrg, args...) = iterate(a.content, args...)
-firstindex(::ContainerOrg) = 1
-lastindex(a::ContainerOrg) = length(a)
-push!(a::ContainerOrg, items...) = push!(a.content, items...)
+size(a::Container) = size(a.content)
+getindex(a::Container, i::Int) = getindex(a.content, i)
+setindex!(a::Container, i::Int) = setindex!(a.content, i)
+IndexStyle(a::Container) = IndexStyle(a.content)
+length(a::Container) = length(a.content)
+iterate(a::Container, args...) = iterate(a.content, args...)
+firstindex(::Container) = 1
+lastindex(a::Container) = length(a)
+push!(a::Container, items...) = push!(a.content, items...)
 
-struct OrgDocument <: ContainerOrg
-    content::Vector{ContainerOrg}
+struct Document <: Container
+    content::Vector{Container}
 end#struct
-OrgDocument() = OrgDocument(ContainerOrg[])
+Document() = Document(Container[])
 
 level(::AbstractOrg) = typemax(Int)
 
@@ -58,15 +58,15 @@ If successful, it returns an instance of `T` that is `push!`ed to
 `org`. This instance is used as the context to the next call of `parser!`. If
 unsuccessful, returns `nothing`.
 """
-function parser!(::AbstractString, ::OrgDocument, ::Type{<:ContainerOrg},
-                 ::ContainerOrg)
+function parser!(::AbstractString, ::Document, ::Type{<:Container},
+                 ::Container)
     # If a ContainerOrg doesn't recognize a context fallback to not parsing it.
     # This means we can try to parse with the same set of types even when in a
     # context that requires closure before another container is added.
     nothing
 end
 
-struct NoContext <: InterruptibleOrg end
+struct NoContext <: Interruptible end
 const nocontext = NoContext()
 
 # *** Paragraph
@@ -76,13 +76,13 @@ const nocontext = NoContext()
 # *bold*, /italics/, _underline_, [[links][https://julialang.org]], but for right
 # now, we just hold them as plain text.
 
-mutable struct Paragraph <: InterruptibleOrg
-    content::Vector{Union{InlineOrg,String}}
+mutable struct Paragraph <: Interruptible
+    content::Vector{Union{Inline,String}}
 end#struct
-Paragraph() = Paragraph(Vector{Union{InlineOrg,String}}())
+Paragraph() = Paragraph(Vector{Union{Inline,String}}())
 
-function parser!(line::AbstractString, org::OrgDocument, ::Type{Paragraph},
-                 ::InterruptibleOrg)
+function parser!(line::AbstractString, org::Document, ::Type{Paragraph},
+                 ::Interruptible)
     isempty(line) && return nocontext
 
     paragraph = Paragraph()
@@ -91,7 +91,7 @@ function parser!(line::AbstractString, org::OrgDocument, ::Type{Paragraph},
     paragraph
 end#function
 
-function parser!(line::AbstractString, ::OrgDocument, ::Type{Paragraph},
+function parser!(line::AbstractString, ::Document, ::Type{Paragraph},
                  p::Paragraph)
     if isempty(line)
         nocontext
@@ -103,17 +103,17 @@ end#function
 
 # *** Headline
 
-struct Headline <: InterruptibleOrg
+struct Headline <: Interruptible
     title::String
     level::Int8
     tags::Vector{String}
-    content::Vector{ContainerOrg}
+    content::Vector{Container}
 end#struct
 
 level(hl::Headline) = hl.level
 
-function parser!(line::AbstractString, org::OrgDocument, ::Type{Headline},
-                 ::InterruptibleOrg)
+function parser!(line::AbstractString, org::Document, ::Type{Headline},
+                 ::Interruptible)
     # Determine headline level and whether validly formatted
     level = 0
     for c in line
@@ -143,10 +143,41 @@ function parser!(line::AbstractString, org::OrgDocument, ::Type{Headline},
 
     title = strip(line[level + 1:length(line) - num_tag_chars])
 
-    hl = Headline(title, level, tags, ContainerOrg[])
+    hl = Headline(title, level, tags, Container[])
     push!(find_nesting(org, level), hl)
     hl
 end#function
+
+# ** Parse Document
+
+const container_types = (Headline, Paragraph)
+
+"""
+    parse_org(doc::IO[, parser_targets])::Document
+
+Parse a stream.
+"""
+function parse_org(doc::IO, parser_targets=container_types)::Document
+    org = Document()
+    context = nocontext
+    for line in eachline(doc)
+        for target in parser_targets
+            x = parser!(line, org, target, context)
+            if x !== nothing
+                context = x
+                break
+            end#if
+        end#for
+    end#for
+    org
+end#function
+
+"""
+    parse_org(doc::AbstractString[, parser_targets])::Document
+
+Parse a string that contains org.
+"""
+parse_org(doc::AbstractString, args...) = parse_org(IOBuffer(doc), args...)
 
 # ** End module
 

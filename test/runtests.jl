@@ -16,7 +16,7 @@ nc = Org.nocontext
 
 @testset "parser!" begin
     @testset "Headline" begin
-        org = OrgDocument()
+        org = Document()
         @test parser!("***", org, Headline, nc) === nothing
         @test parser!("***hello", org, Headline, nc) === nothing
         @test parser!("hello world", org, Headline, nc) === nothing
@@ -39,7 +39,7 @@ nc = Org.nocontext
     end#@testset
 
     @testset "Paragraph" begin
-        org = OrgDocument()
+        org = Document()
         # newline without an existing paragraph shouldn't change anything
         p0 = parser!("", org, Paragraph, nc)
         @test p0 === nc
@@ -69,4 +69,31 @@ nc = Org.nocontext
         @test last(org).content == ["Foobar foo bar\n"]
         @test first(org).content == ["Hello\n", "World\n"]
     end
+end#@testset
+
+@testset "parse" begin
+    doc = """
+* Hello :my:tags:
+This is a paragraph.
+* Foobar
+foo bar.
+**** Barfoo
+bar foo.
+** Goodbye    :goodbyetag:
+This is the end of the document.
+    """
+    org = parse_org(doc)
+    @test length(org) == 2
+    @test first(org).title == "Hello"
+    @test first(org).tags == ["my", "tags"]
+    @test length(org[1]) == 1
+    @test org[1][1].content == ["This is a paragraph.\n"]
+    @test org[2].title == "Foobar"
+    @test org[2][1].content == ["foo bar.\n"]
+    @test org[2][2].title == "Barfoo"
+    @test level(org[2][2]) == 4
+    @test length(org[2]) == 3
+    @test org[2][3].title == "Goodbye"
+    @test level(org[2][3]) == 2
+    @test org[2][3].tags == ["goodbyetag"]
 end#@testset

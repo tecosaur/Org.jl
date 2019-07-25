@@ -10,7 +10,7 @@ background in parsing theory.
 - [X] Develop architecture that can handle context-sensitivity
 - [X] Parse headlines
 - [X] Parse paragraphs
-- [ ] Hook parsers together to parse whole document instead of only elements
+- [X] Hook parsers together to parse whole document instead of only elements
 - [ ] Integrate with [[https://github.com/JuliaDocs/Documenter.jl][Documenter.jl]]
   - [ ] Export parsed org to whatever format is used by Documenter.jl
 - [ ] Document the package
