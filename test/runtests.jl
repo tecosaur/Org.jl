@@ -97,3 +97,22 @@ This is the end of the document.
     @test level(org[2][3]) == 2
     @test org[2][3].tags == ["goodbyetag"]
 end#@testset
+
+import JuliaFormatter: format_text
+
+@testset "JuliaFormatter.jl" begin
+    fpath = joinpath(@__DIR__, "..", "src")
+    for (root, _, files) in walkdir(fpath)
+        for fname in files
+            text = read(joinpath(root, fname), String)
+            @test text == format_text(text; indent = 4, margin = 80)
+        end#for
+    end#for
+    fpath = joinpath(@__DIR__)
+    for (root, _, files) in walkdir(fpath)
+        for fname in files
+            text = read(joinpath(root, fname), String)
+            @test text == format_text(text; indent = 4, margin = 80)
+        end#for
+    end#for
+end#@testset
