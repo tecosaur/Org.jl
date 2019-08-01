@@ -14,11 +14,24 @@
 
 module Org
 
-export parser!, parse_org, level, nocontext, NoContext, Document, Headline,
-    Paragraph
+export parser!,
+       parse_org,
+       level,
+       nocontext,
+       NoContext,
+       Document,
+       Headline,
+       Paragraph
 
-import Base: size, getindex, setindex!, IndexStyle, iterate, length,
-    firstindex, lastindex, push!
+import Base: size,
+             getindex,
+             setindex!,
+             IndexStyle,
+             iterate,
+             length,
+             firstindex,
+             lastindex,
+             push!
 
 abstract type AbstractOrg end
 
@@ -37,7 +50,9 @@ firstindex(::Container) = 1
 lastindex(a::Container) = length(a)
 push!(a::Container, items...) = push!(a.content, items...)
 
-"Represents an org-mode document."
+"""
+Represents an org-mode document.
+"""
 struct Document <: Container
     content::Vector{Container}
 end#struct
@@ -54,8 +69,7 @@ asterisks.
 """
 level(::AbstractOrg) = typemax(Int)
 
-find_nesting(org::AbstractOrg, l::Integer=typemax(Int)) =
-    # Case of isempty(org) && level(org) >= l not possible in this recursion
+find_nesting(org::AbstractOrg, l::Integer = typemax(Int)) =
     isempty(org) || level(last(org)) >= l ? org : find_nesting(last(org), l)
 
 # ** Parsers
@@ -70,8 +84,7 @@ If successful, it returns an instance of `T` that is `push!`ed to
 unsuccessful, returns `nothing`. `nocontext` can be used if there is no ongoing
 org element.
 """
-function parser!(::AbstractString, ::Document, ::Type{<:Container},
-                 ::Container)
+function parser!(::AbstractString, ::Document, ::Type{<:Container}, ::Container)
     # If a ContainerOrg doesn't recognize a context fallback to not parsing it.
     # This means we can try to parse with the same set of types even when in a
     # context that requires closure before another container is added.
@@ -109,8 +122,12 @@ mutable struct Paragraph <: Interruptible
 end#struct
 Paragraph() = Paragraph(Vector{Union{Inline,String}}())
 
-function parser!(line::AbstractString, org::Document, ::Type{Paragraph},
-                 ::Interruptible)
+function parser!(
+    line::AbstractString,
+    org::Document,
+    ::Type{Paragraph},
+    ::Interruptible
+)
     isempty(line) && return nocontext
 
     paragraph = Paragraph()
@@ -119,8 +136,12 @@ function parser!(line::AbstractString, org::Document, ::Type{Paragraph},
     paragraph
 end#function
 
-function parser!(line::AbstractString, ::Document, ::Type{Paragraph},
-                 p::Paragraph)
+function parser!(
+    line::AbstractString,
+    ::Document,
+    ::Type{Paragraph},
+    p::Paragraph
+)
     if isempty(line)
         nocontext
     else
@@ -155,15 +176,19 @@ end#struct
 
 level(hl::Headline) = hl.level
 
-function parser!(line::AbstractString, org::Document, ::Type{Headline},
-                 ::Interruptible)
+function parser!(
+    line::AbstractString,
+    org::Document,
+    ::Type{Headline},
+    ::Interruptible
+)
     # Determine headline level and whether validly formatted
     level = 0
     for c in line
         c != '*' && break
         level += 1
     end#for
-    if iszero(level) || level == length(line) || @inbounds line[level + 1] != ' '
+    if iszero(level) || level == length(line) || @inbounds line[level+1] != ' '
         return nothing
     end#if
 
@@ -180,11 +205,11 @@ function parser!(line::AbstractString, org::Document, ::Type{Headline},
         end#for
         reverse!(tags)
     end#if
-    num_tag_chars = mapreduce(length, +, tags; init=0) + length(tags)
+    num_tag_chars = mapreduce(length, +, tags; init = 0) + length(tags)
     # One more colon than number of tags
     num_tag_chars != 0 && (num_tag_chars += 1)
 
-    title = strip(line[level + 1:length(line) - num_tag_chars])
+    title = strip(line[level+1:length(line)-num_tag_chars])
 
     hl = Headline(title, level, tags, Container[])
     push!(find_nesting(org, level), hl)
@@ -200,7 +225,7 @@ const container_types = (Headline, Paragraph)
 
 Parse a stream.
 """
-function parse_org(doc::IO, parser_targets=container_types)::Document
+function parse_org(doc::IO, parser_targets = container_types)::Document
     org = Document()
     context = nocontext
     for line in eachline(doc)
