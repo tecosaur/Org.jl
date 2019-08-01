@@ -111,15 +111,19 @@ import JuliaFormatter: format_text
     fpath = joinpath(@__DIR__, "..", "src")
     for (root, _, files) in walkdir(fpath)
         for fname in files
-            text = read(joinpath(root, fname), String)
-            @test text == format_text(text; indent = 4, margin = 80)
+            if fname[end-2:end] == ".jl"
+                text = read(joinpath(root, fname), String)
+                @test text == format_text(text; indent = 4, margin = 80)
+            end#if
         end#for
     end#for
     fpath = joinpath(@__DIR__)
     for (root, _, files) in walkdir(fpath)
         for fname in files
-            text = read(joinpath(root, fname), String)
-            @test text == format_text(text; indent = 4, margin = 80)
+            if fname[end-2:end] == ".jl"
+                text = read(joinpath(root, fname), String)
+                @test text == format_text(text; indent = 4, margin = 80)
+            end#if
         end#for
     end#for
 end#@testset
