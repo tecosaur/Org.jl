@@ -96,6 +96,15 @@ This is the end of the document.
     @test org[2][3].tags == ["goodbyetag"]
 end#@testset
 
+@testset "Bold" begin
+    @test Org.bold_map("Hello *this is bold* goodbye").content == [
+        fill(false, 6)...,
+        fill(true, 14)...,
+        fill(false, 8)...
+    ]
+    @test Org.bold_map("foobar*").content == fill(false, 7)
+end#@testset
+
 import JuliaFormatter: format_text
 
 @testset "JuliaFormatter.jl" begin

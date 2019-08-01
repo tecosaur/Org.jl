@@ -223,6 +223,49 @@ function parser!(
     hl
 end#function
 
+# ** Inline parsers
+
+# *** Bold
+
+struct Bold <: Inline
+    content::Vector{Bool}
+end#struct
+
+"""
+Finds indexes where text should be bold.
+"""
+function bold_map(org)::Bold
+    bold = Vector{Bool}(undef, length(org))
+    currently_bold = false
+    @inbounds for (i, c) in enumerate(org)
+        if currently_bold
+            bold[i] = true
+            currently_bold = c != '*'
+        else
+            currently_bold = c == '*'
+            bold[i] = currently_bold
+        end#if
+    end#for
+    # If there's an unmatched asterisk in a paragraph, don't mark end of
+    # paragraph as bold.
+    if currently_bold
+        for i in reverse(eachindex(bold))
+            bold[i] = false
+            org[i] == '*' && break
+        end#for
+    end#if
+    Bold(bold)
+end#function
+
+# *** Inline markup container struct
+
+# This is a struct that holds all the different metadata about inline
+# markup for a given paragraph. Basically just provides a namespace.
+
+mutable struct InlineMarkup
+    bold::Bold
+end#struct
+
 # ** Parse Document
 
 const container_types = (Headline, Paragraph)
