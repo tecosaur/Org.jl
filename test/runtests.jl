@@ -46,28 +46,26 @@ nc = Org.nocontext
         @test isempty(org)
 
         p1 = parser!("Hello", org, Paragraph, nc)
-        @test length(p1) == 1
-        @test last(p1) == "Hello\n"
+        @test p1.content == "Hello\n"
         @test length(org) == 1
         @test isa(last(org), Paragraph)
-        @test last(last(org)) == "Hello\n"
+        @test last(org).content == "Hello\n"
         # Still within same paragraph
         p2 = parser!("World", org, Paragraph, p1)
         @test p1 === p2
-        @test length(p2) == 2
         @test length(org) == 1
-        @test last(last(org)) == "World\n"
+        @test last(org).content == "Hello\nWorld\n"
         p3 = parser!("", org, Paragraph, p1)
         @test p3 === nc
-        @test last(org).content == ["Hello\n", "World\n"]
+        @test last(org).content == "Hello\nWorld\n"
 
         # And now a second paragraph just to make sure
         p4 = parser!("Foobar foo bar", org, Paragraph, nc)
         @test p4 !== p1
-        @test last(p4) == "Foobar foo bar\n"
+        @test p4.content == "Foobar foo bar\n"
         @test length(org) == 2
-        @test last(org).content == ["Foobar foo bar\n"]
-        @test first(org).content == ["Hello\n", "World\n"]
+        @test last(org).content == "Foobar foo bar\n"
+        @test first(org).content == "Hello\nWorld\n"
     end
 end#@testset
 
@@ -87,9 +85,9 @@ This is the end of the document.
     @test first(org).title == "Hello"
     @test first(org).tags == ["my", "tags"]
     @test length(org[1]) == 1
-    @test org[1][1].content == ["This is a paragraph.\n"]
+    @test org[1][1].content == "This is a paragraph.\n"
     @test org[2].title == "Foobar"
-    @test org[2][1].content == ["foo bar.\n"]
+    @test org[2][1].content == "foo bar.\n"
     @test org[2][2].title == "Barfoo"
     @test level(org[2][2]) == 4
     @test length(org[2]) == 3

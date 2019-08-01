@@ -14,6 +14,8 @@
 
 module Org
 
+# ** Abstract types and structure
+
 export parser!,
        parse_org,
        level,
@@ -69,6 +71,15 @@ asterisks.
 """
 level(::AbstractOrg) = typemax(Int)
 
+"""
+    finish!(container)
+
+Runs any cleanup that needs to be done when one container is finished.
+
+Defaults to doing nothing.
+"""
+finish!(::Container) = return
+
 find_nesting(org::AbstractOrg, l::Integer = typemax(Int)) =
     isempty(org) || level(last(org)) >= l ? org : find_nesting(last(org), l)
 
@@ -84,12 +95,9 @@ If successful, it returns an instance of `T` that is `push!`ed to
 unsuccessful, returns `nothing`. `nocontext` can be used if there is no ongoing
 org element.
 """
-function parser!(::AbstractString, ::Document, ::Type{<:Container}, ::Container)
-    # If a ContainerOrg doesn't recognize a context fallback to not parsing it.
-    # This means we can try to parse with the same set of types even when in a
-    # context that requires closure before another container is added.
-    nothing
-end
+parser!(::AbstractString, ::Document, ::Type{<:Container}, ::Container) = return
+
+# *** NoContext
 
 """
     NoContext()
@@ -118,9 +126,9 @@ start and end of other blocks that is not parsed as another kind of
 element.
 """
 mutable struct Paragraph <: Interruptible
-    content::Vector{Union{Inline,String}}
+    content::String
 end#struct
-Paragraph() = Paragraph(Vector{Union{Inline,String}}())
+Paragraph() = Paragraph("")
 
 function parser!(
     line::AbstractString,
@@ -130,8 +138,7 @@ function parser!(
 )
     isempty(line) && return nocontext
 
-    paragraph = Paragraph()
-    push!(paragraph, line * '\n')
+    paragraph = Paragraph(line * '\n')
     push!(find_nesting(org), paragraph)
     paragraph
 end#function
@@ -145,7 +152,7 @@ function parser!(
     if isempty(line)
         nocontext
     else
-        push!(p, line * '\n')
+        p.content *= line * '\n'
         p
     end#if
 end#function
@@ -232,6 +239,7 @@ function parse_org(doc::IO, parser_targets = container_types)::Document
         for target in parser_targets
             x = parser!(line, org, target, context)
             if x !== nothing
+                finish!(context)
                 context = x
                 break
             end#if
