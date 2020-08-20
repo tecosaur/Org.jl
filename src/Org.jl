@@ -23,7 +23,8 @@ export parser!,
        NoContext,
        Document,
        Headline,
-       Paragraph
+       Paragraph,
+       OrgTable
 
 import Base: size,
              getindex,
@@ -34,6 +35,8 @@ import Base: size,
              firstindex,
              lastindex,
              push!
+
+include("OrgTable.jl")
 
 abstract type AbstractOrg end
 
