@@ -1,5 +1,5 @@
 macro org_str(content::String)
-    Org(content)
+    content # TODO
 end
 
 function parseinlineorg(content::AbstractString, debug=false)

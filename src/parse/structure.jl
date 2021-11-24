@@ -39,6 +39,6 @@ macro parseassert(elem, expr::Expr, msg)
     end
 end
 
+include("convertor.jl")
 include("sections.jl")
 include("operations.jl")
-include("convertor.jl")

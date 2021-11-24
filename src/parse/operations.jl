@@ -9,7 +9,9 @@ end
 
 import Base.:(*)
 
+*(a::Org) = a
 *(a::Org, b::Org) = Org([a.content; b.content])
+*(orgs::Org...) = Org(getproperty.(orgs, :content) |> Iterators.flatten |> collect)
 *(components::OrgComponent...) = Org(components)
 
 # Section
