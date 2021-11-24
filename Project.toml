@@ -3,6 +3,9 @@ uuid = "280d5a78-422b-43a2-ab56-25d2e21d85a1"
 authors = ["TEC <tec@tecosaur.com> and contributors"]
 version = "0.1.0"
 
+[deps]
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+
 [compat]
 julia = "1"
 
