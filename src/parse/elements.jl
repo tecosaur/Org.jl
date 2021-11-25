@@ -1,91 +1,275 @@
 abstract type OrgElement <: OrgComponent end # Org Syntax §4
 include("objects.jl") # Org Syntax §5
 
+@doc org"""
+*Org Syntax Reference*: \S4.1 \\
+*Org Component Type*: Element
+
+* Form
+#+begin_example
+#+CALL: VALUE
+#+end_example
+
++ =VALUE= is optional, it can contain any character but a newline.
+
+* Fields
+#+begin_src julia
+name::AbstractString
+#+end_src
+"""
+
 mutable struct BabelCall <: OrgElement # Org Syntax §4.1
     name::AbstractString
 end
-const BabelCallRegexp = r"^[ \t]*#\+call:\s*([^\n]*)"
 
-mutable struct Block <: OrgElement # Org Syntax §4.2
+@doc org"""
+*Org Syntax Reference*: \S4.2 \\
+*Org Component Type*: Element
+
+* Form
+#+begin_example
+,#+BEGIN_NAME DATA
+CONTENTS
+,#+END_NAME
+#+end_example
+
++ =NAME= can contain any whitespace character
++ =DATA= (optional) can contain any character but a newline
++ =CONTENTS= can contain any character, including newlines.
+  It can only contain Org *Objects* if it is a *Verse Block*.
+
+* Examples
+#+begin_src org
+TODO?
+#+end_src
+
+* Fields
+#+begin_src julia
+name::AbstractString
+data::Union{AbstractString, Nothing}
+contents::AbstractString
+#+end_src
+"""
+mutable struct Block <: OrgElement
     name::AbstractString
     data::Union{AbstractString, Nothing}
     contents::AbstractString
 end
-const BlockRegexp = r"^[ \t]*#\+begin_(\S+)( [^\n]+)?\n(.*)\n[ \t]*#\+end_\1"
-function Block(content::AbstractString)
-    blockmatch = match(Regex("^$(BlockRegexp.pattern)"), content)
-    @parseassert(Block, !isnothing(blockmatch),
-                 "did not match any recognised block form\n$content")
-    name, data, contents = blockmatch.captures
-    Block(name, data, contents)
-end
+# TODO 1st class src block, convert Block to a abstract type and subtype it?
 
 mutable struct DiarySexp <: OrgElement end # Org Syntax §4.3
 
 mutable struct Planning <: OrgElement end # Org Syntax §4.3
 
-mutable struct Comment <: OrgElement # Org Syntax §4.4
+@doc org"""
+*Org Syntax Reference*: \S4.4 \\
+*Org Component Type*: Element
+
+* Form
+#+begin_example
+,# CONTENTS
+#+end_example
+
++ =CONTENTS= either starts with a whitespace character, or is a newline.
+  It can contain any characters.
+
+* Examples
+#+begin_src org
+,#
+,# hey, it's a comment
+#+end_src
+
+* Fields
+#+begin_src julia
+contents::AbstractString
+#+end_src
+"""
+
+mutable struct Comment <: OrgElement
     contents::AbstractString
 end
 
-mutable struct FixedWidth <: OrgElement # Org Syntax §4.5
+@doc org"""
+*Org Syntax Reference*: \S4.5 \\
+*Org Component Type*: Element
+
+* Form
+#+begin_example
+: CONTENTS
+#+end_example
+
++ =CONTENTS= either starts with a whitespace character, or is a newline.
+  It can contain any characters.
+
+* Examples
+#+begin_src org
+: just some fixed
+: width text
+#+end_src
+
+* Fields
+#+begin_src julia
+contents::AbstractString
+#+end_src
+"""
+
+mutable struct FixedWidth <: OrgElement
     contents::AbstractString
 end
 
-struct HorizontalRule <: OrgElement end # Org Syntax §4.6
-const HorizontalRuleRegex = r"^[ \t]*-{5,}\s*$"
+@doc org"""
+*Org Syntax Reference*: \S4.6 \\
+*Org Component Type*: Element
 
-mutable struct Keyword <: OrgElement # Org Syntax §4.7
+* Form
+
+At least five consecutive hyphens, optionally indented.
+"""
+struct HorizontalRule <: OrgElement end
+
+@doc org"""
+*Org Syntax Reference*: \S4.7 \\
+*Org Component Type*: Element
+
+* Form
+#+begin_example
+,#+KEY: VALUE
+#+end_example
+
++ =KEY= can contain any non-whitespace characters, but cannot be =CALL= or any
+  *Affiliated Keyword*.
++ =VALUE= can contain any character except a newline.
+
+* Examples
+#+begin_src org
+,#+title: Document title
+#+end_src
+
+* Fields
+#+begin_src julia
+key::AbstractString
+value::AbstractString
+#+end_src
+"""
+mutable struct Keyword <: OrgElement
     key::AbstractString
     value::AbstractString
 end
-const KeywordRegex = r"^[ \t]*#\+(\S+): (.*)"
-function Keyword(content::AbstractString)
-    keywordmatch = match(KeywordRegex, content)
-    @parseassert(Keyword, !isnothing(keywordmatch),
-                 "\"$content\"did not match any recognised form")
-    key, value = keywordmatch.captures
-    Keyword(key, value)
-end
 
-mutable struct LaTeXEnvironment <: OrgElement # Org Syntax §4.8
+@doc org"""
+*Org Syntax Reference*: \S4.8 \\
+*Org Component Type*: Element
+
+* Form
+#+begin_example
+\begin{NAME} CONTENTS \end{NAME}
+#+end_example
+
++ =NAME= can contain any alphanumeric character and =*=
++ =CONTENTS= can contain anything but =\end{NAME}=
+
+* Examples
+#+begin_src org
+\begin{align*}
+2x - 5y &= 8 \\
+3x + 9y &= -12
+\end{align*}
+#+end_src
+
+* Fields
+#+begin_src julia
+name::AbstractString
+contents::AbstractString
+#+end_src
+"""
+mutable struct LaTeXEnvironment <: OrgElement
     name::AbstractString
     contents::AbstractString
 end
-const LaTeXEnvironmentRegex = r"^[ \t]*\\begin{([A-Za-z*]*)}\n(.*)\n[ \t]*\\end{\1}"
-function LaTeXEnvironment(content::AbstractString)
-    latexenvmatch = match(LaTeXEnvironmentRegex, content)
-    @parseassert(LaTeXEnvironment, !isnothing(latexenvmatch),
-                 "did not match any recognised form\n$content")
-    name, content = latexenvmatch.captures
-    LaTeXEnvironment(name, content)
-end
 
-mutable struct NodeProperty <: OrgElement # Org Syntax §4.9
+@doc org"""
+*Org Syntax Reference*: \S4.9 \\
+*Org Component Type*: Element
+
+* Forms
+#+begin_example
+:NAME: VALUE
+:NAME+: VALUE
+:NAME:
+:NAME+:
+#+end_example
+
++ =NAME= can contain any non-whitespace character, but cannot end with =+=
+  or be the empty string
++ =VALUE= can contain anything but the newline character
+
+* Examples
+#+begin_src org
+TODO?
+#+end_src
+
+* Fields
+#+begin_src julia
+name::AbstractString
+additive::Bool
+value::AbstractString
+#+end_src
+"""
+mutable struct NodeProperty <: OrgElement
     name::AbstractString
     additive::Bool
     value::AbstractString
 end
-const NodePropertyRegex = r":([^\+]+)(\+)?:\s+([^\n]*)"
-function NodeProperty(content::AbstractString)
-    nodepropmatch = match(NodeProperty, content)
-    @parseassert(NodeProperty, !isnothing(nodepropmatch),
-                 "\"$content\" did not match any recognised form")
-    name, additive, value = nodepropmatch.captures
-    NodeProperty(name, isnothing(additive), value)
-end
 
-mutable struct Paragraph <: OrgElement # Org Syntax §4.10
+@doc org"""
+*Org Syntax Reference*: \S4.10 \\
+*Org Component Type*: Element
+
+* Form
+
+*Paragraphs* are the /default element/, and so any unrecognised content
+is a paragraph.
+
+A paragraph can contain every Org *Object*, and is ended by *Empty Lines*
+and other *Elements*.
+
+* Examples
+#+begin_src org
+Hey look, it's just some text.
+#+end_src
+
+* Fields
+#+begin_src julia
+objects::Vector{OrgObject}
+#+end_src
+"""
+mutable struct Paragraph <: OrgElement
     objects::Vector{OrgObject}
 end
-Paragraph(content::String) = Paragraph(parseinlineorg(content))
 
-mutable struct TableRow <: OrgElement # Org Syntax §4.11
+@doc org"""
+*Org Syntax Reference*: \S4.11 \\
+*Org Component Type*: Element
+
+* Forms
+#+begin_example
+| TABLEROW
+| TABLEHRULE
+#+end_example
+
+
+* Examples
+#+begin_src org
+#+end_src
+
+* Fields
+#+begin_src julia
+cells::Vector{TableCell}
+#+end_src
+"""
+mutable struct TableRow <: OrgElement
     cells::Vector{TableCell}
 end
 struct TableHrule <: OrgElement end
-function TableRow(content::AbstractString)
-    TableRow(TableCell.(split(strip(content, '|'), '|')))
-end
 
 struct EmptyLine <: OrgElement end
