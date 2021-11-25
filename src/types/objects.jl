@@ -398,11 +398,6 @@ contents::AbstractString
 """
 mutable struct TableCell <: OrgObject
     contents::AbstractString
-    function TableCell(content::AbstractString)
-        @parseassert(TableCell, !occursin("|", content),
-                     "\"$content\" cannot contain \"|\"")
-        new(strip(content))
-    end
 end
 Base.length(cell::TableCell) = length(cell.contents)
 

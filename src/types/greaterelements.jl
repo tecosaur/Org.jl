@@ -145,6 +145,27 @@ end
 *Org Component Type*: Greater Element
 
 * Form
+A collection of *Items*.
+
+* Examples
+#+begin_src org
+- it's
+- a
+- list
+#+end_src
+
+* Fields
+#+begin_src julia
+items::Vector{Item}
+#+end_src
+"""
+abstract type List <: OrgGreaterElement end
+
+@doc org"""
+*Org Syntax Reference*: \S3.6 \\
+*Org Component Type*: Greater Element
+
+* Form
 #+begin_example
 BULLET COUNTERSET CHECKBOX TAG CONTENT
 #+end_example
@@ -175,26 +196,13 @@ mutable struct Item <: OrgGreaterElement
     content::Vector{Union{OrgElement, List}}
 end
 
-@doc org"""
-*Org Syntax Reference*: \S3.6 \\
-*Org Component Type*: Greater Element
-
-* Form
-A collection of *Items*.
-
-* Examples
-#+begin_src org
-- it's
-- a
-- list
-#+end_src
-
-* Fields
-#+begin_src julia
-items::Vector{Item}
-#+end_src
-"""
-mutable struct List <: OrgGreaterElement
+mutable struct UnorderedList <: List
+    items::Vector{Item}
+end
+mutable struct OrderedList <: List
+    items::Vector{Item}
+end
+mutable struct DescriptiveList <: List
     items::Vector{Item}
 end
 

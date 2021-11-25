@@ -1,6 +1,4 @@
-macro org_str(content::String)
-    content # TODO
-end
+const InlineMatchers =
 
 function parseinlineorg(content::AbstractString, debug=false)
     objects = OrgComponent[]

@@ -5,6 +5,22 @@ include("greaterelements.jl") # Org Syntax §3
 *Org Component Type*: Heading
 
 * Form
+A *Section* can contain any number of *Greater Elements* or *Elements*.
+
+* Fields
+#+begin_src julia
+content::Vector{Union{OrgGreaterElement, OrgElement}}
+#+end_src
+"""
+mutable struct Section <: OrgComponent # Org Syntax §1
+    content::Vector{Union{OrgGreaterElement, OrgElement}}
+end
+
+@doc org"""
+*Org Syntax Reference*: \S1 \\
+*Org Component Type*: Heading
+
+* Form
 #+begin_example
 STARS KEYWORD PRIORITY TITLE TAGS
 #+end_example
@@ -46,20 +62,4 @@ mutable struct Heading <: OrgComponent
     title::AbstractString
     tags::Vector{AbstractString}
     section::Union{Section, Nothing}
-end
-
-@doc org"""
-*Org Syntax Reference*: \S1 \\
-*Org Component Type*: Heading
-
-* Form
-A *Section* can contain any number of *Greater Elements* or *Elements*.
-
-* Fields
-#+begin_src julia
-content::Vector{Union{OrgGreaterElement, OrgElement}}
-#+end_src
-"""
-mutable struct Section <: OrgComponent # Org Syntax §1
-    content::Vector{Union{OrgGreaterElement, OrgElement}}
 end
