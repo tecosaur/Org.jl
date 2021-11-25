@@ -60,14 +60,17 @@ function parseinlineorg(content::AbstractString, debug=false)
     @parseassert(Paragraph, !occursin("\n\n", content),
                  "cannot contain a double newline")
     points = [point]
-    while point < length(content)
+    clen = length(content) # this does not change, help the compiler
+    while point < clen
         if debug print("\n\e[36m$(lpad(point, 4))\e[37m") end
         obj::Union{OrgObject, Nothing} = nothing
         char = content[point]
         if char in keys(InlineTypeMatchers)
             types = InlineTypeMatchers[char]
             for type in types
-                res = consume(type, @view content[point:end])
+                # profiling indicates that @view content[point:clen] is about a
+                # third faster than @view content[point:end] for large strings
+                res = consume(type, @view content[point:clen])
                 if !isnothing(res)
                     text, obj = res
                     point += length(text)
@@ -78,7 +81,7 @@ function parseinlineorg(content::AbstractString, debug=false)
         if isnothing(obj)
             types = InlineTypeFallbacks
             for type in types
-                res = consume(type, @view content[point:end])
+                res = consume(type, @view content[point:clen])
                 if !isnothing(res)
                     text, obj = res
                     point += length(text)
