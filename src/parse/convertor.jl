@@ -28,7 +28,8 @@ function parseinlineorg(content::AbstractString, debug=false)
             point += length(res)
         end
     end
-    matchers = [(LineBreakRegex, (_) -> LineBreak()),
+    matchers = [(gobbletextplain, TextPlain),
+                (LineBreakRegex, (_) -> LineBreak()),
                 # OrgEntity
                 (LaTeXFragmentRegex, LaTeXFragment),
                 (InlineBabelCallRegex, InlineBabelCall),
@@ -43,7 +44,6 @@ function parseinlineorg(content::AbstractString, debug=false)
                 (ScriptRegex, Script),
                 # Timestamp
                 (TextMarkupRegex, TextMarkup),
-                (gobbletextplain, TextPlain),
                 (s -> s[1:1], TextPlain)]
     points = [point]
     while point < length(content)
