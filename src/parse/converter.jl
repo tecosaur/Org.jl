@@ -1,54 +1,97 @@
-const InlineMatchers =
+@doc org"""
+#+begin_src julia
+consume(component::Type{<:OrgComponent}, text::AbstractString)
+#+end_src
+Try to /consume/ a ~component~ from the start of ~text~.
+
+Returns a tuple of the consumed text and the resulting component
+or =nothing= if this is not possible.
+"""
+function consume(component::Type{<:OrgComponent}, text::AbstractString)
+    matcher = orgmatcher(component)
+    if !isnothing(component)
+        if matcher isa Regex
+            rxmatch = match(matcher, text)
+            if !isnothing(rxmatch)
+                (rxmatch.match, component(rxmatch.captures))
+            end
+        elseif matcher isa Function
+            componenttext = matcher(text)
+            if !isnothing(componenttext)
+                (componenttext, convert(component, componenttext))
+            end
+        end
+    end
+end
+
+abstract type TextPlainForce end
+function consume(::Type{TextPlainForce}, s::AbstractString)
+    c = SubString(s, 1, 1)
+    (c, TextPlain(c))
+end
+
+const InlineTypeMatchers =
+    Dict('[' => [Link, Timestamp, StatisticsCookie],
+         '{' => [Macro],
+         '<' => [RadioTarget, Target, Timestamp],
+         '\\' => [LineBreak, Entity, LaTeXFragment],
+         '*' => [TextMarkup],
+         '/' => [TextMarkup],
+         '_' => [TextMarkup],
+         '+' => [TextMarkup],
+         '=' => [TextMarkup],
+         '~' => [TextMarkup],
+         '@' => [ExportSnippet],
+         'c' => [InlineBabelCall,
+                 TextPlain],
+         # InlineSrcBlock
+         # FootnoteRef
+         # Timestamp
+         )
+const InlineTypeFallbacks =
+    [TextPlain,
+     Script,
+     TextMarkup,
+     TextPlainForce] # we *must* move forwards by some ammount, c.f. §4.10
+
 
 function parseinlineorg(content::AbstractString, debug=false)
-    objects = OrgComponent[]
-    point = 1
+    point, objects = 1, OrgComponent[]
     @parseassert(Paragraph, !occursin("\n\n", content),
                  "cannot contain a double newline")
-    function consume(matcher::Regex, parser, text)
-        test = match(Regex("^(?:" * matcher.pattern * ")"), text)
-        if !isnothing(test)
-            push!(objects, parser(test.match))
-            point += length(test.match)
-        end
-    end
-    function consume(matcher::Function, parser, text)
-        res = matcher(text)
-        if !isnothing(res)
-            obj = parser(res)
-            if length(objects) > 0 &&
-                objects[end] isa TextPlain  &&
-                obj isa TextPlain
-                objects[end] *= obj
-            else
-                push!(objects, obj)
-            end
-            point += length(res)
-        end
-    end
-    matchers = [(gobbletextplain, TextPlain),
-                (LineBreakRegex, (_) -> LineBreak()),
-                # OrgEntity
-                (LaTeXFragmentRegex, LaTeXFragment),
-                (InlineBabelCallRegex, InlineBabelCall),
-                (ExportSnippetRegex, ExportSnippet),
-                # InlineSrcBlock
-                # FootnoteRef
-                (LinkRegex, Link),
-                (MacroRegex, Macro),
-                (RadioTargetRegex, RadioTarget),
-                (TargetRegex, Target),
-                (StatisticsCookieRegex, StatisticsCookie),
-                (ScriptRegex, Script),
-                # Timestamp
-                (TextMarkupRegex, TextMarkup),
-                (s -> s[1:1], TextPlain)]
     points = [point]
     while point < length(content)
         if debug print("\n\e[36m$(lpad(point, 4))\e[37m") end
-        for (matcher, parser) in matchers
-            res = consume(matcher, parser, @view content[point:end])
-            isnothing(res) || break
+        obj::Union{OrgObject, Nothing} = nothing
+        char = content[point]
+        if char in keys(InlineTypeMatchers)
+            types = InlineTypeMatchers[char]
+            for type in types
+                res = consume(type, @view content[point:end])
+                if !isnothing(res)
+                    text, obj = res
+                    point += length(text)
+                    break
+                end
+            end
+        end
+        if isnothing(obj)
+            types = InlineTypeFallbacks
+            for type in types
+                res = consume(type, @view content[point:end])
+                if !isnothing(res)
+                    text, obj = res
+                    point += length(text)
+                    break
+                end
+            end
+        end
+        if obj isa TextPlain &&
+            length(objects) > 0 &&
+            objects[end] isa TextPlain
+            objects[end] *= obj
+        else
+            push!(objects, obj)
         end
         push!(points, point)
         if debug
