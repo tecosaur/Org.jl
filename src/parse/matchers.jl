@@ -67,14 +67,26 @@ end
 @inline orgmatcher(::Type{FootnoteRef}) = r"^\[fn:([^:]+)?(?::(.+))?\]"
 @inline orgmatcher(::Type{InlineBabelCall}) = r"^call_([^()\n]+?)(?:(\[[^]\n]+\]))?\(([^)\n]*)\)(?:(\[[^]\n]+\]))?"
 @inline orgmatcher(::Type{InlineSourceBlock}) = r"^src_(\S+?)(?:(\[[^\n]+\]))?{([^\n]*)}"
+forwardsinlinesrc(content::AbstractString, point::Integer) =
+    forwardsbalenced(content, point; bracketpairs=Dict('{' => '}'),
+                     escapechars=['\\'], quotes=['"'])
+orgmatcher(::Type{InlineSourceBlock}) = function(content::AbstractString)
+    srcmatch = match(r"^src_(\S+?)(?:\[([^\n]+)\])?{", content)
+    if !isnothing(srcmatch)
+        codeend = forwardsinlinesrc(content, length(srcmatch.match))
+        if !isnothing(codeend)
+            @view content[1:codeend]
+        end
+    end
+end
 @inline orgmatcher(::Type{LineBreak}) = r"^\\\\\s*(?:\n *|$)"
 @inline orgmatcher(::Type{Link}) = r"^\[\[([^]]+)\](?:\[([^]]+)\])?\]"
 @inline orgmatcher(::Type{Macro}) = r"^{{{([A-Za-z][A-Za-z0-9-_]*)\((.*)\)}}}"
 # Radio Target
-@inline orgmatcher(::Type{RadioTarget}) = r"^<<<.*?>>>"
-@inline orgmatcher(::Type{Target}) = r"^<<.*?>>"
-@inline orgmatcher(::Type{StatisticsCookie}) = r"^\[([\d.]*%)\]|^\[(\d*)\/(\d*)\]"
-@inline orgmatcher(::Type{Script}) = r"^(\S)([_^])({.*}|[+-][A-Za-z0-9-\\.]*[A-Za-z0-9])"
+@inline orgmatcher(::Type{RadioTarget}) = r"^<<<(.*?)>>>"
+@inline orgmatcher(::Type{Target}) = r"^<<(.*?)>>"
+@inline orgmatcher(::Type{StatisticsCookie}) = r"^\[([\d.]*%)\]|^\[(\d+)?\/(\d+)?\]"
+@inline orgmatcher(::Type{Script}) = r"^(\S)([_^])({.*}|[+-]?[A-Za-z0-9-\\.]*[A-Za-z0-9])"
 # Table Cell
 @inline orgmatcher(::Type{TimestampActive}) = r"<\d{4}-\d\d-\d\d(?: \d?\d:\d\d)?(?: [A-Za-z]{3,7})?>"
 @inline orgmatcher(::Type{TimestampInactive}) = r"\[\d{4}-\d\d-\d\d(?: \d?\d:\d\d)?(?: [A-Za-z]{3,7})?\]"

@@ -1,17 +1,13 @@
 # Methods to interpret string representations of OrgComponents
 
-struct OrgParseError <: Exception
-    element::Union{DataType, Nothing}
+struct OrgComponentParseError <: Exception
+    element::DataType
     msg::AbstractString
 end
 
-function Base.showerror(io::IO, ex::OrgParseError)
+function Base.showerror(io::IO, ex::OrgComponentParseError)
     print(io, "Org parse error")
-    if !isnothing(ex.element)
-        print(io, " for component $(ex.element): ")
-    else
-        print(io, ": ")
-    end
+    print(io, " for component $(ex.element): ")
     print(io, ex.msg)
     Base.Experimental.show_error_hints(io, ex)
 end
@@ -29,22 +25,26 @@ macro parseassert(elem, expr::Expr, msg)
     expr = matchp(expr)
     quote
         if !($(esc(expr)))
-            throw(OrgParseError($(esc(elem)), $(esc(msg))))
+            throw(OrgComponentParseError($(esc(elem)), $(esc(msg))))
         end
     end
 end
 
-include("matchers.jl")
+include("parser.jl")
 
 import Base.convert
 
-function convert(component::Type{<:OrgComponent}, content::AbstractString)
+function convert(component::Type{<:OrgComponent}, content::AbstractString, verify::Bool=true)
     matcher = orgmatcher(component)
-    if isnothing(component)
-        ErrorException("no matcher is defined for $C")
+    if !verify
+        return component(match(matcher, content).captures)
     end
+    @parseassert(component, !isnothing(matcher),
+                 "no matcher is defined for $component")
     if matcher isa Regex
         rxmatch = match(matcher, content)
+        @parseassert(component, !isnothing(rxmatch),
+                     "\"$content\" does not match any known form for a $component")
         @parseassert(component, length(rxmatch.match) == length(content),
                      "\"$content\" is not just a $component")
         component(rxmatch.captures)
@@ -135,7 +135,33 @@ function NodeProperty(components::Vector{Union{Nothing, SubString{String}}})
     NodeProperty(name, isnothing(additive), value)
 end
 
-Paragraph(content::String) = Paragraph(parseinlineorg(content))
+const ParagraphInnerTypeMatchers =
+    Dict('[' => [Link, Timestamp, StatisticsCookie],
+         '{' => [Macro],
+         '<' => [RadioTarget, Target, Timestamp],
+         '\\' => [LineBreak, Entity, LaTeXFragment],
+         '*' => [TextMarkup],
+         '/' => [TextMarkup],
+         '_' => [TextMarkup],
+         '+' => [TextMarkup],
+         '=' => [TextMarkup],
+         '~' => [TextMarkup],
+         '@' => [ExportSnippet],
+         'c' => [InlineBabelCall, Script, TextPlain],
+         's' => [InlineSourceBlock, Script, TextPlain],
+         # FootnoteRef
+         # Timestamp
+         )
+
+const ParagraphInnerTypeFallbacks =
+    [Script,
+     TextPlain,
+     TextMarkup,
+     TextPlainForce] # we *must* move forwards by some ammount, c.f. §4.10
+
+function convert(::Type{Paragraph}, content::AbstractString, _verify::Bool)
+    Paragraph(parseorg(content, ParagraphInnerTypeMatchers, ParagraphInnerTypeFallbacks))
+end
 
 function TableRow(components::Vector{Union{Nothing, SubString{String}}})
     TableRow(TableCell.(split(strip(components[1], '|'), '|')))
@@ -145,13 +171,18 @@ end
 # Objects
 # ---------------------
 
-function convert(::Type{Entity}, content::AbstractString)
+function convert(::Type{Entity}, content::AbstractString, verify::Bool=true)
     entitymatch = match(r"^\\([A-Za-z]*)({}|[^A-Za-z]|$)", content)
-    @parseassert(Entitymatch, !isnothing(entitymatch),
-                 "\"$content\" is not an Entity")
-    name, post = entitymatch.captures
-    @parseassert(Entity, name in keys(Entities),
-                 "\"$name\" is not a registered in Entities")
+    local name, post
+    if !verify
+        name, post = entitymatch.captures
+    else
+        @parseassert(Entitymatch, !isnothing(entitymatch),
+                     "\"$content\" is not an Entity")
+        name, post = entitymatch.captures
+        @parseassert(Entity, name in keys(Entities),
+                     "\"$name\" is not a registered in Entities")
+    end
     Entity(name, post)
 end
 
@@ -180,18 +211,28 @@ function InlineBabelCall(components::Vector{Union{Nothing, SubString{String}}})
     InlineBabelCall(name, if isnothing(header1) header2 else header1 end, arguments)
 end
 
-function InlineSourceBlock(components::Vector{Union{Nothing, SubString{String}}})
-    name, options, arguments = components
-    InlineSourceBlock(name, options, arguments)
+function convert(::Type{InlineSourceBlock}, content::AbstractString, verify::Bool=true)
+    srcmatch = match(r"^src_(\S+?)(?:\[([^\n]+)\])?{(.*)}$", content)
+    if verify
+        @parseassert(InlineSourceBlock, !isnothing(srcmatch),
+                     "\"$content\" does not match any recognised form.")
+        codeend = forwardsinlinesrc(content, length(srcmatch.match) - length(srcmatch.captures[3]))
+        @parseassert(InlineSourceBlock, codeend == length(srcmatch),
+                     "does not end at the end of the input \"$content\"")
+    end
+    lang, options, code = srcmatch.captures
+    InlineSourceBlock(lang, options, code)
 end
 
 function LineBreak(_components::Vector{Union{Nothing, SubString{String}}})
     LineBreak()
 end
 
-function convert(::Type{LinkPath}, content::AbstractString)
+function convert(::Type{LinkPath}, content::AbstractString, verify::Bool=true)
     protocolmatch = match(r"^([^#*\s:]+):(?://)?(.*)$", content)
     if isnothing(protocolmatch)
+        verify && @parseassert(LinkPath, !occursin(r"\[|\]", content),
+                               "\"$content\" cannot contain square brackets")
         if content[1] == '(' && content[end] == ')'
             LinkPath(:coderef, content[2:end-1])
         elseif content[1] == '#'
@@ -203,6 +244,8 @@ function convert(::Type{LinkPath}, content::AbstractString)
         end
     else
         protocol, path = protocolmatch.captures
+        verify && @parseassert(LinkPath, !occursin(r"\[|\]", path),
+                               "path \"$path\" cannot contain square brackets")
         LinkPath(protocol, path)
     end
 end
@@ -221,18 +264,18 @@ end
 function RadioTarget(components::Vector{Union{Nothing, SubString{String}}})
     target = components[1]
     @parseassert(RadioTarget, match(r"^[^<>\n]*$", target),
-                    "\"$target\" cannot contain <, >, or \\n")
+                 "\"$target\" cannot contain <, >, or \\n")
     @parseassert(RadioTarget, !match(r"^\s|\s$", target),
-                    "\"$target\" cannot start or end with whitespace")
-    RadioTarget()
+                 "\"$target\" cannot start or end with whitespace")
+    RadioTarget(target)
 end
 
 function Target(components::Vector{Union{Nothing, SubString{String}}})
     target = components[1]
     @parseassert(Target, match(r"^[^<>\n]*$", target),
-                    "\"$target\" cannot contain <, >, or \\n")
+                 "\"$target\" cannot contain <, >, or \\n")
     @parseassert(Target, !match(r"^\s|\s$", target),
-                    "\"$target\" cannot start or end with whitespace")
+                 "\"$target\" cannot start or end with whitespace")
     Target(target)
 end
 
@@ -258,13 +301,13 @@ end
 function TableCell(components::Vector{Union{Nothing, SubString{String}}})
     content = components[1]
     @parseassert(TableCell, !occursin("|", content),
-                     "\"$content\" cannot contain \"|\"")
+                 "\"$content\" cannot contain \"|\"")
     TableCell(strip(content))
 end
 
 # Table Cell
 
-function convert(::Type{Timestamp}, content::AbstractString)
+function convert(::Type{Timestamp}, content::AbstractString, _verify::Bool)
     function DateTimeRD(type, date, time, mark, value, unit)
         type(Date(date),
              if isnothing(time) nothing else Time(time) end,
@@ -304,10 +347,10 @@ function convert(::Type{Timestamp}, content::AbstractString)
         return range(DateTimeRD(type, date, time1, mark, value, unit),
                      DateTimeRD(type, date, time1, mark, value, unit))
     end
-    throw(OrgParseError(Timestamp, "$content did not match any recognised forms"))
+    throw(OrgComponentParseError(Timestamp, "$content did not match any recognised forms"))
 end
 
-Base.convert(::Type{TextPlain}, text::AbstractString) = TextPlain(text)
+Base.convert(::Type{TextPlain}, text::AbstractString, _verify::Bool) = TextPlain(text)
 
 function gobbletextplain(content::AbstractString)
     text = match(r"^[A-Za-z][^\n_^\.{}\[\]\\*\/+_~=]*[A-Za-z]", content)
@@ -331,7 +374,11 @@ const TextMarkupMarkers =
 function TextMarkup(components::Vector{Union{Nothing, SubString{String}}})
     pre, marker, contents, post = components
     type = TextMarkupMarkers[marker[1]]
-    TextMarkup(type, marker[1], pre, parseinlineorg(contents), post)
+    if type in [:verbatim, :code]
+        TextMarkup(type, marker[1], pre, contents, post)
+    else
+        TextMarkup(type, marker[1], pre, convert(Paragraph, contents).objects, post)
+    end
 end
 
 function TextMarkup(marker::Char, pre::AbstractString, content::AbstractString, post::AbstractString)
@@ -342,5 +389,9 @@ function TextMarkup(marker::Char, pre::AbstractString, content::AbstractString, 
     @parseassert(TextMarkup, match(r"^[\s\-({'\"]?$", post),
                  "post must be the end of a line, a whitespace character, -, ., ,, ;, :, !, ?, ', ), }, [ or \"")
     type = TextMarkupMarkers[marker]
-    TextMarkup(type, marker, pre, parseinlineorg(contents), post)
+    if type in [:verbatim, :code]
+        TextMarkup(type, marker, pre, contents, post)
+    else
+        TextMarkup(type, marker, pre, convert(Paragraph, contents).objects, post)
+    end
 end

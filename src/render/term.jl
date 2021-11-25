@@ -69,8 +69,8 @@ end
 # Objects
 # ---------------------
 
-function term(io::IO, ent::OrgEntity)
-    print(io, Entities[ent.name].utf8)
+function term(io::IO, ent::Entity)
+    print(io, Entities[ent.name].utf8, ent.post)
 end
 
 function term(io::IO, latex::LaTeXFragment)
@@ -161,11 +161,15 @@ function term(io::IO, markup::TextMarkup, accumulatedmarkup="")
     if markup.type in keys(markup_term_codes)
         accumulatedmarkup *= markup_term_codes[markup.type]
     end
-    for obj in markup.contents
-        if obj isa TextMarkup || obj isa TextPlain
-            term(io, obj, accumulatedmarkup)
-        else
-            term(io, obj)
+    if markup.contents isa AbstractString
+        print(io, accumulatedmarkup, markup.contents, "\e[0;0m")
+    else
+        for obj in markup.contents
+            if obj isa TextMarkup || obj isa TextPlain
+                term(io, obj, accumulatedmarkup)
+            else
+                term(io, obj)
+            end
         end
     end
     print(io, markup.post)

@@ -2,10 +2,21 @@
 # Sections
 # ---------------------
 
+# Heading
+# Section
+
 # ---------------------
-# Greater elements
+# Greater Elements
 # ---------------------
 
+# Greater Block
+# Drawer
+# Dynamic Block
+# FootnoteDef
+# InlineTask
+# Item
+# List
+# PropertyDrawer
 const table_charset_org =
     Dict('|' => '|',
          '>' => '|',
@@ -54,12 +65,23 @@ end
 # Elements
 # ---------------------
 
+# Babel Call
+# Block
+# DiarySexp
+# Comment
+# Fixed Width
+# Horizontal Rule
+# Keyword
+# LaTeX Environment
+# Node Property
+# Paragraph
+# Table Row
+
 # ---------------------
 # Objects
 # ---------------------
 
-# OrgEntity
-
+# Entity
 function org(io::IO, latex::LaTeXFragment)
     if isnothing(latex.delimiters)
         print(io, latex.delimiters[1], latex.contents, latex.delimiters[2])
@@ -67,3 +89,18 @@ function org(io::IO, latex::LaTeXFragment)
         print(io. latex.contents)
     end
 end
+# Export Snippet
+# Footnote Ref
+# Inline Babel Call
+# Inline Source Block
+# Line Break
+# Link
+# Macro
+# Radio Target
+# Target
+# Statistics Cookie
+# Script
+# Table Cell
+# Timestamp
+# Text Plain
+# Text Markup

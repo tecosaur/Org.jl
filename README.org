@@ -2,52 +2,52 @@
 #+author: tecosaur
 
 * Progress
-| Component        | Type | Interpret | Regex | Parse | Term | Org | HTML |
-|------------------+------+-----------+-------+-------+------+-----+------|
-| Heading          | X    | X         | X     |       | X    |     |      |
-| Section          | X    |           |       |       |      |     |      |
-|------------------+------+-----------+-------+-------+------+-----+------|
-| GreaterBlock     | X    |           |       |       |      |     |      |
-| Drawer           | X    |           | X     |       |      |     |      |
-| DynamicBlock     | X    |           |       |       |      |     |      |
-| FootnoteDef      | X    |           |       |       |      |     |      |
-| InlineTask       | X    |           |       |       |      |     |      |
-| Item             | X    | X         | X     |       |      |     |      |
-| List             | X    |           |       |       |      |     |      |
-| PropertyDrawer   | X    |           |       |       |      |     |      |
-| Table            | X    | X         | X     |       | X    |     |      |
-|------------------+------+-----------+-------+-------+------+-----+------|
-| BabelCall        | X    |           | X     |       |      |     |      |
-| Block            | X    | X         | X     |       |      |     |      |
-| DiarySexp        | X    |           |       |       |      |     |      |
-| Planning         | X    |           |       |       |      |     |      |
-| Comment          | X    |           |       |       |      |     |      |
-| FixedWidth       | X    |           |       |       |      |     |      |
-| HorizontalRule   | X    | X         | X     |       |      |     |      |
-| Keyword          | X    | X         | X     |       | X    |     |      |
-| LaTeXEnvironment | X    | X         | X     |       |      |     |      |
-| NodeProperty     | X    | X         | X     |       |      |     |      |
-| Paragraph        | X    |           |       |       | X    |     |      |
-| TableRow         | X    |           |       |       |      |     |      |
-| TableHRule       | X    |           |       |       |      |     |      |
-| BlankLine        | X    |           |       |       |      |     |      |
-|------------------+------+-----------+-------+-------+------+-----+------|
-| OrgEntity        | X    | X         | X     |       |      |     |      |
-| LaTeXFragment    | X    | X         | X     | X     |      |     |      |
-| ExportSnippet    | X    | X         | X     | X     |      |     |      |
-| FootnoteRef      | X    | X         | X     |       |      |     |      |
-| InlineBabelCall  | X    | X         | X     | X     |      |     |      |
-| InlineSrcBlock   | X    | X         | X     |       |      |     |      |
-| LinkPath         | X    | X         |       | X     |      |     |      |
-| Link             | X    | X         | X     | X     | X    |     |      |
-| LineBreak        | X    |           | X     | X     |      |     |      |
-| Macro            | X    | X         | X     | X     |      |     |      |
-| RadioTarget      | X    | X         | X     |       |      |     |      |
-| Target           | X    | X         | X     |       |      |     |      |
-| StatisticsCookie | X    | X         | X     |       |      |     |      |
-| Subscript        | X    | X         | X     |       |      |     |      |
-| Superscript      | X    | X         | X     |       |      |     |      |
-| TableCell        | X    | X         |       |       |      |     |      |
-| Timestamp        | X    | X         | X     |       |      |     |      |
-| TextPlain        | X    | X         |       | X     | X    |     |      |
-| TextMarkup       | X    | X         | X     | X     | X    |     |      |
+| Component        | Type | Interpret | Matcher | Parse | Term | Org | HTML |
+|------------------+------+-----------+---------+-------+------+-----+------|
+| Heading          | X    | X         | X       |       | X    |     |      |
+| Section          | X    |           |         |       |      |     |      |
+|------------------+------+-----------+---------+-------+------+-----+------|
+| GreaterBlock     | X    |           |         |       |      |     |      |
+| Drawer           | X    |           | X       |       |      |     |      |
+| DynamicBlock     | X    |           |         |       |      |     |      |
+| FootnoteDef      | X    |           |         |       |      |     |      |
+| InlineTask       | X    |           |         |       |      |     |      |
+| Item             | X    | X         | X       |       |      |     |      |
+| List             | X    |           |         |       |      |     |      |
+| PropertyDrawer   | X    |           |         |       |      |     |      |
+| Table            | X    | X         | X       |       | X    |     |      |
+|------------------+------+-----------+---------+-------+------+-----+------|
+| BabelCall        | X    |           | X       |       |      |     |      |
+| Block            | X    | X         | X       |       |      |     |      |
+| DiarySexp        | X    |           |         |       |      |     |      |
+| Planning         | X    |           |         |       |      |     |      |
+| Comment          | X    |           |         |       |      |     |      |
+| FixedWidth       | X    |           |         |       |      |     |      |
+| HorizontalRule   | X    | X         | X       |       |      |     |      |
+| Keyword          | X    | X         | X       |       | X    |     |      |
+| LaTeXEnvironment | X    | X         | X       |       |      |     |      |
+| NodeProperty     | X    | X         | X       |       |      |     |      |
+| Paragraph        | X    | X         |         |       | X    |     |      |
+| TableRow         | X    | X         |         |       |      |     |      |
+| TableHRule       | X    |           |         |       |      |     |      |
+| BlankLine        | X    |           |         |       |      |     |      |
+|------------------+------+-----------+---------+-------+------+-----+------|
+| OrgEntity        | X    | X         | X       | X     | X    |     |      |
+| LaTeXFragment    | X    | X         | X       | X     | X    |     |      |
+| ExportSnippet    | X    | X         | X       | X     |      |     |      |
+| FootnoteRef      | X    | X         | X       |       |      |     |      |
+| InlineBabelCall  | X    | X         | X       | X     |      |     |      |
+| InlineSrcBlock   | X    | X         | X       | X     |      |     |      |
+| LinkPath         | X    | X         | X       | X     | X    |     |      |
+| Link             | X    | X         | X       | X     | X    |     |      |
+| LineBreak        | X    | X         | X       | X     | X    |     |      |
+| Macro            | X    | X         | X       | X     | X    |     |      |
+| RadioTarget      | X    | X         | X       | X     |      |     |      |
+| Target           | X    | X         | X       | X     |      |     |      |
+| StatisticsCookie | X    | X         | X       | X     |      |     |      |
+| Subscript        | X    | X         | X       | X     |      |     |      |
+| Superscript      | X    | X         | X       | X     |      |     |      |
+| TableCell        | X    | X         |         |       |      |     |      |
+| Timestamp        | X    | X         | X       |       |      |     |      |
+| TextPlain        | X    | X         |         | X     | X    |     |      |
+| TextMarkup       | X    | X         | X       | X     | X    |     |      |

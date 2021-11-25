@@ -493,6 +493,6 @@ mutable struct TextMarkup <: OrgObject
     type::Symbol
     marker::Char
     pre::AbstractString
-    contents::Vector{OrgObject}
+    contents::Union{Vector{OrgObject}, AbstractString}
     post::AbstractString
 end
