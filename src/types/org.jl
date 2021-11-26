@@ -5,8 +5,4 @@ mutable struct Org <: Any
 end
 Org() = Org([])
 
-macro org_str(content::String)
-    content # TODO
-end
-
 include("sections.jl")
