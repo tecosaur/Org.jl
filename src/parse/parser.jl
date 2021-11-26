@@ -1,15 +1,6 @@
 include("matchers.jl")
 include("operations.jl")
 
-@doc org"""
-#+begin_src julia
-consume(component::Type{<:OrgComponent}, text::AbstractString)
-#+end_src
-Try to /consume/ a ~component~ from the start of ~text~.
-
-Returns a tuple of the consumed text and the resulting component
-or =nothing= if this is not possible.
-"""
 function consume(component::Type{<:OrgComponent}, text::AbstractString)
     matcher = orgmatcher(component)
     if !isnothing(component)
@@ -21,7 +12,7 @@ function consume(component::Type{<:OrgComponent}, text::AbstractString)
         elseif matcher isa Function
             componenttext = matcher(text)
             if !isnothing(componenttext)
-                (componenttext, convert(component, componenttext, false))
+                (componenttext, parse(component, componenttext, false))
             end
         end
     end
@@ -42,7 +33,7 @@ end
 function Base.showerror(io::IO, ex::OrgParseError)
     beforepoint = if ex.point > 10 "…" else "" end *
         replace(ex.content[max(1, ex.point-10):ex.point-1], '\n' => "\\n")
-    afterpoint = replace(ex.content[ex.point:min(end, ex.point+45)], '\n' => "\n") *
+    afterpoint = replace(ex.content[ex.point:min(end, ex.point+45)], '\n' => "\\n") *
         if ex.point + 45 < length(ex.content) "…" else "" end
     print(io, "Org parse failed at index $(ex.point) of string:\n")
     printstyled(io, " ", beforepoint, color=:light_black)
@@ -53,34 +44,34 @@ function Base.showerror(io::IO, ex::OrgParseError)
     Base.Experimental.show_error_hints(io, ex)
 end
 
-function parseorg(content::AbstractString, typematchers::Dict{Char, Vector{DataType}},
-                  typefallbacks::Vector{DataType}; debug=false, pointonfail=false)
+function parseorg(content::AbstractString, typematchers::Dict{Char, <:AbstractVector{<:Type}},
+                  typefallbacks::AbstractVector{<:Type}; debug=false, pointonfail=false)
     point, objects = 1, OrgComponent[]
     points = [point]
-    clen = length(content) # this does not change, help the compiler
+    clen = lastindex(content) # this does not change, help the compiler
     while point <= clen
         if debug print("\n\e[36m$(lpad(point, 4))\e[37m") end
-        obj::Union{OrgObject, Nothing} = nothing
+        obj::Union{OrgComponent, Nothing} = nothing
         char, types = content[point], DataType[]
         if char in keys(typematchers)
             types = typematchers[char]
             for type in types
-                # profiling indicates that @view content[point:clen] is about a
-                # third faster than @view content[point:end] for large strings
-                res = consume(type, @view content[point:clen])
+                # profiling indicates that @inbounds @view content[point:clen] is about a
+                # third faster than @inbounds @view content[point:end] for large strings
+                res = consume(type, @inbounds @view content[point:clen])
                 if !isnothing(res)
                     text, obj = res
-                    point += length(text)
+                    point += ncodeunits(text)
                     break
                 end
             end
         end
         if isnothing(obj)
             for type in typefallbacks
-                res = consume(type, @view content[point:clen])
+                res = consume(type, @inbounds @view content[point:clen])
                 if !isnothing(res)
                     text, obj = res
-                    point += length(text)
+                    point += ncodeunits(text)
                     break
                 end
             end
@@ -112,9 +103,15 @@ function parseorg(content::AbstractString, typematchers::Dict{Char, Vector{DataT
     objects
 end
 
+function parseorg(content::AbstractString, typefallbacks::AbstractVector{<:Type};
+                  debug=false, pointonfail=false)
+    parseorg(content, Dict{Char, Vector{DataType}}(),
+             typefallbacks; debug, pointonfail)
+end
+
 # parsing utilities
 
-function forwardsbalenced(content::AbstractString, point::Integer=1, limit::Integer=length(content);
+function forwardsbalenced(content::AbstractString, point::Integer=1, limit::Integer=lastindex(content);
                           bracketpairs::Dict{Char, Char}=Dict{Char, Char}(), escapechars::Vector{Char}=Char[],
                           quotes::Vector{Char}=Char[], spacedquotes::Vector{Char}=Char[])
     open = content[point]

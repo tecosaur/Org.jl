@@ -1,8 +1,8 @@
 abstract type OrgComponent end
 
+include("sections.jl")
+
 mutable struct Org <: Any
-    content::Vector{OrgComponent}
+    contents::Vector{Union{Heading, Section}}
 end
 Org() = Org([])
-
-include("sections.jl")

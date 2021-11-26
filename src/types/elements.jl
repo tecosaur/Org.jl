@@ -5,12 +5,27 @@ mutable struct BabelCall <: OrgElement # Org Syntax §4.1
     name::AbstractString
 end
 
-mutable struct Block <: OrgElement
+abstract type Block <: OrgElement end
+
+mutable struct CommentBlock <: Block
+    contents::AbstractString
+end
+mutable struct ExampleBlock <: Block
+    contents::AbstractString
+end
+mutable struct SourceBlock <: Block
+    lang::Union{AbstractString, Nothing}
+    arguments::Union{AbstractString, Nothing}
+    contents::AbstractString
+end
+mutable struct VerseBlock <: Block
+    contents::Vector{OrgElement}
+end
+mutable struct CustomBlock <: Block
     name::AbstractString
     data::Union{AbstractString, Nothing}
     contents::AbstractString
 end
-# TODO 1st class src block, convert Block to a abstract type and subtype it?
 
 mutable struct DiarySexp <: OrgElement end # Org Syntax §4.3
 

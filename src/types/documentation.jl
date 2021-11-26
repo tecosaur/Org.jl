@@ -1,3 +1,7 @@
+# Thanks to load order issues, we have to do the documentation seperately
+
+Base.Docs.catdoc(org::Org...) = *(org...)
+
 # ---------------------
 # Sections
 # ---------------------
@@ -26,9 +30,9 @@ A headline may directly contain a *Section*.
 
 * Examples
 #+begin_src org
-* A simple heading
-** A second-level heading, with a :tag:
-*** TODO [#A] Finish the Org parser :julia:org:
+,* A simple heading
+,** A second-level heading, with a :tag:
+,*** TODO [#A] Finish the Org parser :julia:org:
 #+end_src
 
 * Fields
@@ -797,11 +801,12 @@ contents::AbstractString
 
 * Fields
 The subtype =StatisticsCookiePercent= has the following structure:
-#+begin_src
+#+begin_src julia
 percentage::AbstractString
+#+end_src
 #+begin_src
 The subtype =StatisticsCookieFraction= has the following structure:
-#+begin_src
+#+begin_src julia
 complete::Union{Integer, Nothing}
 total::Union{Integer, Nothing}
 #+end_src

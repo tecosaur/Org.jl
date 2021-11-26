@@ -40,17 +40,17 @@ import Base.:(*)
 *(objects::OrgObject...) = Paragraph(objects)
 *(cells::TableCell...) = TableRow(cells)
 
-function *(a::TextPlain, b::TextPlain)
-    if a.text isa SubString &&
-        b.text isa SubString &&
-        a.text.string === b.text.string &&
+function *(a::TextPlain{SubString}, b::TextPlain{SubString})
+    if a.text.string === b.text.string &&
         a.text.offset + a.text.ncodeunits == b.text.offset
-        TextPlain(SubString(a.text.string, 1 + a.text.offset,
-                            b.text.offset + b.text.ncodeunits))
+        TextPlain(@inbounds SubString(a.text.string, 1 + a.text.offset,
+                                      b.text.offset + b.text.ncodeunits))
     else
         TextPlain(a.text * b.text)
     end
 end
+
+*(a::TextPlain, b::TextPlain) = TextPlain(a.text * b.text)
 
 ## conversion
 
@@ -58,15 +58,15 @@ end
 
 import Base: iterate, length
 
-length(org::Org) = length(org.content)
+length(org::Org) = length(org.contents)
 
 iterate(org::Org) =
-    if length(org.content) > 0
-        (org.content[1], 2)
+    if length(org.contents) > 0
+        (org.contents[1], 2)
     end
 iterate(org::Org, index::Integer) =
-    if index <= length(org.content)
-        (org.content[index], index + 1)
+    if index <= length(org.contents)
+        (org.contents[index], index + 1)
     end
 
 length(c::OrgComponent) = 1

@@ -1,39 +1,35 @@
 show(io::IO, ::MIME"text/plain", org::Org) = (term(io, org), nothing)
 
-term(io::IO, org::Org) = term.(Ref(io), org.content)
+term(io::IO, org::Org) = term.(Ref(io), org.contents)
+term(org::OrgComponent) = term(stdout, org)
 
 # ---------------------
 # Sections
 # ---------------------
 
-function term(io::IO, section::Section)
-    term(io, section.heading)
-    print(io, "\n")
-    term.(Ref(io), section.content)
-end
+const HeadingKeywordColors = Dict("TODO" => :green,
+                                  "PROJ" => :light_black,
+                                  "LOOP" => :green,
+                                  "STRT" => :magenta,
+                                  "WAIT" => :yellow,
+                                  "HOLD" => :yellow,
+                                  "IDEA" => :green,
+                                  "DONE" => :light_black,
+                                  "KILL" => :red,
+                                  "[ ]" => :green,
+                                  "[?]" => :yellow,
+                                  "[-]" => :magenta,
+                                  "[X]" => :light_black)
 
-const heading_keyword_colors = Dict("TODO" => :green,
-                                    "PROJ" => :light_black,
-                                    "LOOP" => :green,
-                                    "STRT" => :magenta,
-                                    "WAIT" => :yellow,
-                                    "HOLD" => :yellow,
-                                    "IDEA" => :green,
-                                    "DONE" => :light_black,
-                                    "KILL" => :red,
-                                    "[ ]" => :green,
-                                    "[?]" => :yellow,
-                                    "[-]" => :magenta,
-                                    "[X]" => :light_black)
 function term(io::IO, heading::Heading)
-    printstyled(io, "\n", "*"^heading.level, " ", color=:blue)
+    printstyled(io, "*"^heading.level, ' ', color=:blue)
     if !isnothing(heading.keyword)
-        kcolor = if heading.keyword in keys(heading_keyword_colors)
-            heading_keyword_colors[heading.keyword]
+        kcolor = if heading.keyword in keys(HeadingKeywordColors)
+            HeadingKeywordColors[heading.keyword]
         else
             :green
         end
-        printstyled(heading.keyword, " ", color=kcolor)
+        printstyled(heading.keyword, ' ', color=kcolor)
     end
     if !isnothing(heading.priority)
         printstyled("[#", heading.priority, "] ", color=:red)
@@ -42,11 +38,50 @@ function term(io::IO, heading::Heading)
     if length(heading.tags) > 0
         printstyled(" :", join(heading.tags, ":"), ":", color=:light_black)
     end
+    if !isnothing(heading.section)
+        print(io, "\n\n")
+        term(io, heading.section)
+    end
+end
+
+function term(io::IO, section::Section)
+    for component in section.contents
+        term(io, component)
+        component == last(section.contents) || print(io, '\n')
+    end
 end
 
 # ---------------------
 # Greater Elements
 # ---------------------
+
+# Greater Block
+# Drawer
+# Dynamic Block
+# Footnote Def
+# Inline Task
+
+function term(io::IO, list::List, depth=0)
+    term.(Ref(io), list.items, list isa UnorderedList, depth)
+end
+
+function term(io::IO, item::Item, unordered::Bool=true, depth=0)
+    print(io, ' '^2depth)
+    if unordered
+        printstyled(io, if depth % 2 == 0 '➤' else '•' end, ' ', color=:blue)
+    else
+        printstyled(io, item.bullet, ' ', color=:blue)
+    end
+    if !isnothing(item.contents)
+        term.(Ref(io), item.contents)
+    end
+    print(io, '\n')
+    if !isnothing(item.sublist)
+        term(io, item.sublist, depth+1)
+    end
+end
+
+# Property Drawer
 
 function term(io::IO, table::Table)
     org(io::IO, table, table_charset_boxdraw)
@@ -56,14 +91,61 @@ end
 # Elements
 # ---------------------
 
-function term(io::IO, keyword::Keyword)
-    printstyled(io, "#+", keyword.key, ": ", color=:light_black)
-    printstyled(io, keyword.value, "\n", color=:magenta)
+# Babel Call
+# Comment Block
+function term(io::IO, block::ExampleBlock)
+    printblockcontent(io, "║ ", :light_black, block.contents, :cyan)
 end
+function printblockcontent(io, prefix::AbstractString, prefixcolor::Symbol, content::AbstractString, contentcolor::Symbol=:default)
+    lines = replace.(split(content, '\n'), r"^,\*" => "*")
+    printstyled(io, prefix, color=prefixcolor)
+    printstyled(lines[1], color=contentcolor)
+    for line in lines[2:end]
+        printstyled(io, "\n", prefix, color=prefixcolor)
+        printstyled(io, line, color=contentcolor)
+    end
+end
+function term(io::IO, srcblock::SourceBlock)
+    printstyled(io, "╭\n", color=:light_black)
+    printblockcontent(io, "│ ", :light_black, srcblock.contents, :cyan)
+    printstyled(io, "\n╰", color=:light_black)
+end
+# Verse Block
+function term(io::IO, block::CustomBlock)
+    printstyled(io, "#+begin_", block.name, '\n', color=:light_black)
+    print(io, block.contents)
+    printstyled(io, "\n#+end_", block.name, color=:light_black)
+end
+# DiarySexp
+# Comment
+# Fixed Width
+
+function term(io::IO, ::HorizontalRule)
+    printstyled(io, ' ', '─'^(displaysize(io)[2]-2), '\n', color=:light_black)
+end
+
+const DocumentInfoKeywords = ["title", "subtitle", "author"]
+
+function term(io::IO, keyword::Keyword)
+    if keyword.key in DocumentInfoKeywords
+        printstyled(io, "#+", keyword.key, ": ", color=:light_black)
+        printstyled(io, keyword.value, color=:magenta)
+    else
+        printstyled(io, "#+", keyword.key, ": ", keyword.value, color=:light_black)
+    end
+end
+
+# LaTeX Environment
+# Node Property
 
 function term(io::IO, paragraph::Paragraph)
     term.(Ref(io), paragraph.objects)
 end
+
+# Table Row
+# Empty Line
+
+function term(io::IO, ::EmptyLine) end
 
 # ---------------------
 # Objects
@@ -88,7 +170,9 @@ end
 
 # InlineBabelCall
 
-# InlineSourceBlock
+function term(io::IO, src::InlineSourceBlock)
+    printstyled(io, src.body, color=:cyan)
+end
 
 # LineBreak
 
@@ -184,5 +268,5 @@ end
 # ---------------------
 
 function term(io::IO, todo::OrgComponent)
-    print(io, todo)
+    print(io, todo, '\n')
 end

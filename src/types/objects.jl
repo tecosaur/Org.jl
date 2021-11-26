@@ -113,8 +113,8 @@ mutable struct TimestampInactiveRange <: Timestamp
     stop::TimestampInactive
 end
 
-mutable struct TextPlain <: OrgObject
-    text::AbstractString
+mutable struct TextPlain{S <: AbstractString} <: OrgObject
+    text::S
 end
 
 mutable struct TextMarkup <: OrgObject

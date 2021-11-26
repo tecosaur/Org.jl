@@ -4,33 +4,33 @@
 * Progress
 | Component        | Type | Interpret | Matcher | Parse | Term | Org | HTML |
 |------------------+------+-----------+---------+-------+------+-----+------|
-| Heading          | X    | X         | X       |       | X    |     |      |
-| Section          | X    |           |         |       |      |     |      |
+| Heading          | X    | X         | X       | X     | X    |     |      |
+| Section          | X    | X         | X       | X     | X    |     |      |
 |------------------+------+-----------+---------+-------+------+-----+------|
 | GreaterBlock     | X    |           |         |       |      |     |      |
 | Drawer           | X    |           | X       |       |      |     |      |
 | DynamicBlock     | X    |           |         |       |      |     |      |
 | FootnoteDef      | X    |           |         |       |      |     |      |
 | InlineTask       | X    |           |         |       |      |     |      |
-| Item             | X    | X         | X       |       |      |     |      |
-| List             | X    |           |         |       |      |     |      |
+| Item             | X    | X         | X       | X     | X    |     |      |
+| List             | X    | X         | X       | X     | X    |     |      |
 | PropertyDrawer   | X    |           |         |       |      |     |      |
 | Table            | X    | X         | X       |       | X    |     |      |
 |------------------+------+-----------+---------+-------+------+-----+------|
-| BabelCall        | X    |           | X       |       |      |     |      |
-| Block            | X    | X         | X       |       |      |     |      |
+| BabelCall        | X    | X         | X       | X     |      |     |      |
+| Block            | X    | X         | X       | X     | X    |     |      |
 | DiarySexp        | X    |           |         |       |      |     |      |
 | Planning         | X    |           |         |       |      |     |      |
 | Comment          | X    |           |         |       |      |     |      |
 | FixedWidth       | X    |           |         |       |      |     |      |
-| HorizontalRule   | X    | X         | X       |       |      |     |      |
+| HorizontalRule   | X    | X         | X       |       | X    |     |      |
 | Keyword          | X    | X         | X       |       | X    |     |      |
 | LaTeXEnvironment | X    | X         | X       |       |      |     |      |
 | NodeProperty     | X    | X         | X       |       |      |     |      |
 | Paragraph        | X    | X         |         |       | X    |     |      |
 | TableRow         | X    | X         |         |       |      |     |      |
 | TableHRule       | X    |           |         |       |      |     |      |
-| BlankLine        | X    |           |         |       |      |     |      |
+| BlankLine        | X    | X         | X       | X     | X    |     |      |
 |------------------+------+-----------+---------+-------+------+-----+------|
 | OrgEntity        | X    | X         | X       | X     | X    |     |      |
 | LaTeXFragment    | X    | X         | X       | X     | X    |     |      |

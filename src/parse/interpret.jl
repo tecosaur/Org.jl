@@ -32,9 +32,9 @@ end
 
 include("parser.jl")
 
-import Base.convert
+import Base.parse
 
-function convert(component::Type{<:OrgComponent}, content::AbstractString, verify::Bool=true)
+function parse(component::Type{<:OrgComponent}, content::AbstractString, verify::Bool=true)
     matcher = orgmatcher(component)
     if !verify
         return component(match(matcher, content).captures)
@@ -57,14 +57,40 @@ function convert(component::Type{<:OrgComponent}, content::AbstractString, verif
 end
 
 # ---------------------
+# Org
+# ---------------------
+
+function parse(::Type{Org}, content::AbstractString)
+    Org(parseorg(content, [Heading, Section]))
+end
+
+# ---------------------
 # Sections
 # ---------------------
 
 function Heading(components::Vector{Union{Nothing, SubString{String}}})
-    stars, keyword, priority, title, tags = components
+    stars, keyword, priority, title, tags, section = components
     level = length(stars)
     tagsvec = if isnothing(tags); [] else split(tags[2:end-1], ':') end
-    Heading(level, keyword, priority, title, tagsvec, nothing) # TODO interpret section
+    Heading(level, keyword, priority, title, tagsvec,
+            if !isnothing(section) parse(Section, section) end)
+end
+
+const SectionInnerTypeMatchers =
+    Dict('#' => [BabelCall, Keyword, Block, Comment],
+         '-' => [HorizontalRule, List],
+         '|' => [Table],
+         # ':' => [PropertyDrawer, Drawer, FixedWidth],
+         '+' => [List],
+         '*' => [List],
+         '[' => [FootnoteDef],
+         '\\' => [LaTeXEnvironment],
+         '\n' => [EmptyLine])
+
+const SectionInnerTypeFallbacks = [Paragraph]
+
+function Section(components::Vector{Union{Nothing, SubString{String}}})
+    Section(parseorg(components[1], SectionInnerTypeMatchers, SectionInnerTypeFallbacks))
 end
 
 # ---------------------
@@ -78,17 +104,36 @@ end
 # InlineTask
 
 function Item(components::Vector{Union{Nothing, SubString{String}}})
-    bullet, counterset, checkbox, tag, contents = components
-    Item(bullet, counterset, if !isnothing(checkbox) checkbox[1] end, tag, contents)
+    indent, bullet, counterset, checkbox, tag, contents = components
+    text = consume(Paragraph, contents)
+    sublist = consume(List,
+                      if isnothing(text) contents
+                      else @inbounds @view contents[1+length(text[1]):end]
+                      end)
+    Item(bullet, counterset, if !isnothing(checkbox) checkbox[1] end, tag,
+         if !isnothing(text) text[2].objects end,
+         if !isnothing(sublist) sublist[2] end)
 end
 
-# List
+function List(components::Vector{Union{Nothing, SubString{String}}})
+    indent, rest = components
+    # since we know that indent and rest are contiguous
+    whole = @inbounds SubString(rest.string, 1 + rest.offset - indent.ncodeunits,
+                                rest.offset + rest.ncodeunits)
+    items = Vector{Item}(parseorg(whole, [Item]))
+    if items[1].bullet in ["+", "-", "*"]
+        UnorderedList(items)
+    else
+        OrderedList(items)
+    end
+end
+
 # PropertyDrawer
 
 function Table(components::Vector{Union{Nothing, SubString{String}}})
     table, tblfms = components
     rows = map(row -> if !isnothing(match(r"^[ \t]*\|[\-\+]+\|*$", row))
-                   TableHrule() else TableRow(row) end,
+                   TableHrule() else parse(TableRow, row, true) end,
                split(table, '\n'))
     # fill rows to same number of columns
     ncolumns = maximum(r -> if r isa TableRow length(r.cells) else 0 end, rows)
@@ -108,11 +153,25 @@ end
 # Elements
 # ---------------------
 
-# Babel Call
+function BabelCall(components::Vector{Union{Nothing, SubString{String}}})
+    BabelCall(components[1])
+end
 
 function Block(components::Vector{Union{Nothing, SubString{String}}})
     name, data, contents = components
-    Block(name, data, contents)
+    if name == "src"
+        local lang, arguments
+        if isnothing(data)
+            lang, arguments = nothing, nothing
+        else
+            lang, arguments = match(r"^(\S+)( [^\n]+)?$", data).captures
+        end
+        SourceBlock(lang, arguments, contents)
+    elseif name == "example"
+        ExampleBlock(contents)
+    else
+        CustomBlock(name, data, contents)
+    end
 end
 
 # DiarySexp
@@ -136,22 +195,23 @@ function NodeProperty(components::Vector{Union{Nothing, SubString{String}}})
 end
 
 const ParagraphInnerTypeMatchers =
-    Dict('[' => [Link, Timestamp, StatisticsCookie],
-         '{' => [Macro],
-         '<' => [RadioTarget, Target, Timestamp],
-         '\\' => [LineBreak, Entity, LaTeXFragment],
-         '*' => [TextMarkup],
-         '/' => [TextMarkup],
-         '_' => [TextMarkup],
-         '+' => [TextMarkup],
-         '=' => [TextMarkup],
-         '~' => [TextMarkup],
-         '@' => [ExportSnippet],
-         'c' => [InlineBabelCall, Script, TextPlain],
-         's' => [InlineSourceBlock, Script, TextPlain],
-         # FootnoteRef
-         # Timestamp
-         )
+    Dict{Char, Vector{<:Type}}(
+        '[' => [Link, Timestamp, StatisticsCookie],
+        '{' => [Macro],
+        '<' => [RadioTarget, Target, Timestamp],
+        '\\' => [LineBreak, Entity, LaTeXFragment],
+        '*' => [TextMarkup],
+        '/' => [TextMarkup],
+        '_' => [TextMarkup],
+        '+' => [TextMarkup],
+        '=' => [TextMarkup],
+        '~' => [TextMarkup],
+        '@' => [ExportSnippet],
+        'c' => [InlineBabelCall, Script, TextPlain],
+        's' => [InlineSourceBlock, Script, TextPlain],
+        # FootnoteRef
+        # Timestamp
+    )
 
 const ParagraphInnerTypeFallbacks =
     [Script,
@@ -159,19 +219,23 @@ const ParagraphInnerTypeFallbacks =
      TextMarkup,
      TextPlainForce] # we *must* move forwards by some ammount, c.f. §4.10
 
-function convert(::Type{Paragraph}, content::AbstractString, _verify::Bool)
-    Paragraph(parseorg(content, ParagraphInnerTypeMatchers, ParagraphInnerTypeFallbacks))
+function Paragraph(components::Vector{Union{Nothing, SubString{String}}})
+    Paragraph(parseorg(components[1], ParagraphInnerTypeMatchers, ParagraphInnerTypeFallbacks))
 end
 
 function TableRow(components::Vector{Union{Nothing, SubString{String}}})
     TableRow(TableCell.(split(strip(components[1], '|'), '|')))
 end
 
+function EmptyLine(_components::Vector{Union{Nothing, SubString{String}}})
+    EmptyLine()
+end
+
 # ---------------------
 # Objects
 # ---------------------
 
-function convert(::Type{Entity}, content::AbstractString, verify::Bool=true)
+function parse(::Type{Entity}, content::AbstractString, verify::Bool=true)
     entitymatch = match(r"^\\([A-Za-z]*)({}|[^A-Za-z]|$)", content)
     local name, post
     if !verify
@@ -211,7 +275,7 @@ function InlineBabelCall(components::Vector{Union{Nothing, SubString{String}}})
     InlineBabelCall(name, if isnothing(header1) header2 else header1 end, arguments)
 end
 
-function convert(::Type{InlineSourceBlock}, content::AbstractString, verify::Bool=true)
+function parse(::Type{InlineSourceBlock}, content::AbstractString, verify::Bool=true)
     srcmatch = match(r"^src_(\S+?)(?:\[([^\n]+)\])?{(.*)}$", content)
     if verify
         @parseassert(InlineSourceBlock, !isnothing(srcmatch),
@@ -228,7 +292,7 @@ function LineBreak(_components::Vector{Union{Nothing, SubString{String}}})
     LineBreak()
 end
 
-function convert(::Type{LinkPath}, content::AbstractString, verify::Bool=true)
+function parse(::Type{LinkPath}, content::AbstractString, verify::Bool=true)
     protocolmatch = match(r"^([^#*\s:]+):(?://)?(.*)$", content)
     if isnothing(protocolmatch)
         verify && @parseassert(LinkPath, !occursin(r"\[|\]", content),
@@ -252,7 +316,7 @@ end
 
 function Link(components::Vector{Union{Nothing, SubString{String}}})
     path, description = components
-    Link(convert(LinkPath, path), description)
+    Link(parse(LinkPath, path), description)
 end
 
 function Macro(components::Vector{Union{Nothing, SubString{String}}})
@@ -307,7 +371,7 @@ end
 
 # Table Cell
 
-function convert(::Type{Timestamp}, content::AbstractString, _verify::Bool)
+function parse(::Type{Timestamp}, content::AbstractString, _verify::Bool)
     function DateTimeRD(type, date, time, mark, value, unit)
         type(Date(date),
              if isnothing(time) nothing else Time(time) end,
@@ -350,16 +414,11 @@ function convert(::Type{Timestamp}, content::AbstractString, _verify::Bool)
     throw(OrgComponentParseError(Timestamp, "$content did not match any recognised forms"))
 end
 
-Base.convert(::Type{TextPlain}, text::AbstractString, _verify::Bool) = TextPlain(text)
-
-function gobbletextplain(content::AbstractString)
-    text = match(r"^[A-Za-z][^\n_^\.{}\[\]\\*\/+_~=]*[A-Za-z]", content)
-    if !isnothing(text)
-        if occursin(' ', text.match)
-            content[1:findlast(' ', text.match)-1]
-        else
-            text.match
-        end
+function Base.parse(::Type{TextPlain}, text::AbstractString, _verify::Bool=false)
+    if occursin('\n', text) || occursin("  ", text)
+        TextPlain(replace(text, r"[ \t]{2,}|\n" => " "))
+    else
+        TextPlain(text)
     end
 end
 
@@ -377,7 +436,7 @@ function TextMarkup(components::Vector{Union{Nothing, SubString{String}}})
     if type in [:verbatim, :code]
         TextMarkup(type, marker[1], pre, contents, post)
     else
-        TextMarkup(type, marker[1], pre, convert(Paragraph, contents).objects, post)
+        TextMarkup(type, marker[1], pre, parse(Paragraph, contents).objects, post)
     end
 end
 
@@ -392,6 +451,6 @@ function TextMarkup(marker::Char, pre::AbstractString, content::AbstractString, 
     if type in [:verbatim, :code]
         TextMarkup(type, marker, pre, contents, post)
     else
-        TextMarkup(type, marker, pre, convert(Paragraph, contents).objects, post)
+        TextMarkup(type, marker, pre, parse(Paragraph, contents).objects, post)
     end
 end

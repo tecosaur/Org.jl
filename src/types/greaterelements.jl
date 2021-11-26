@@ -30,16 +30,14 @@ mutable struct Item <: OrgGreaterElement
     counterset::Union{AbstractString, Nothing}
     checkbox::Union{Char, Nothing}
     tag::Union{AbstractString, Nothing}
-    content::Vector{Union{OrgObject, List}}
+    contents::Union{Vector{OrgObject}, Nothing}
+    sublist::Union{List, Nothing}
 end
 
 mutable struct UnorderedList <: List
     items::Vector{Item}
 end
 mutable struct OrderedList <: List
-    items::Vector{Item}
-end
-mutable struct DescriptiveList <: List
     items::Vector{Item}
 end
 

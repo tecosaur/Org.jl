@@ -7,7 +7,7 @@ include("types/org.jl")
 include("parse/interpret.jl")
 
 macro org_str(content::String)
-    convert(Org, content)
+    parse(Org, content)
 end
 
 import Base.show
