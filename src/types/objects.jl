@@ -52,11 +52,6 @@ mutable struct Macro <: OrgObject
     arguments::Vector{AbstractString}
 end
 
-mutable struct RadioTarget <: OrgObject
-    contents::AbstractString
-    # contents::Vector{Union{TextMarkup, Entity, LaTeXFragment, Subscript, Superscript}}
-end
-
 mutable struct Target <: OrgObject
     target::AbstractString
 end
@@ -94,21 +89,23 @@ end
 mutable struct TimestampDiary <: Timestamp
     sexp::AbstractString
 end
-mutable struct TimestampActive <: Timestamp
+abstract type TimestampInstant <: Timestamp end
+mutable struct TimestampActive <: TimestampInstant
     date::Date
     time::Union{Time, Nothing}
     repeater::Union{TimestampRepeaterOrDelay, Nothing}
 end
-mutable struct TimestampInactive <: Timestamp
+mutable struct TimestampInactive <: TimestampInstant
     date::Date
     time::Union{Time, Nothing}
     repeater::Union{TimestampRepeaterOrDelay, Nothing}
 end
-mutable struct TimestampActiveRange <: Timestamp
+abstract type TimestampRange <: Timestamp end
+mutable struct TimestampActiveRange <: TimestampRange
     start::TimestampActive
     stop::TimestampActive
 end
-mutable struct TimestampInactiveRange <: Timestamp
+mutable struct TimestampInactiveRange <: TimestampRange
     start::TimestampInactive
     stop::TimestampInactive
 end
@@ -123,4 +120,8 @@ mutable struct TextMarkup <: OrgObject
     pre::AbstractString
     contents::Union{Vector{OrgObject}, AbstractString}
     post::AbstractString
+end
+
+mutable struct RadioTarget <: OrgObject
+    contents::Vector{Union{TextPlain, TextMarkup, Entity, LaTeXFragment, Subscript, Superscript}}
 end

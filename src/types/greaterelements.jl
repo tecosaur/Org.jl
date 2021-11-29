@@ -6,7 +6,7 @@ end
 
 mutable struct Drawer <: OrgGreaterElement
     name::AbstractString
-    contents::Vector{OrgElement}
+    contents::Vector{Union{OrgGreaterElement, OrgElement}}
 end
 
 mutable struct DynamicBlock <: OrgGreaterElement
@@ -42,7 +42,6 @@ mutable struct OrderedList <: List
 end
 
 mutable struct PropertyDrawer <: OrgGreaterElement
-    name::AbstractString
     contents::Vector{NodeProperty}
 end
 

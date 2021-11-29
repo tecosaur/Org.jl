@@ -945,6 +945,7 @@ This will either be:
 + a function which takes a string and returns either
   - nothing, if the string does not start with the component
   - the substring which has been identified as an instance of the component
+  - a tuple of the substring instance of the component, and the component data structure
 """ matcher
 
 @doc org"""

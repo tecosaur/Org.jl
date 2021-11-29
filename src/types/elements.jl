@@ -8,15 +8,19 @@ end
 abstract type Block <: OrgElement end
 
 mutable struct CommentBlock <: Block
-    contents::AbstractString
+    contents::Vector{AbstractString}
 end
 mutable struct ExampleBlock <: Block
-    contents::AbstractString
+    contents::Vector{AbstractString}
+end
+mutable struct ExportBlock <: Block
+    backend::AbstractString
+    contents::Vector{AbstractString}
 end
 mutable struct SourceBlock <: Block
     lang::Union{AbstractString, Nothing}
     arguments::Union{AbstractString, Nothing}
-    contents::AbstractString
+    contents::Vector{AbstractString}
 end
 mutable struct VerseBlock <: Block
     contents::Vector{OrgElement}
@@ -24,15 +28,21 @@ end
 mutable struct CustomBlock <: Block
     name::AbstractString
     data::Union{AbstractString, Nothing}
-    contents::AbstractString
+    contents::Vector{AbstractString}
 end
+
+mutable struct Clock <: OrgElement end # Org Syntax §4.3
 
 mutable struct DiarySexp <: OrgElement end # Org Syntax §4.3
 
-mutable struct Planning <: OrgElement end # Org Syntax §4.3
+mutable struct Planning <: OrgElement # Org Syntax §4.3
+    deadline::Union{Timestamp, Nothing}
+    scheduled::Union{Timestamp, Nothing}
+    closed::Union{Timestamp, Nothing}
+end
 
-mutable struct Comment <: OrgElement
-    contents::AbstractString
+mutable struct Comment{S <: AbstractString} <: OrgElement
+    contents::Vector{S}
 end
 
 mutable struct FixedWidth <: OrgElement
@@ -58,7 +68,7 @@ mutable struct NodeProperty <: OrgElement
 end
 
 mutable struct Paragraph <: OrgElement
-    objects::Vector{OrgObject}
+    contents::Vector{OrgObject}
 end
 
 mutable struct TableRow <: OrgElement

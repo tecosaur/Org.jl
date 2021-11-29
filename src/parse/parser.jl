@@ -10,24 +10,24 @@ function consume(component::Type{<:OrgComponent}, text::AbstractString)
                 (rxmatch.match, component(rxmatch.captures))
             end
         elseif matcher isa Function
-            componenttext = matcher(text)
-            if !isnothing(componenttext)
-                (componenttext, parse(component, componenttext, false))
+            matchresult = matcher(text)
+            if isnothing(matchresult)
+            elseif matchresult isa Tuple{AbstractString, OrgComponent}
+                matchresult
+            elseif matchresult isa AbstractString
+                (matchresult, parse(component, matchresult, false))
+            else
+                @warn "Matcher for $(typeof(component)) returned an unworkable result type: $(typeof(matchresult))"
+                nothing
             end
         end
     end
 end
 
-abstract type TextPlainForce end
-function consume(::Type{TextPlainForce}, s::AbstractString)
-    c = SubString(s, 1, 1)
-    (c, TextPlain(c))
-end
-
 struct OrgParseError
     content::AbstractString
     point::Integer
-    allowedtypes::Vector{DataType}
+    allowedtypes::Vector{<:Type}
 end
 
 function Base.showerror(io::IO, ex::OrgParseError)

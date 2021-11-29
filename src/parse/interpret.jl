@@ -72,22 +72,44 @@ function Heading(components::Vector{Union{Nothing, SubString{String}}})
     stars, keyword, priority, title, tags, section = components
     level = length(stars)
     tagsvec = if isnothing(tags); [] else split(tags[2:end-1], ':') end
+    planning, properties = nothing, nothing
+    if !isnothing(section)
+        plan = consume(Planning, section)
+        if !isnothing(plan)
+            section = @inbounds SubString(section.string,
+                                          1 + section.offset + ncodeunits(plan[1]),
+                                          section.offset + section.ncodeunits)
+            planning = plan[2]
+        end
+        props = consume(PropertyDrawer, section)
+        if !isnothing(props)
+            section = @inbounds SubString(section.string,
+                                          1 + section.offset + ncodeunits(props[1]),
+                                          section.offset + section.ncodeunits)
+            properties = props[2]
+        end
+        if ncodeunits(section) == 0
+            section = nothing
+        end
+    end
     Heading(level, keyword, priority, title, tagsvec,
-            if !isnothing(section) parse(Section, section) end)
+            if !isnothing(section) parse(Section, section) end,
+            planning, properties)
 end
 
 const SectionInnerTypeMatchers =
-    Dict('#' => [BabelCall, Keyword, Block, Comment],
-         '-' => [HorizontalRule, List],
-         '|' => [Table],
-         # ':' => [PropertyDrawer, Drawer, FixedWidth],
-         '+' => [List],
-         '*' => [List],
-         '[' => [FootnoteDef],
-         '\\' => [LaTeXEnvironment],
-         '\n' => [EmptyLine])
+    Dict{Char, Vector{<:Type}}(
+        '#' => [BabelCall, Keyword, Block, Comment],
+        '-' => [HorizontalRule, List],
+        '|' => [Table],
+        ':' => [PropertyDrawer, Drawer, FixedWidth],
+        '+' => [List],
+        '*' => [List],
+        '[' => [FootnoteDef],
+        '\\' => [LaTeXEnvironment],
+        '\n' => [EmptyLine])
 
-const SectionInnerTypeFallbacks = [Paragraph]
+const SectionInnerTypeFallbacks = [Paragraph, List]
 
 function Section(components::Vector{Union{Nothing, SubString{String}}})
     Section(parseorg(components[1], SectionInnerTypeMatchers, SectionInnerTypeFallbacks))
@@ -98,7 +120,12 @@ end
 # ---------------------
 
 # Greater Block
-# Drawer
+
+function Drawer(components::Vector{Union{Nothing, SubString{String}}})
+    name, content = components
+    Drawer(name, parse(Section, content).contents)
+end
+
 # Dynamic Block
 # FootnoteDef
 # InlineTask
@@ -111,7 +138,7 @@ function Item(components::Vector{Union{Nothing, SubString{String}}})
                       else @inbounds @view contents[1+length(text[1]):end]
                       end)
     Item(bullet, counterset, if !isnothing(checkbox) checkbox[1] end, tag,
-         if !isnothing(text) text[2].objects end,
+         if !isnothing(text) text[2].contents end,
          if !isnothing(sublist) sublist[2] end)
 end
 
@@ -128,7 +155,11 @@ function List(components::Vector{Union{Nothing, SubString{String}}})
     end
 end
 
-# PropertyDrawer
+function PropertyDrawer(components::Vector{Union{Nothing, SubString{String}}})
+    nodetext = components[1]
+    nodes = parseorg(nodetext, [NodeProperty])
+    PropertyDrawer(Vector{NodeProperty}(nodes))
+end
 
 function Table(components::Vector{Union{Nothing, SubString{String}}})
     table, tblfms = components
@@ -159,6 +190,13 @@ end
 
 function Block(components::Vector{Union{Nothing, SubString{String}}})
     name, data, contents = components
+    lines = split(contents, '\n')
+    for i in 1:length(lines)
+        if startswith(lines[i], ",*")
+            lines[i] = @inbounds SubString(lines[i].string, 2 + lines[i].offset,
+                                           lines[i].offset + lines[i].ncodeunits)
+        end
+    end
     if name == "src"
         local lang, arguments
         if isnothing(data)
@@ -166,18 +204,45 @@ function Block(components::Vector{Union{Nothing, SubString{String}}})
         else
             lang, arguments = match(r"^(\S+)( [^\n]+)?$", data).captures
         end
-        SourceBlock(lang, arguments, contents)
+        SourceBlock(lang, arguments, lines)
     elseif name == "example"
-        ExampleBlock(contents)
+        ExampleBlock(lines)
     else
-        CustomBlock(name, data, contents)
+        CustomBlock(name, data, lines)
     end
 end
 
+# Clock
+
 # DiarySexp
-# Comment
-# Fixed Width
-# Horizontal Rule
+
+function parse(::Type{Planning}, content::AbstractString, verify::Bool=true)
+    planning = orgmatcher(Planning)(content)
+    verify && @parseassert(Planning, !isnothing(planning),
+                           "\"$content\" does not match any recognised form")
+    plantext, plan = planning
+    verify && @parseassert(Planning, length(plantext) == length(content),
+                           "\"$content\" is not just a $component")
+    plan
+end
+
+function Comment(components::Vector{Union{Nothing, SubString{String}}})
+    content = components[1]
+    lines = split(content, '\n') .|> l ->
+        @inbounds SubString(l.string, 1 + l.offset + ncodeunits(match(r"^[ \t]*# ?", l).match),
+                            l.offset + l.ncodeunits)
+    Comment(lines)
+end
+
+function FixedWidth(components::Vector{Union{Nothing, SubString{String}}})
+    content = components[1]
+    lines = split(content, '\n') .|> l ->
+        @inbounds SubString(l.string, 1 + l.offset + ncodeunits(match(r"^[ \t]*: ?", l).match),
+                            l.offset + l.ncodeunits)
+    FixedWidth(lines)
+end
+
+HorizontalRule(_::Vector{Union{Nothing, SubString{String}}}) = HorizontalRule()
 
 function Keyword(components::Vector{Union{Nothing, SubString{String}}})
     key, value = components
@@ -191,7 +256,7 @@ end
 
 function NodeProperty(components::Vector{Union{Nothing, SubString{String}}})
     name, additive, value = components
-    NodeProperty(name, isnothing(additive), value)
+    NodeProperty(name, !isnothing(additive), value)
 end
 
 const ParagraphInnerTypeMatchers =
@@ -210,8 +275,21 @@ const ParagraphInnerTypeMatchers =
         'c' => [InlineBabelCall, Script, TextPlain],
         's' => [InlineSourceBlock, Script, TextPlain],
         # FootnoteRef
-        # Timestamp
     )
+
+abstract type TextPlainForce end
+function consume(::Type{TextPlainForce}, s::AbstractString)
+    c = SubString(s, 1, 1)
+    printstyled(stderr, "Warning:", bold=true, color=:yellow)
+    print(stderr, " Force matching ")
+    printstyled(stderr, '\'', c, '\'', color=:cyan)
+    print(stderr, " from ")
+    b = IOBuffer()
+    show(b, s[1:min(50,end)])
+    printstyled(stderr, String(take!(b)), if length(s) > 50 "…" else "" end, color=:green)
+    print(stderr, "\n         This usually indicates a case where the plain text matcher can be improved.\n")
+    (c, TextPlain(c))
+end
 
 const ParagraphInnerTypeFallbacks =
     [Script,
@@ -227,7 +305,7 @@ function TableRow(components::Vector{Union{Nothing, SubString{String}}})
     TableRow(TableCell.(split(strip(components[1], '|'), '|')))
 end
 
-function EmptyLine(_components::Vector{Union{Nothing, SubString{String}}})
+function EmptyLine(_::Vector{Union{Nothing, SubString{String}}})
     EmptyLine()
 end
 
@@ -276,10 +354,10 @@ function InlineBabelCall(components::Vector{Union{Nothing, SubString{String}}})
 end
 
 function parse(::Type{InlineSourceBlock}, content::AbstractString, verify::Bool=true)
-    srcmatch = match(r"^src_(\S+?)(?:\[([^\n]+)\])?{(.*)}$", content)
+    srcmatch = match(r"^src_(\S+?)(?:\[([^\n]+)\])?{(.*\n?.*)}$", content)
     if verify
         @parseassert(InlineSourceBlock, !isnothing(srcmatch),
-                     "\"$content\" does not match any recognised form.")
+                     "\"$content\" does not match any recognised form")
         codeend = forwardsinlinesrc(content, length(srcmatch.match) - length(srcmatch.captures[3]))
         @parseassert(InlineSourceBlock, codeend == length(srcmatch),
                      "does not end at the end of the input \"$content\"")
@@ -331,7 +409,7 @@ function RadioTarget(components::Vector{Union{Nothing, SubString{String}}})
                  "\"$target\" cannot contain <, >, or \\n")
     @parseassert(RadioTarget, !match(r"^\s|\s$", target),
                  "\"$target\" cannot start or end with whitespace")
-    RadioTarget(target)
+    RadioTarget(parseorg(target, [TextPlain, TextMarkup, Entity, LaTeXFragment, Subscript, Superscript]))
 end
 
 function Target(components::Vector{Union{Nothing, SubString{String}}})
@@ -369,54 +447,26 @@ function TableCell(components::Vector{Union{Nothing, SubString{String}}})
     TableCell(strip(content))
 end
 
-# Table Cell
-
-function parse(::Type{Timestamp}, content::AbstractString, _verify::Bool)
-    function DateTimeRD(type, date, time, mark, value, unit)
-        type(Date(date),
-             if isnothing(time) nothing else Time(time) end,
-             if isnothing(mark) nothing else TimestampRepeaterOrDelay(mark, value, unit[1]) end)
-    end
-    open, bra, ket = "(?:(<)|\\[)", "(?(1)<|\\[)", "(?(1)>|\\])"
-    date = "(\\d{4}-\\d\\d-\\d\\d)(?: [A-Za-z]{3,7})?"
-    time = "(\\d?\\d:\\d\\d)"
-    repeater_or_delay = "((?:\\+|\\+\\+|\\.\\+|-|--))([\\d.]+)([hdwmy])"
-    # <%%(SEXP)>
-    diarymatch = match(r"^<%%\((.*)\)>$", content)
-    if !isnothing(diarymatch)
-        return TimestampDiary(diarymatch.captures[1])
-    end
-    # <DATE TIME REPEATER-OR-DELAY>
-    singletsmatch = match(Regex("^$open$date(?: $time)?(?: $repeater_or_delay)?$ket\$"), content)
-    if !isnothing(singletsmatch)
-        activep, date, time, mark, value, unit = singletsmatch.captures
-        type = if isnothing(activep) TimestampInactive else TimestampActive end
-        return DateTimeRD(type, date, time, mark, value, unit)
-    end
-    # <DATE TIME REPEATER-OR-DELAY>--<DATE TIME REPEATER-OR-DELAY>
-    doubletsmatch = match(Regex("^$open$date(?: $time)?(?: $repeater_or_delay)?$ket--$bra$date(?: $time)?(?: $repeater_or_delay)?$ket\$"), content)
-    if !isnothing(doubletsmatch)
-        activep, date1, time1, mark1, value1, unit1, date2, time2, mark2, value2, unit2 = doubletsmatch.captures
-        type = if isnothing(activep) TimestampInactive else TimestampActive end
-        range = if isnothing(activep) TimestampInactiveRange else TimestampActiveRange end
-        return range(DateTimeRD(type, date1, time1, mark1, value1, unit1),
-                     DateTimeRD(type, date2, time2, mark2, value2, unit2))
-    end
-    # <DATE TIME-TIME REPEATER-OR-DELAY>
-    doubletimematch = match(Regex("^$open$date $time-$time(?: $repeater_or_delay)?$ket\$"), content)
-    if !isnothing(doubletimematch)
-        activep, date, time1, time2, mark, value, unit = doubletimematch.captures
-        type = if isnothing(activep) TimestampInactive else TimestampActive end
-        range = if isnothing(activep) TimestampInactiveRange else TimestampActiveRange end
-        return range(DateTimeRD(type, date, time1, mark, value, unit),
-                     DateTimeRD(type, date, time1, mark, value, unit))
-    end
-    throw(OrgComponentParseError(Timestamp, "$content did not match any recognised forms"))
+function parse(::Type{Timestamp}, content::AbstractString, verify::Bool=true)
+    tsmatch = orgmatcher(Timestamp)(content)
+    verify && @parseassert(Timestamp, !isnothing(tsmatch),
+                           "\"$content\" does not match any recognised form")
+    tstext, ts = tsmatch
+    verify && @parseassert(Timestamp, length(tstext) == length(content),
+                           "\"$content\" is not just a $component")
+    ts
 end
 
-function Base.parse(::Type{TextPlain}, text::AbstractString, _verify::Bool=false)
+function parse(T::Type{<:Timestamp}, content::AbstractString, verify::Bool=true)
+    ts = parse(Timestamp, content, verify)
+    verify && @parseassert(T, ts isa T,
+                           "\"$content\" is a $(typeof(ts))")
+    ts
+end
+
+function parse(::Type{TextPlain}, text::AbstractString, _verify::Bool=false)
     if occursin('\n', text) || occursin("  ", text)
-        TextPlain(replace(text, r"[ \t]{2,}|\n" => " "))
+        TextPlain(replace(text, r"[ \t\n]{2,}|\n" => " "))
     else
         TextPlain(text)
     end
@@ -436,7 +486,8 @@ function TextMarkup(components::Vector{Union{Nothing, SubString{String}}})
     if type in [:verbatim, :code]
         TextMarkup(type, marker[1], pre, contents, post)
     else
-        TextMarkup(type, marker[1], pre, parse(Paragraph, contents).objects, post)
+        parsedcontents = parseorg(contents, ParagraphInnerTypeMatchers, ParagraphInnerTypeFallbacks)
+        TextMarkup(type, marker[1], pre, Vector{OrgObject}(parsedcontents), post)
     end
 end
 
@@ -449,8 +500,9 @@ function TextMarkup(marker::Char, pre::AbstractString, content::AbstractString, 
                  "post must be the end of a line, a whitespace character, -, ., ,, ;, :, !, ?, ', ), }, [ or \"")
     type = TextMarkupMarkers[marker]
     if type in [:verbatim, :code]
-        TextMarkup(type, marker, pre, contents, post)
+        TextMarkup(type, marker, pre, content, post)
     else
-        TextMarkup(type, marker, pre, parse(Paragraph, contents).objects, post)
+        parsedcontent = parseorg(content, ParagraphInnerTypeMatchers, ParagraphInnerTypeFallbacks)
+        TextMarkup(type, marker, pre, parsedcontent, post)
     end
 end

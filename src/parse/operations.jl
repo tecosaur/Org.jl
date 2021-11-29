@@ -7,7 +7,7 @@ function Base.:(==)(a::T, b::T) where {T <: OrgComponent}
     true
 end
 
-import Base.:(*)
+import Base: (*), (==)
 
 *(a::Org) = a
 *(a::Org, b::Org) = Org([a.content; b.content])
@@ -26,7 +26,7 @@ import Base.:(*)
 
 # Element
 
-*(a::Paragraph, b::Paragraph) = Paragraph([a.objects, b.objects])
+*(a::Paragraph, b::Paragraph) = Paragraph([a.contents, b.contents])
 
 *(a::Comment, b::Comment) = Comment(a.contents * "\n" * b.contents)
 *(a::FixedWidth, b::FixedWidth) = Comment(a.contents * "\n" * b.contents)
@@ -51,6 +51,11 @@ function *(a::TextPlain{SubString}, b::TextPlain{SubString})
 end
 
 *(a::TextPlain, b::TextPlain) = TextPlain(a.text * b.text)
+
+## Equality of elements with different types
+
+==(a::Org, b::Org) = a.contents == b.contents
+==(a::TextPlain, b::TextPlain) = a.text == b.text
 
 ## conversion
 
@@ -87,15 +92,15 @@ iterate(s::Section, index::Integer) =
 
 # Element
 
-length(p::Paragraph) = length(p.objects)
+length(p::Paragraph) = length(p.contents)
 
 iterate(p::Paragraph) =
-    if length(p.objects) > 0
-        (p.objects[1], 2)
+    if length(p.contents) > 0
+        (p.contents[1], 2)
     end
 iterate(p::Paragraph, index::Integer) =
-    if index <= length(p.objects)
-        (p.objects[index], index + 1)
+    if index <= length(p.contents)
+        (p.contents[index], index + 1)
     end
 
 # Object

@@ -11,4 +11,6 @@ mutable struct Heading <: OrgComponent
     title::AbstractString
     tags::Vector{AbstractString}
     section::Union{Section, Nothing}
+    planning::Union{Planning, Nothing}
+    properties::Union{PropertyDrawer, Nothing}
 end
