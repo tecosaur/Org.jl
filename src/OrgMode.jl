@@ -5,11 +5,12 @@ export Org, @org_str
 include("types/org.jl")
 
 include("parse/interpret.jl")
-include("analysis/parsetree.jl")
 
 macro org_str(content::String)
     parse(Org, content)
 end
+
+export org, term
 
 include("render/formatting.jl")
 include("render/org.jl")
@@ -27,6 +28,8 @@ function Base.show(io::IO, ::MIME"text/plain", org::Org)
 end
 
 include("types/documentation.jl")
+
+export parsetree
 
 include("analysis/parsetree.jl")
 include("analysis/diff.jl")
