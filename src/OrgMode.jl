@@ -10,11 +10,12 @@ macro org_str(content::String)
     parse(Org, content)
 end
 
-export org, term
+export org, term, html
 
 include("render/formatting.jl")
 include("render/org.jl")
 include("render/term.jl")
+include("render/html.jl")
 
 Base.show(io::IO, ::MIME"text/org", org::Org) = (org(io, org), nothing)
 function Base.show(io::IO, ::MIME"text/plain", org::Org)
@@ -26,6 +27,7 @@ function Base.show(io::IO, ::MIME"text/plain", org::Org)
         (term(io, org), nothing)
     end
 end
+Base.show(io::IO, ::MIME"text/html", org::Org) = (html(io, org), nothing)
 
 include("types/documentation.jl")
 

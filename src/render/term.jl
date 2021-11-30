@@ -15,7 +15,9 @@ function term(io::IO, component::OrgComponent, indent::Integer)
     term(io, component)
 end
 
-term(o::Union{Org, OrgComponent}) = term(stdout, o)
+term(o::Union{Org, OrgComponent}) = term(stdout, o, 2)
+term(p::Paragraph) = (term(stdout, p, 2); print('\n'))
+term(o::OrgObject) = (term(stdout, o, 2); print('\n'))
 
 # ---------------------
 # Sections
@@ -420,13 +422,15 @@ function term(io::IO, tsr::TimestampRange)
     end
 end
 
-const markup_term_codes = Dict(:bold => "\e[1m",
-                               :italic => "\e[3m",
-                               :strikethrough => "\e[9m",
-                               :underline => "\e[4m",
-                               :verbatim => "\e[32m", # green
-                               :code => "\e[36m") # cyan
-function term(io::IO, markup::TextMarkup, accumulatedmarkup="")
+const markup_term_codes =
+    Dict(:bold => "\e[1m",
+         :italic => "\e[3m",
+         :strikethrough => "\e[9m",
+         :underline => "\e[4m",
+         :verbatim => "\e[32m", # green
+         :code => "\e[36m") # cyan
+
+function term(io::IO, markup::TextMarkup, accumulatedmarkup::String="")
     color = get(stdout, :color, false)
     print(io, markup.pre)
     if color && markup.type in keys(markup_term_codes)
