@@ -19,12 +19,12 @@ include("render/html.jl")
 
 Base.show(io::IO, ::MIME"text/org", org::Org) = (org(io, org), nothing)
 function Base.show(io::IO, ::MIME"text/plain", org::Org)
-    if io === stdout && displaysize(io)[2] != 80
-        termwidth = displaysize(io)[2]
-        narrowedio = IOContext(io, :displaysize => (displaysize(io)[1], round(Int, 0.9*termwidth)))
-        (term(narrowedio, org), nothing)
+    if get(io, :compact, false)
+        print(io, "Org(", length(org), " children)")
     else
-        (term(io, org), nothing)
+        termwidth = displaysize(io)[2]
+        narrowedio = IOContext(io, :displaysize => (displaysize(io)[1], min(80, termwidth)))
+        term(narrowedio, org)
     end
 end
 Base.show(io::IO, ::MIME"text/html", org::Org) = (html(io, org), nothing)
