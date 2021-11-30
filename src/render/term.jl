@@ -49,7 +49,17 @@ function term(io::IO, heading::Heading, indent::Integer=0)
     if !isnothing(heading.priority)
         printstyled(io, "[#", heading.priority, "] ", color=:red)
     end
-    printstyled(io, heading.title, bold=true, color=:blue)
+    if get(stdout, :color, false)
+        for obj in heading.title
+            if obj isa TextMarkup || obj isa TextPlain
+                term(io, obj, "\e[1;34m")
+            else
+                term(io, obj)
+            end
+        end
+    else
+        org.(Ref(io), heading.title)
+    end
     if length(heading.tags) > 0
         printstyled(" :", join(heading.tags, ":"), ":", color=:light_black)
     end

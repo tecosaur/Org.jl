@@ -64,6 +64,58 @@ function parse(::Type{Org}, content::AbstractString)
     Org(parseorg(content, [Heading, Section]))
 end
 
+const OrgElementMatchers =
+    Dict{Char, Vector{<:Type}}(
+        '#' => [BabelCall, Keyword, Block, Comment],
+        '-' => [HorizontalRule, List],
+        '|' => [Table],
+        ':' => [PropertyDrawer, Drawer, FixedWidth],
+        '+' => [List],
+        '*' => [List],
+        '[' => [FootnoteDef],
+        '\\' => [LaTeXEnvironment],
+        '\n' => [EmptyLine])
+
+const OrgElementFallbacks = [Paragraph, List]
+
+const OrgObjectMatchers =
+    Dict{Char, Vector{<:Type}}(
+        '[' => [Link, Timestamp, StatisticsCookie],
+        '{' => [Macro],
+        '<' => [RadioTarget, Target, Timestamp],
+        '\\' => [LineBreak, Entity, LaTeXFragment],
+        '*' => [TextMarkup],
+        '/' => [TextMarkup],
+        '_' => [TextMarkup],
+        '+' => [TextMarkup],
+        '=' => [TextMarkup],
+        '~' => [TextMarkup],
+        '@' => [ExportSnippet],
+        'c' => [InlineBabelCall, Script, TextPlain],
+        's' => [InlineSourceBlock, Script, TextPlain],
+        # FootnoteRef
+    )
+
+abstract type TextPlainForce end
+function consume(::Type{TextPlainForce}, s::AbstractString)
+    c = SubString(s, 1, 1)
+    # printstyled(stderr, "Warning:", bold=true, color=:yellow)
+    # print(stderr, " Force matching ")
+    # printstyled(stderr, '\'', c, '\'', color=:cyan)
+    # print(stderr, " from ")
+    # b = IOBuffer()
+    # show(b, s[1:min(50,end)])
+    # printstyled(stderr, String(take!(b)), if length(s) > 50 "…" else "" end, color=:green)
+    # print(stderr, "\n         This usually indicates a case where the plain text matcher can be improved.\n")
+    (c, TextPlain(c))
+end
+
+const OrgObjectFallbacks =
+    [TextPlain,
+     TextMarkup,
+     Script,
+     TextPlainForce] # we *must* move forwards by some ammount, c.f. §4.10
+
 # ---------------------
 # Sections
 # ---------------------
@@ -92,27 +144,14 @@ function Heading(components::Vector{Union{Nothing, SubString{String}}})
             section = nothing
         end
     end
-    Heading(level, keyword, priority, title, tagsvec,
+    Heading(level, keyword, priority,
+            parseorg(title, OrgObjectMatchers, OrgObjectFallbacks), tagsvec,
             if !isnothing(section) parse(Section, section) end,
             planning, properties)
 end
 
-const SectionInnerTypeMatchers =
-    Dict{Char, Vector{<:Type}}(
-        '#' => [BabelCall, Keyword, Block, Comment],
-        '-' => [HorizontalRule, List],
-        '|' => [Table],
-        ':' => [PropertyDrawer, Drawer, FixedWidth],
-        '+' => [List],
-        '*' => [List],
-        '[' => [FootnoteDef],
-        '\\' => [LaTeXEnvironment],
-        '\n' => [EmptyLine])
-
-const SectionInnerTypeFallbacks = [Paragraph, List]
-
 function Section(components::Vector{Union{Nothing, SubString{String}}})
-    Section(parseorg(components[1], SectionInnerTypeMatchers, SectionInnerTypeFallbacks))
+    Section(parseorg(components[1], OrgElementMatchers, OrgElementFallbacks))
 end
 
 # ---------------------
@@ -259,46 +298,8 @@ function NodeProperty(components::Vector{Union{Nothing, SubString{String}}})
     NodeProperty(name, !isnothing(additive), value)
 end
 
-const ParagraphInnerTypeMatchers =
-    Dict{Char, Vector{<:Type}}(
-        '[' => [Link, Timestamp, StatisticsCookie],
-        '{' => [Macro],
-        '<' => [RadioTarget, Target, Timestamp],
-        '\\' => [LineBreak, Entity, LaTeXFragment],
-        '*' => [TextMarkup],
-        '/' => [TextMarkup],
-        '_' => [TextMarkup],
-        '+' => [TextMarkup],
-        '=' => [TextMarkup],
-        '~' => [TextMarkup],
-        '@' => [ExportSnippet],
-        'c' => [InlineBabelCall, Script, TextPlain],
-        's' => [InlineSourceBlock, Script, TextPlain],
-        # FootnoteRef
-    )
-
-abstract type TextPlainForce end
-function consume(::Type{TextPlainForce}, s::AbstractString)
-    c = SubString(s, 1, 1)
-    printstyled(stderr, "Warning:", bold=true, color=:yellow)
-    print(stderr, " Force matching ")
-    printstyled(stderr, '\'', c, '\'', color=:cyan)
-    print(stderr, " from ")
-    b = IOBuffer()
-    show(b, s[1:min(50,end)])
-    printstyled(stderr, String(take!(b)), if length(s) > 50 "…" else "" end, color=:green)
-    print(stderr, "\n         This usually indicates a case where the plain text matcher can be improved.\n")
-    (c, TextPlain(c))
-end
-
-const ParagraphInnerTypeFallbacks =
-    [Script,
-     TextPlain,
-     TextMarkup,
-     TextPlainForce] # we *must* move forwards by some ammount, c.f. §4.10
-
 function Paragraph(components::Vector{Union{Nothing, SubString{String}}})
-    Paragraph(parseorg(components[1], ParagraphInnerTypeMatchers, ParagraphInnerTypeFallbacks))
+    Paragraph(parseorg(components[1], OrgObjectMatchers, OrgObjectFallbacks))
 end
 
 function TableRow(components::Vector{Union{Nothing, SubString{String}}})
@@ -486,7 +487,7 @@ function TextMarkup(components::Vector{Union{Nothing, SubString{String}}})
     if type in [:verbatim, :code]
         TextMarkup(type, marker[1], pre, contents, post)
     else
-        parsedcontents = parseorg(contents, ParagraphInnerTypeMatchers, ParagraphInnerTypeFallbacks)
+        parsedcontents = parseorg(contents, OrgObjectMatchers, OrgObjectFallbacks)
         TextMarkup(type, marker[1], pre, Vector{OrgObject}(parsedcontents), post)
     end
 end
@@ -502,7 +503,7 @@ function TextMarkup(marker::Char, pre::AbstractString, content::AbstractString, 
     if type in [:verbatim, :code]
         TextMarkup(type, marker, pre, content, post)
     else
-        parsedcontent = parseorg(content, ParagraphInnerTypeMatchers, ParagraphInnerTypeFallbacks)
+        parsedcontent = parseorg(content, OrgObjectMatchers, OrgObjectFallbacks)
         TextMarkup(type, marker, pre, parsedcontent, post)
     end
 end

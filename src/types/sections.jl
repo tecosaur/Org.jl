@@ -8,7 +8,7 @@ mutable struct Heading <: OrgComponent
     level::Integer
     keyword::Union{AbstractString, Nothing}
     priority::Union{AbstractString, Nothing}
-    title::AbstractString
+    title::Vector{OrgObject}
     tags::Vector{AbstractString}
     section::Union{Section, Nothing}
     planning::Union{Planning, Nothing}

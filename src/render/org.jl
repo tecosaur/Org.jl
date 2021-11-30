@@ -37,7 +37,7 @@ function org(io::IO, heading::Heading, indent::Integer=0)
     if !isnothing(heading.priority)
         print(io, "[#", heading.priority, "] ")
     end
-    print(io, heading.title)
+    org.(Ref(io), heading.title)
     if length(heading.tags) > 0
         print(io, " :", join(heading.tags, ':'), ":")
     end
