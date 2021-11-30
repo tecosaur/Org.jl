@@ -39,16 +39,16 @@ parse(Org, string(dochead)) == dochead  # round-trip equality
 
 | Component           | Type | Matcher | Parse | Org | Term | HTML |
 |---------------------+------+---------+-------+-----+------+------|
-| Heading             | X    | X       | X     | X   | X    |      |
-| Section             | X    | X       | X     | X   | X    |      |
+| Heading             | X    | X       | X     | X   | X    | X    |
+| Section             | X    | X       | X     | X   | X    | X    |
 |---------------------+------+---------+-------+-----+------+------|
 | GreaterBlock        | X    |         |       |     |      |      |
 | Drawer              | X    | X       | X     | X   | X    |      |
 | DynamicBlock        | X    |         |       |     |      |      |
 | FootnoteDef         | X    |         |       |     |      |      |
 | InlineTask          | X    |         |       |     |      |      |
-| Item                | X    | X       | X     | X   | X    |      |
-| List                | X    | X       | X     | X   | X    |      |
+| Item                | X    | X       | X     | X   | X    | X    |
+| List                | X    | X       | X     | X   | X    | X    |
 | PropertyDrawer      | X    | X       | X     | X   | X    |      |
 | Table               | X    | X       | X     | X   | X    |      |
 |---------------------+------+---------+-------+-----+------+------|
@@ -65,12 +65,12 @@ parse(Org, string(dochead)) == dochead  # round-trip equality
 | Keyword             | X    | X       | X     | X   | X    |      |
 | LaTeXEnvironment    | X    | X       | X     | X   | X    |      |
 | NodeProperty        | X    | X       | X     | X   | X    |      |
-| Paragraph           | X    | X       | X     | X   | X    |      |
+| Paragraph           | X    | X       | X     | X   | X    | X    |
 | TableRow            | X    | X       | X     | X   | X    |      |
 | TableHRule          | X    | X       | X     | X   | X    |      |
 | BlankLine           | X    | X       | X     | X   | X    |      |
 |---------------------+------+---------+-------+-----+------+------|
-| OrgEntity           | X    | X       | X     | X   | X    |      |
+| OrgEntity           | X    | X       | X     | X   | X    | X    |
 | LaTeXFragment       | X    | X       | X     | X   | X    |      |
 | ExportSnippet       | X    | X       | X     | X   | X    |      |
 | FootnoteRef         | X    |         |       |     |      |      |
@@ -81,11 +81,11 @@ parse(Org, string(dochead)) == dochead  # round-trip equality
 | LineBreak           | X    | X       | X     | X   | X    |      |
 | Macro               | X    | X       | X     | X   | X    |      |
 | RadioTarget         | X    | X       | X     | X   | X    |      |
-| Target              | X    | X       | X     | X   | X    |      |
+| Target              | X    | X       | X     | X   | X    | X    |
 | StatisticsCookie    | X    | X       | X     | X   | X    |      |
-| Subscript           | X    | X       | X     | X   | X    |      |
-| Superscript         | X    | X       | X     | X   | X    |      |
+| Subscript           | X    | X       | X     | X   | X    | X    |
+| Superscript         | X    | X       | X     | X   | X    | X    |
 | TableCell           | X    | X       | X     | X   | X    |      |
-| Timestamp           | X    | X       | X     | X   | X    |      |
-| TextPlain           | X    | X       | X     | X   | X    |      |
-| TextMarkup          | X    | X       | X     | X   | X    |      |
+| Timestamp           | X    | X       | X     | X   | X    | X    |
+| TextPlain           | X    | X       | X     | X   | X    | X    |
+| TextMarkup          | X    | X       | X     | X   | X    | X    |
