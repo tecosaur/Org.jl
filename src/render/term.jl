@@ -106,10 +106,6 @@ function term(io::IO, item::Item, unordered::Bool=true, indent::Integer=0, offse
         printstyled(io, item.bullet, color=:blue)
     end
     offset += length(item.bullet)
-    if !isnothing(item.counterset)
-        printstyled(io, " [@", item.counterset, "]", color=:light_blue)
-        offset += length(item.counterset) + 4
-    end
     if !isnothing(item.checkbox)
         printstyled(io, " [", item.checkbox, ']',
                     color=Dict(' ' => :green, '-' => :magenta, 'X' => :light_black)[item.checkbox])
