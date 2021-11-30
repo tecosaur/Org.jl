@@ -1,5 +1,8 @@
 # Thanks to load order issues, we have to do the documentation seperately
 
+const compatability =
+    Org([parse(Org, read("$(dirname(dirname(@__DIR__)))/README.org", String)).contents[3].section])
+
 @doc org"""
 #+begin_src julia
 orgmatcher(::Type{C}) where {C <: OrgComponent}
