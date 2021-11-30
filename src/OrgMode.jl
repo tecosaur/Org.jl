@@ -30,6 +30,7 @@ end
 Base.show(io::IO, ::MIME"text/html", org::Org) = (html(io, org), nothing)
 
 include("types/documentation.jl")
+include("parse/documentation.jl")
 
 export parsetree
 
