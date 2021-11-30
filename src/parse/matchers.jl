@@ -19,7 +19,7 @@ orgmatcher(::Type{<:OrgComponent}) = nothing
 # Footnote Def r"^\[fn:([A-Za-z0-9-_]*)\] "
 # InlineTask
 @inline orgmatcher(::Type{List}) = r"^([ \t]*)((?:[*\-\+]|[A-Za-z]\.|\d+\.) [^\n]+(?:\n(?:\1  |\1(?:[*\-\+]|[A-Za-z]\.|\d+\.) )[^\n]+)*)(?:\n|$)"
-@inline orgmatcher(::Type{Item}) = r"^([ \t]*)([*\-\+]|(?:[A-Za-z]|[0-9]+)[\.\)])(?:\s+\[\@([A-Za-z]|[0-9]+)\])?(?:\s+\[([ \-X])\])?(?:\s+([^\n]+)::)?\s+((?:[^\n]+(?:\n\1  )?)*)(?:\n|$)"
+@inline orgmatcher(::Type{Item}) = r"^([ \t]*)([*\-\+]|(?:[A-Za-z]|[0-9]+)[\.\)])(?:[ \t]+\[\@([A-Za-z]|[0-9]+)\])?(?:[ \t]+\[([ \-X])\])?(?:[ \t]+([^\n]+)::)?[ \t]+((?:[^\n]+(?:\n\1  )?)*)(?:\n|$)"
 @inline orgmatcher(::Type{PropertyDrawer}) = r"^[ \t]*:PROPERTIES:\n((?:[ \t]*:[^\+\n]+\+?:[ \t]+[^\n]*\n??)*)\n?[ \t]*:END:(?:\n|$)"i
 @inline orgmatcher(::Type{Table}) = r"^([ \t]*\|[^\n]+(?:\n[ \t]*\|[^\n]+)*)((?:\n[ \t]*#\+TBLFM: [^\n]*)+)?(?:\n|$)"
 
@@ -27,7 +27,7 @@ orgmatcher(::Type{<:OrgComponent}) = nothing
 # Elements
 # ---------------------
 
-@inline orgmatcher(::Type{BabelCall}) = r"^[ \t]*#\+call:\s*([^\n]*)(?:\n|$)"i
+@inline orgmatcher(::Type{BabelCall}) = r"^[ \t]*#\+call:[ \t]*([^\n]*)(?:\n|$)"i
 @inline orgmatcher(::Type{Block}) = r"^[ \t]*#\+begin_(\S+)(?: ([^\n]+))?\n((?:(?!\*)[^\n]*\n)*?(?!\*)[^\n]*)\n?[ \t]*#\+end_\1(?:\n|$)"i
 @inline orgmatcher(::Type{Clock}) = r"^[ \t]*clock: \[(\d{4}-\d\d-\d\d)(?: [A-Za-z]+)?(?: (\d?\d:\d\d)(?:-(\d?\d:\d\d))?)?(?: ((?:\+|\+\+|\.\+|-|--))([\d.]+)([hdwmy]))? *\](?(3)|(?:|-\[(\d{4}-\d\d-\d\d)(?: [A-Za-z]+)?(?: (\d?\d:\d\d))?(?: ((?:\+|\+\+|\.\+|-|--))([\d.]+)([hdwmy]))? *\]))(?:\n|$)"i
 
@@ -64,11 +64,11 @@ end
 
 @inline orgmatcher(::Type{Comment}) = r"^([ \t]*#(?:\n| [^\n]*)(?:\n[ \t]*#(?:\n| [^\n]*))*)(?:\n|$)"
 @inline orgmatcher(::Type{FixedWidth}) = r"^([ \t]*:(?:\n| [^\n]*)(?:\n[ \t]*:(?:\n| [^\n]*))*)(?:\n|$)"
-@inline orgmatcher(::Type{HorizontalRule}) = r"^[ \t]*-{5,}\s*(?:\n|$)"
+@inline orgmatcher(::Type{HorizontalRule}) = r"^[ \t]*-{5,}[ \t]*(?:\n|$)"
 @inline orgmatcher(::Type{Keyword}) = r"^[ \t]*#\+(\S+): ?(.*)\n?"
 @inline orgmatcher(::Type{LaTeXEnvironment}) = r"^[ \t]*\\begin{([A-Za-z*]*)}\n(.*)\n[ \t]*\\end{\1}(?:\n|$)"
 @inline orgmatcher(::Type{NodeProperty}) = r"^[ \t]*:([^\+\n]+)(\+)?:[ \t]+([^\n]*)(?:\n|$)"
-@inline orgmatcher(::Type{Paragraph}) = r"^[ \t]*((?!\*+ |#\+|\[fn:([A-Za-z0-9-_]*)\] |[ \t]*(?:[*\-\+]|[A-Za-z]\.|\d+\.)[ \t]|:([\w\-_]+):(?:\n|$)|\||#\n|# |:\n|: |\s*\-{5,}\s*(?:\n|$)|\\begin\{)[^\n]+(?:\n(?1)[^\n]+)*)(?:\n|$)"
+@inline orgmatcher(::Type{Paragraph}) = r"^[ \t]*((?!\*+ |#\+|\[fn:([A-Za-z0-9-_]*)\] |[ \t]*(?:[*\-\+]|[A-Za-z]\.|\d+\.)[ \t]|:([\w\-_]+):(?:\n|$)|\||#\n|# |:\n|: |[ \t]*\-{5,}[ \t]*(?:\n|$)|\\begin\{)[^\n]+(?:\n(?1)[^\n]+)*)(?:\n|$)"
 @inline orgmatcher(::Type{TableRow}) = r"^[ \t]*(\|[^\n]*)(?:\n|$)"
 @inline orgmatcher(::Type{TableHrule}) = r"^|[\-\+]+|"
 @inline orgmatcher(::Type{EmptyLine}) = r"\n+"
@@ -102,7 +102,7 @@ orgmatcher(::Type{InlineSourceBlock}) = function(content::AbstractString)
     end
 end
 
-@inline orgmatcher(::Type{LineBreak}) = r"^\\\\\s*(?:\n *|$)"
+@inline orgmatcher(::Type{LineBreak}) = r"^\\\\[ \t]*(?:\n *|$)"
 @inline orgmatcher(::Type{Link}) = r"^\[\[([^]]+)\](?:\[([^]]+)\])?\]"
 @inline orgmatcher(::Type{Macro}) = r"^{{{([A-Za-z][A-Za-z0-9-_]*)\((.*)\)}}}"
 @inline orgmatcher(::Type{RadioTarget}) = r"^<<<(.*?)>>>"
@@ -171,7 +171,7 @@ orgmatcher(::Type{Timestamp}) = function(contents::AbstractString)
     end
 end
 
-@inline orgmatcher(::Type{TextMarkup}) = r"^(^|[\s\-({'\"])([*\/+_~=])(\S.*?(?<=\S))\2([]\s\-.,;:!?')}\"]|$)" # TODO peek at start of string being applied to, to properly check PRE condition
+@inline orgmatcher(::Type{TextMarkup}) = r"^(^|[ \t\-({'\"])([*\/+_~=])(\S.*?(?<=\S))\2([] \t\-.,;:!?')}\"]|$)" # TODO peek at start of string being applied to, to properly check PRE condition
 orgmatcher(::Type{TextPlain}) = function(content::AbstractString)
     alph(c) = c in 'a':'z' || c in 'A':'Z'
     alphnum(c) = alph(c) || c in '0':'9'
