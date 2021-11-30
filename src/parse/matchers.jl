@@ -114,15 +114,27 @@ end
 @inline orgmatcher(::Type{TimestampActive}) = r"<\d{4}-\d\d-\d\d(?: \d?\d:\d\d)?(?: [A-Za-z]{3,7})?>"
 @inline orgmatcher(::Type{TimestampInactive}) = r"\[\d{4}-\d\d-\d\d(?: \d?\d:\d\d)?(?: [A-Za-z]{3,7})?\]"
 orgmatcher(::Type{Timestamp}) = function(contents::AbstractString)
-    function DateTimeRD(type, date, time, mark, value, unit)
+    rodtypes = Dict("+" => :cumulative,
+                    "++" => :catchup,
+                    ".+" => :restart,
+                    "-" => :warningall,
+                    "--" => :warningfirst)
+    function parsenum(s)
+        n = tryparse(Int, s)
+        if !isnothing(n); n else parse(Float64, n) end
+    end
+    function DateTimeRD(type, date, time, mark, value, unit, warnmark, warnvalue, warnunit)
         type(Date(date),
              if isnothing(time) nothing else Time(time) end,
-             if isnothing(mark) nothing else TimestampRepeaterOrDelay(mark, value, unit[1]) end)
+             if isnothing(mark) nothing else
+                 TimestampRepeaterOrDelay(rodtypes[mark], parsenum(value), unit[1]) end,
+             if isnothing(warnmark) nothing else
+                 TimestampRepeaterOrDelay(rodtypes[warnmark], parsenum(warnvalue), warnunit[1]) end)
     end
-    fullts = r"^(?:(<)|\[)(\d{4}-\d\d-\d\d)(?: [A-Za-z]+)?(?: (\d?\d:\d\d)(?:-(\d?\d:\d\d))?)?(?: ((?:\+|\+\+|\.\+|-|--))([\d.]+)([hdwmy]))? *(?(1)>|\])"
+    fullts = r"^(?:(<)|\[)(\d{4}-\d\d-\d\d)(?: +[A-Za-z]+)?(?: +(\d?\d:\d\d)(?:-(\d?\d:\d\d))?)?(?: +((?:\+|\+\+|\.\+))(\d[\d.]*)([hdwmy]))?(?: +(-|--)(\d[\d.]*)([hdwmy]))? *(?(1)>|\])"
     tsmatch = match(fullts, contents)
     if !isnothing(tsmatch)
-        active, date, timea, timeb, mark, value, unit = tsmatch.captures
+        active, date, timea, timeb, mark, value, unit, warnmark, warnvalue, warnunit = tsmatch.captures
         range, type = if isnothing(active)
             (TimestampInactiveRange, TimestampInactive)
         else
@@ -135,18 +147,18 @@ orgmatcher(::Type{Timestamp}) = function(contents::AbstractString)
             !isnothing(tsmatch2.captures[4]) || # time b must not be set
             active !== tsmatch2.captures[1] # active/inactive must match
             if isnothing(timeb)
-                (tsmatch.match, DateTimeRD(type, date, timea, mark, value, unit))
+                (tsmatch.match, DateTimeRD(type, date, timea, mark, value, unit, warnmark, warnvalue, warnunit))
             else
                 (tsmatch.match,
-                 range(DateTimeRD(type, date, timea, mark, value, unit),
-                       DateTimeRD(type, date, timeb, mark, value, unit)))
+                 range(DateTimeRD(type, date, timea, mark, value, unit, warnmark, warnvalue, warnunit),
+                       DateTimeRD(type, date, timeb, mark, value, unit, warnmark, warnvalue, warnunit)))
             end
         else
-            _, date2, time2a, _, mark2, value2, unit2 = tsmatch2.captures
+            _, date2, time2a, _, mark2, value2, unit2, warnmark2, warnvalue2, warnunit2 = tsmatch2.captures
             (SubString(tsmatch.match.string, 1 + tsmatch.match.offset,
                        tsmatch.match.ncodeunits + 2 + tsmatch2.match.ncodeunits),
-             range(DateTimeRD(type, date, timea, mark, value, unit),
-                   DateTimeRD(type, date2, time2a, mark2, value2, unit2)))
+             range(DateTimeRD(type, date, timea, mark, value, unit, warnmark, warnvalue, warnunit),
+                   DateTimeRD(type, date2, time2a, mark2, value2, unit2, warnmark2, warnvalue2, warnunit2)))
         end
     elseif startswith(contents, "<%%(")
         tsdiaryend = forwardsbalenced(contents, 4; bracketpairs=Dict('(' => ')'),

@@ -359,18 +359,37 @@ term(io::IO, script::Subscript) = print(io, script.char, '_', script.script)
 
 term(io::IO, cell::TableCell) = printstyled(io, "| ", cell.contents, " |", color=:magenta)
 
-term(io::IO, tsrod::TimestampRepeaterOrDelay) = print(io, tsrod.mark, tsrod.value, tsrod.unit)
+function term(io::IO, tsrod::TimestampRepeaterOrDelay)
+    timeunits = Dict('h' => "hour",
+                     'd' => "day",
+                     'w' => "week",
+                     'm' => "month",
+                     'y' => "year")
+    if tsrod.type in (:cumulative, :catchup, :restart)
+        printstyled(io, "every ", tsrod.value, ' ', timeunits[tsrod.unit],
+                    if tsrod.value == 1 "" else 's' end, " thereafter",
+                        color=:light_yellow)
+    else
+        printstyled(io, "warning ", tsrod.value, ' ', timeunits[tsrod.unit],
+                    if tsrod.value == 1 "" else 's' end, " before",
+                    color=:light_yellow)
+    end
+end
 
 term(io::IO, tsd::TimestampDiary) = print(io, "<%%", tsd.sexp, '>')
 
 function term(io::IO, ts::TimestampInstant)
-    printstyled(io, ts.date, ' ', dayabbr(ts.date), color=:yellow)
     if !isnothing(ts.time)
-        printstyled(io, ' ', hour(ts.time), ':', minute(ts.time), color=:yellow)
+        printstyled(io, hour(ts.time), ':', minute(ts.time), ' ', color=:yellow)
     end
+    printstyled(io, Dates.format(ts.date, dateformat"e d u Y"), color=:yellow)
     if !isnothing(ts.repeater)
-        print(io, ' ')
+        printstyled(io, " and ", color=:light_yellow)
         term(io, ts.repeater)
+    end
+    if !isnothing(ts.warning)
+        print(io, ' ')
+        term(io, ts.warning)
     end
 end
 
@@ -381,8 +400,12 @@ function term(io::IO, tsr::TimestampRange)
         printstyled(io, ' ', hour(tsr.start.time), ':', minute(tsr.start.time),
                     " – ", hour(tsr.stop.time), ':', minute(tsr.stop.time), color=:yellow)
         if !isnothing(tsr.start.repeater)
-            print(io, ' ')
+            printstyled(io, " and ", color=:light_yellow)
             term(io, tsr.start.repeater)
+        end
+        if !isnothing(tsr.start.warning)
+            print(io, ' ')
+            term(io, tsr.start.warning)
         end
     else
         term(io, tsr.start)

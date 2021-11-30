@@ -82,8 +82,8 @@ Base.length(cell::TableCell) = length(cell.contents)
 
 abstract type Timestamp <: OrgObject end
 mutable struct TimestampRepeaterOrDelay
-    mark::AbstractString
-    value::AbstractString
+    type::Symbol
+    value::Real
     unit::Char
 end
 mutable struct TimestampDiary <: Timestamp
@@ -94,11 +94,13 @@ mutable struct TimestampActive <: TimestampInstant
     date::Date
     time::Union{Time, Nothing}
     repeater::Union{TimestampRepeaterOrDelay, Nothing}
+    warning::Union{TimestampRepeaterOrDelay, Nothing}
 end
 mutable struct TimestampInactive <: TimestampInstant
     date::Date
     time::Union{Time, Nothing}
     repeater::Union{TimestampRepeaterOrDelay, Nothing}
+    warning::Union{TimestampRepeaterOrDelay, Nothing}
 end
 abstract type TimestampRange <: Timestamp end
 mutable struct TimestampActiveRange <: TimestampRange

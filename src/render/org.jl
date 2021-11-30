@@ -329,7 +329,14 @@ org(io::IO, script::Subscript) = print(io, script.char, '_', script.script)
 
 org(io::IO, cell::TableCell) = print(io, "| ", cell.contents, " |")
 
-org(io::IO, tsrod::TimestampRepeaterOrDelay) = print(io, tsrod.mark, tsrod.value, tsrod.unit)
+const timestamp_repeaterordelay_marks =
+    Dict(:cumulative => "+",
+         :catchup => "++",
+         :restart => ".+",
+         :warningall => "-",
+         :warningfirst => "--")
+org(io::IO, tsrod::TimestampRepeaterOrDelay) =
+    print(io, timestamp_repeaterordelay_marks[tsrod.type], tsrod.value, tsrod.unit)
 
 org(io::IO, tsd::TimestampDiary) = print(io, "<%%", tsd.sexp, '>')
 
@@ -343,6 +350,10 @@ function org(io::IO, ts::TimestampInstant)
     if !isnothing(ts.repeater)
         print(io, ' ')
         org(io, ts.repeater)
+    end
+    if !isnothing(ts.warning)
+        print(io, ' ')
+        org(io, ts.warning)
     end
     print(io, ket)
 end
@@ -358,6 +369,10 @@ function org(io::IO, tsr::TimestampRange)
         if !isnothing(tsr.start.repeater)
             print(io, ' ')
             org(io, tsr.start.repeater)
+        end
+        if !isnothing(tsr.start.warning)
+            print(io, ' ')
+            org(io, tsr.start.warning)
         end
         print(io, ket)
     else
