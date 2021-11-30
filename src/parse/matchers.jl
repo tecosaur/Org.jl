@@ -171,7 +171,7 @@ orgmatcher(::Type{Timestamp}) = function(contents::AbstractString)
     end
 end
 
-@inline orgmatcher(::Type{TextMarkup}) = r"^(^|[ \t\-({'\"])([*\/+_~=])(\S.*?(?<=\S))\2([] \t\-.,;:!?')}\"]|$)" # TODO peek at start of string being applied to, to properly check PRE condition
+@inline orgmatcher(::Type{TextMarkup}) = r"^(^|[\n \t\-({'\"])([*\/+_~=])(\S.*?\n?.*?(?<=\S))\2([\n \t\]\-.,;:!?')}\"]|$)" # TODO peek at start of string being applied to, to properly check PRE condition
 orgmatcher(::Type{TextPlain}) = function(content::AbstractString)
     alph(c) = c in 'a':'z' || c in 'A':'Z'
     alphnum(c) = alph(c) || c in '0':'9'

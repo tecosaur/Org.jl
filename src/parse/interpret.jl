@@ -107,7 +107,11 @@ function consume(::Type{TextPlainForce}, s::AbstractString)
     # show(b, s[1:min(50,end)])
     # printstyled(stderr, String(take!(b)), if length(s) > 50 "…" else "" end, color=:green)
     # print(stderr, "\n         This usually indicates a case where the plain text matcher can be improved.\n")
-    (c, TextPlain(c))
+    if c == "\n"
+        (c, TextPlain(" "))
+    else
+        (c, TextPlain(c))
+    end
 end
 
 const OrgObjectFallbacks =
