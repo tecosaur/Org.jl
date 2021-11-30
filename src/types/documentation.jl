@@ -916,7 +916,7 @@ PRE MARKER BORDER BODY BORDER MARKER POST
 
 + =PRE= is the beginning of a line, a whitespace character, or one of -({'"
 + =POST= is the end of a line, a whitespace character, or one of -.,;:!?')}["
-+ =MARKER= is "*", "=", "/", "+", "_", or "~" (see =TextMarkupMarkers=)
++ =MARKER= is "*", "\equal", "/", "+", "_", or "~" (see =TextMarkupMarkers=)
 + =BORDER= is any non-whitespace character
 + =BODY= can contain any object allowed in a =Paragraph=
 
