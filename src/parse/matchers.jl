@@ -197,7 +197,7 @@ orgmatcher(::Type{TextPlain}) = function(content::AbstractString)
             return if i > 1 @inbounds @view content[1:li] end
         elseif c == '@' && nc == '@' # export snippet
             return if i > 1 @inbounds @view content[1:li] end
-        elseif c in ('*', '/', '+', '_', '~', '=') && spc(lc) && !spc(nc) # markup
+        elseif c in ('*', '/', '+', '_', '~', '=') && (spc(lc) || lc in ('-', '(', '{', '\'', '"')) && !spc(nc) # markup
             return if cc > 2 @inbounds @view content[1:prevind(content, li)] end
         elseif c == '\\' && !spc(nc) # entities & latex & line break
             return if i > 1 @inbounds @view content[1:li] end
