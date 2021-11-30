@@ -131,10 +131,11 @@ end
 # FootnoteDef
 # InlineTask
 
-function term(io::IO, item::Item, unordered::Bool=true, indent::Integer=0, offset::Integer=0, depth=0)
+function term(io::IO, item::Item, unordered::Bool=true, indent::Integer=0, depth::Integer=0)
     print(io, ' '^indent)
+    offset = indent
     if unordered
-        printstyled(io, if depth % 2 == 0 '➤' else '•' end, color=:blue)
+        printstyled(io, if depth % 2 == 0 '•' else '➤' end, color=:blue)
     else
         printstyled(io, item.bullet, color=:blue)
     end
