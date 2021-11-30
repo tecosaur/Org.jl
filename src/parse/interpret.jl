@@ -177,7 +177,7 @@ function Item(components::Vector{Union{Nothing, SubString{String}}})
                       else @inbounds @view contents[1+length(text[1]):end]
                       end)
     Item(bullet, counterset, if !isnothing(checkbox) checkbox[1] end, tag,
-         if !isnothing(text) text[2].contents end,
+         if !isnothing(text) text[2].contents else OrgObject[] end,
          if !isnothing(sublist) sublist[2] end)
 end
 
