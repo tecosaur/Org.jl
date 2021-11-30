@@ -49,7 +49,7 @@ function term(io::IO, heading::Heading, indent::Integer=0)
         printstyled(heading.keyword, ' ', color=kcolor)
     end
     if !isnothing(heading.priority)
-        printstyled(io, "[#", heading.priority, "] ", color=:red)
+        printstyled(io, "[#", heading.priority, "] ", color=:light_red)
     end
     if get(stdout, :color, false)
         for obj in heading.title
@@ -312,7 +312,7 @@ term(::IO, ::ExportSnippet) = nothing
 term(::IO, ::InlineBabelCall) = nothing
 
 function term(io::IO, src::InlineSourceBlock)
-    printstyled(io, src.body, color=:cyan)
+    printstyled(io, src.body, color=:light_cyan)
 end
 
 term(io::IO, ::LineBreak) = print(io, '\n')
