@@ -448,10 +448,15 @@ function term(io::IO, markup::TextMarkup, accumulatedmarkup="")
 end
 
 function term(io::IO, text::TextPlain, accumulatedmarkup::String="")
+    tsub = replace(replace(replace(replace(text.text,
+                                           "..." => "…"),
+                                   r"---([^-])" => s"—\1"),
+                           r"--([^-])" => s"–\1"),
+                   r"\\-" => "-")
     if get(stdout, :color, false)
-        print(io, accumulatedmarkup, text.text, "\e[0;0m")
+        print(io, accumulatedmarkup, tsub, "\e[0;0m")
     else
-        print(io, text.text)
+        print(io, tsub)
     end
 end
 

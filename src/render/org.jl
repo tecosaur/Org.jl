@@ -8,9 +8,8 @@ function org(io::IO, o::Org)
     for component in o.contents
         (component isa Heading && component !== first(o.contents)) && print(io, '\n')
         org(io, component)
-        component === last(o.contents) || print(io, '\n')
+        print(io, '\n')
     end
-    print(io, '\n')
 end
 
 function org(io::IO, component::OrgComponent, indent::Integer)
@@ -152,7 +151,7 @@ function org(io::IO, block::Block)
     elseif block isa ExampleBlock
         ("example", nothing)
     elseif block isa ExportBlock
-        ("example", block.backend)
+    ("example", block.backend)
     elseif block isa SourceBlock
         ("src", if isnothing(block.arguments)
              block.lang

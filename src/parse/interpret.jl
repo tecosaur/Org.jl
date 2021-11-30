@@ -367,7 +367,7 @@ function parse(::Type{InlineSourceBlock}, content::AbstractString, verify::Bool=
     InlineSourceBlock(lang, options, code)
 end
 
-function LineBreak(_components::Vector{Union{Nothing, SubString{String}}})
+function LineBreak(::Vector{Union{Nothing, SubString{String}}})
     LineBreak()
 end
 
