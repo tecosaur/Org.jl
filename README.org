@@ -34,6 +34,8 @@ org(dochead)  # generate Org text that produces the OrgMode.Heading object
 string(dochead)  # as above, but produces a String
 
 parse(Org, string(dochead)) == dochead  # round-trip equality
+
+filtermap(dochead, [OrgMode.SourceBlock], s -> s.lang)  # get the lang of each source block
 #+end_src
 
 * Progress
