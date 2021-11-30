@@ -83,6 +83,7 @@ filtermap(dochead, [OrgMode.SourceBlock], s -> s.lang)  # get the lang of each s
 | Link                | X    | X       | X     | X   | X    |      |
 | LineBreak           | X    | X       | X     | X   | X    |      |
 | Macro               | X    | X       | X     | X   | X    |      |
+| Cite                |      |         |       |     |      |      |
 | RadioTarget         | X    | X       | X     | X   | X    |      |
 | Target              | X    | X       | X     | X   | X    | X    |
 | StatisticsCookie    | X    | X       | X     | X   | X    |      |
