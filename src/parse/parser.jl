@@ -79,6 +79,8 @@ function parseorg(content::AbstractString, typematchers::Dict{Char, <:AbstractVe
         if isnothing(obj)
             if pointonfail
                 return point
+            elseif content isa SubString
+                throw(OrgParseError(content.string, content.offset + point, vcat(types, typefallbacks)))
             else
                 throw(OrgParseError(content, point, vcat(types, typefallbacks)))
             end
