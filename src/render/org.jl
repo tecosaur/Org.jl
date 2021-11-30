@@ -1,3 +1,5 @@
+Base.show(io::IO, ::MIME"text/org", org::Org) = org(io, org)
+
 function Base.string(component::Union{Org, OrgComponent})
     b = IOBuffer()
     org(b, component)

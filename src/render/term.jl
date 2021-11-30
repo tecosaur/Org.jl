@@ -1,3 +1,13 @@
+function Base.show(io::IO, ::MIME"text/plain", org::Org)
+    if get(io, :compact, false)
+        print(io, "Org(", length(org), " children)")
+    else
+        termwidth = displaysize(io)[2]
+        narrowedio = IOContext(io, :displaysize => (displaysize(io)[1], min(80, termwidth)))
+        term(narrowedio, org)
+    end
+end
+
 function term(io::IO, o::Org, indent::Integer=2)
     term(io, o.contents, indent)
 end
@@ -37,8 +47,7 @@ const HeadingKeywordColors = Dict("TODO" => :green,
                                   "[-]" => :magenta,
                                   "[X]" => :light_black)
 
-function term(io::IO, heading::Heading, indent::Integer=0)
-    print(io, ' '^indent)
+function termheadingonly(io::IO, heading::Heading)
     printstyled(io, '*'^heading.level, ' ', bold=true, color=:blue)
     if !isnothing(heading.keyword)
         kcolor = if heading.keyword in keys(HeadingKeywordColors)
@@ -65,6 +74,28 @@ function term(io::IO, heading::Heading, indent::Integer=0)
     if length(heading.tags) > 0
         printstyled(" :", join(heading.tags, ":"), ":", color=:light_black)
     end
+end
+
+function contents(io::IO, org::Org, depthrange::UnitRange=1:9, indent::Integer=2)
+    function printheading(h)
+        if h.level in depthrange
+            print(io, ' '^indent)
+            termheadingonly(io, h)
+            print(io, '\n')
+        end
+    end
+    filtermap(org, [Heading], printheading)
+    nothing
+end
+
+contents(io::IO, org::Org, depth::Integer, indent::Integer=2) =
+    contents(io, org, depth:depth, indent)
+
+contents(org::Org, depth) = contents(stdout, org, depth)
+
+function term(io::IO, heading::Heading, indent::Integer=0)
+    print(io, ' '^indent)
+    termheadingonly(io, heading)
     if !isnothing(heading.planning)
         print(io, '\n')
         term(io, heading.planning, indent)
@@ -376,7 +407,7 @@ function term(io::IO, tsrod::TimestampRepeaterOrDelay)
     if tsrod.type in (:cumulative, :catchup, :restart)
         printstyled(io, "every ", tsrod.value, ' ', timeunits[tsrod.unit],
                     if tsrod.value == 1 "" else 's' end, " thereafter",
-                        color=:light_yellow)
+                    color=:light_yellow)
     else
         printstyled(io, "warning ", tsrod.value, ' ', timeunits[tsrod.unit],
                     if tsrod.value == 1 "" else 's' end, " before",

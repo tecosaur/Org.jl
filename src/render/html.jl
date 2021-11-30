@@ -1,3 +1,5 @@
+Base.show(io::IO, ::MIME"text/html", org::Org) = (html(io, org), nothing)
+
 const html_entity_map =
     Dict('&' => "&amp;",
          '<' => "&lt;",
