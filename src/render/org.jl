@@ -305,7 +305,7 @@ function org(io::IO, link::Link)
     if isnothing(link.description)
         print(io, "]]")
     else
-        print(io, ']', link.description, "]]")
+        print(io, "][", link.description, "]]")
     end
 end
 
