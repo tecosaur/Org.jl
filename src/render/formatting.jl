@@ -11,7 +11,7 @@ function layouttable(io::IO, table::Table, tchars::Dict, indent=0)
         else
             print(io, tchars['|'])
             for (cell, fillwidth) in zip(row.cells, colwidths)
-                print(tchars['['], rpad(cell.contents, fillwidth), tchars[']'], tchars['|'])
+                print(io, tchars['['], rpad(cell.contents, fillwidth), tchars[']'], tchars['|'])
             end
             row === last(table.rows) || print(io, '\n')
         end
