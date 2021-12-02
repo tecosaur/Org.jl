@@ -34,7 +34,7 @@ function printstructure(io::IO, component::AbstractString, description,
 end
 
 parsetree(io::IO, h::Heading, maxdepth::Integer, depth::Integer) =
-    printstructure(io, "Heading", '(' * h.title * ')', if isnothing(h.section); [] else [h.section] end, maxdepth, depth, :yellow, true)
+    printstructure(io, "Heading", '(' * string(Paragraph(h.title)) * ')', if isnothing(h.section); [] else [h.section] end, maxdepth, depth, :yellow, true)
 
 parsetree(io::IO, s::Section, maxdepth::Integer, depth::Integer) =
     printstructure(io, "Section", nothing, s.contents, maxdepth, depth, :yellow, true)
