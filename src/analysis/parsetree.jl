@@ -28,13 +28,17 @@ function printstructure(io::IO, component::AbstractString, description,
         printstyled(io, " [hidden]\n", color=:light_black)
     else
         print(io, '\n')
+    end
+    if !isnothing(contents)
         parsetree.(Ref(io), contents, maxdepth, depth+1)
     end
     nothing
 end
 
 parsetree(io::IO, h::Heading, maxdepth::Integer, depth::Integer) =
-    printstructure(io, "Heading", '(' * string(Paragraph(h.title)) * ')', if isnothing(h.section); [] else [h.section] end, maxdepth, depth, :yellow, true)
+    printstructure(io, "Heading", '(' * string(Paragraph(h.title)) * ')',
+                   filter(!isnothing, [h.planning, h.properties, h.section]),
+                   maxdepth, depth, :yellow, true)
 
 parsetree(io::IO, s::Section, maxdepth::Integer, depth::Integer) =
     printstructure(io, "Section", nothing, s.contents, maxdepth, depth, :yellow, true)
