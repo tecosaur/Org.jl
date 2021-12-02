@@ -307,7 +307,7 @@ function Paragraph(components::Vector{Union{Nothing, SubString{String}}})
 end
 
 function TableRow(components::Vector{Union{Nothing, SubString{String}}})
-    TableRow(TableCell.(split(strip(components[1], '|'), '|')))
+    split(strip(components[1], '|'), '|') .|> strip .|> TableCell |> TableRow
 end
 
 function EmptyLine(_::Vector{Union{Nothing, SubString{String}}})
