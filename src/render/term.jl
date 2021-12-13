@@ -146,7 +146,7 @@ function term(io::IO, item::Item, unordered::Bool=true, indent::Integer=0, depth
         offset += 4
     end
     if !isnothing(item.tag)
-        printstyled(io, item.tag, " ::", color=:blue)
+        printstyled(io, ' ', item.tag, "::", color=:blue)
         offset += length(item.tag) + 3
     end
     if !isnothing(item.contents)
