@@ -64,7 +64,7 @@ end
 mutable struct NodeProperty <: OrgElement
     name::AbstractString
     additive::Bool
-    value::AbstractString
+    value::Union{AbstractString, Nothing}
 end
 
 mutable struct Paragraph <: OrgElement

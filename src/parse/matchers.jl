@@ -20,7 +20,7 @@ orgmatcher(::Type{<:OrgComponent}) = nothing
 # InlineTask
 @inline orgmatcher(::Type{List}) = r"^([ \t]*)((?:[*\-\+]|[A-Za-z]\.|\d+\.) [^\n]+(?:\n(?:\1  |\1(?:[*\-\+]|[A-Za-z]\.|\d+\.) )[^\n]+)*)(?:\n|$)"
 @inline orgmatcher(::Type{Item}) = r"^([ \t]*)([*\-\+]|(?:[A-Za-z]|[0-9]+)[\.\)])(?:[ \t]+\[\@([A-Za-z]|[0-9]+)\])?(?:[ \t]+\[([ \-X])\])?(?:[ \t]+([^\n]+)::)?[ \t]+((?:[^\n]+(?:\n\1  )?)*)(?:\n|$)"
-@inline orgmatcher(::Type{PropertyDrawer}) = r"^[ \t]*:PROPERTIES:\n((?:[ \t]*:[^\+\n]+\+?:[ \t]+[^\n]*\n??)*)\n?[ \t]*:END:(?:\n+|$)"i
+@inline orgmatcher(::Type{PropertyDrawer}) = r"^[ \t]*:PROPERTIES:\n((?:[ \t]*:[^\+\n]+\+?:(?:[ \t]+[^\n]*|[ \t]*)?\n??)*)\n?[ \t]*:END:(?:\n+|$)"i
 @inline orgmatcher(::Type{Table}) = r"^([ \t]*\|[^\n]+(?:\n[ \t]*\|[^\n]+)*)((?:\n[ \t]*#\+TBLFM: [^\n]*)+)?(?:\n|$)"
 
 # ---------------------
@@ -67,7 +67,7 @@ end
 @inline orgmatcher(::Type{HorizontalRule}) = r"^[ \t]*-{5,}[ \t]*(?:\n|$)"
 @inline orgmatcher(::Type{Keyword}) = r"^[ \t]*#\+(\S+): ?(.*)\n?"
 @inline orgmatcher(::Type{LaTeXEnvironment}) = r"^[ \t]*\\begin{([A-Za-z*]*)}\n(.*)\n[ \t]*\\end{\1}(?:\n|$)"
-@inline orgmatcher(::Type{NodeProperty}) = r"^[ \t]*:([^\+\n]+)(\+)?:[ \t]+([^\n]*)(?:\n|$)"
+@inline orgmatcher(::Type{NodeProperty}) = r"^[ \t]*:([^\+\n]+)(\+)?:(?:[ \t]+([^\n]*)|[ \t]*)?(?:\n|$)"
 @inline orgmatcher(::Type{Paragraph}) = r"^[ \t]*((?!\*+ |#\+|\[fn:([A-Za-z0-9-_]*)\] |[ \t]*(?:[*\-\+]|[A-Za-z]\.|\d+\.)[ \t]|:([\w\-_]+):(?:\n|$)|\||#\n|# |:\n|: |[ \t]*\-{5,}[ \t]*(?:\n|$)|\\begin\{)[^\n]+(?:\n(?1)[^\n]+)*)(?:\n|$)"
 @inline orgmatcher(::Type{TableRow}) = r"^[ \t]*(\|[^\n]*)(?:\n|$)"
 @inline orgmatcher(::Type{TableHrule}) = r"^|[\-\+]+|"

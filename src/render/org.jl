@@ -224,7 +224,7 @@ function org(io::IO, env::LaTeXEnvironment, indent::Integer=0)
 end
 
 org(io::IO, node::NodeProperty) =
-    print(io, ':', node.name, if node.additive "+:" else ":" end, node.value)
+    print(io, ':', node.name, if node.additive "+:" else ":" end, if !isnothing(node.value) node.value else "" end)
 
 function Base.string(par::Paragraph)
     b = IOBuffer()
