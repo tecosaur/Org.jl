@@ -487,6 +487,10 @@ const TextMarkupMarkers =
 
 function TextMarkup(components::Vector{Union{Nothing, SubString{String}}})
     pre, marker, contents, post = components
+    if pre == "\n"
+        pre = " " end
+    if post == "\n"
+        post = " " end
     type = TextMarkupMarkers[marker[1]]
     if type in [:verbatim, :code]
         TextMarkup(type, marker[1], pre, contents, post)
