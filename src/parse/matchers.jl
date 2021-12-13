@@ -28,7 +28,7 @@ orgmatcher(::Type{<:OrgComponent}) = nothing
 # ---------------------
 
 @inline orgmatcher(::Type{BabelCall}) = r"^[ \t]*#\+call:[ \t]*([^\n]*)(?:\n|$)"i
-@inline orgmatcher(::Type{Block}) = r"^[ \t]*#\+begin_(\S+)(?: ([^\n]+))?\n((?:(?!\*)[^\n]*\n)*?(?!\*)[^\n]*)\n?[ \t]*#\+end_\1(?:\n|$)"i
+@inline orgmatcher(::Type{Block}) = r"^[ \t]*#\+begin_(\S+)(?: ([^\n]+?))[ \t]*?\n((?:(?!\*)[^\n]*\n)*?(?!\*)[^\n]*)\n?[ \t]*#\+end_\1(?:\n|$)"i
 @inline orgmatcher(::Type{Clock}) = r"^[ \t]*clock: \[(\d{4}-\d\d-\d\d)(?: [A-Za-z]+)?(?: (\d?\d:\d\d)(?:-(\d?\d:\d\d))?)?(?: ((?:\+|\+\+|\.\+|-|--))([\d.]+)([hdwmy]))? *\](?(3)|(?:|-\[(\d{4}-\d\d-\d\d)(?: [A-Za-z]+)?(?: (\d?\d:\d\d))?(?: ((?:\+|\+\+|\.\+|-|--))([\d.]+)([hdwmy]))? *\]))(?:\n|$)"i
 
 orgmatcher(::Type{Planning}) = function (content::AbstractString)
