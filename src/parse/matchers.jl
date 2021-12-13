@@ -156,7 +156,7 @@ orgmatcher(::Type{Timestamp}) = function(contents::AbstractString)
         else
             _, date2, time2a, _, mark2, value2, unit2, warnmark2, warnvalue2, warnunit2 = tsmatch2.captures
             (SubString(tsmatch.match.string, 1 + tsmatch.match.offset,
-                       tsmatch.match.ncodeunits + 2 + tsmatch2.match.ncodeunits),
+                       tsmatch.match.offset + tsmatch.match.ncodeunits + 2 + tsmatch2.match.ncodeunits),
              range(DateTimeRD(type, date, timea, mark, value, unit, warnmark, warnvalue, warnunit),
                    DateTimeRD(type, date2, time2a, mark2, value2, unit2, warnmark2, warnvalue2, warnunit2)))
         end
