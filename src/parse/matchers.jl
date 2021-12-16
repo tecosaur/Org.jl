@@ -68,7 +68,7 @@ end
 @inline orgmatcher(::Type{Keyword}) = r"^[ \t]*#\+(\S+): ?(.*)\n?"
 @inline orgmatcher(::Type{LaTeXEnvironment}) = r"^[ \t]*\\begin{([A-Za-z*]*)}\n(.*)\n[ \t]*\\end{\1}(?:\n|$)"
 @inline orgmatcher(::Type{NodeProperty}) = r"^[ \t]*:([^\+\n]+)(\+)?:(?:[ \t]+([^\n]*)|[ \t]*)?(?:\n|$)"
-@inline orgmatcher(::Type{Paragraph}) = r"^[ \t]*((?!\*+ |#\+|\[fn:([A-Za-z0-9-_]*)\] |[ \t]*(?:[*\-\+]|[A-Za-z]\.|\d+\.)[ \t]|:([\w\-_]+):(?:\n|$)|\||#\n|# |:\n|: |[ \t]*\-{5,}[ \t]*(?:\n|$)|\\begin\{)[^\n]+(?:\n(?1)[^\n]+)*)(?:\n|$)"
+@inline orgmatcher(::Type{Paragraph}) = r"^[ \t]*+((?!\*+ |#\+\S|\[fn:([A-Za-z0-9-_]*)\] |[ \t]*(?:[*\-\+]|[A-Za-z]\.|\d+\.)[ \t]|:([\w\-_]+):(?:\n|$)|\||#\n|# |:\n|: |[ \t]*\-{5,}[ \t]*(?:\n|$)|\\begin\{)[^\n]+(?:\n[ \t]*+(?!\*+ |#\+\S|\[fn:([A-Za-z0-9-_]*)\] |[ \t]*(?:[*\-\+]|[A-Za-z]\.|\d+\.)[ \t]|:([\w\-_]+):(?:\n|$)|\||#\n|# |:\n|: |[ \t]*\-{5,}[ \t]*(?:\n|$)|\\begin\{)[^\n]+)*)(?:\n|$)"
 @inline orgmatcher(::Type{TableRow}) = r"^[ \t]*(\|[^\n]*)(?:\n|$)"
 @inline orgmatcher(::Type{TableHrule}) = r"^|[\-\+]+|"
 @inline orgmatcher(::Type{EmptyLine}) = r"\n+"
