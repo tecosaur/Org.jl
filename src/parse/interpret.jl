@@ -233,7 +233,11 @@ end
 
 function Block(components::Vector{Union{Nothing, SubString{String}}})
     name, data, contents = components
-    lines = split(contents, '\n')
+    lines = if !isnothing(contents)
+        split(contents, '\n')
+    else
+        String[]
+    end
     for i in 1:length(lines)
         if startswith(lines[i], ",*")
             lines[i] = @inbounds SubString(lines[i].string, 2 + lines[i].offset,
