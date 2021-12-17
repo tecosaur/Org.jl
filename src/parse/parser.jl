@@ -52,7 +52,19 @@ function parseorg(content::AbstractString, typematchers::Dict{Char, <:AbstractVe
     while point <= clen
         if debug print("\n\e[36m$(lpad(point, 4))\e[37m") end
         obj::Union{OrgComponent, Nothing} = nothing
-        char, types = content[point], DataType[]
+        types = DataType[]
+        # use the next non-whitespace char to guide type matchers
+        char = if content[point] == ' ' || content[point] == '\t'
+            nextnonspace = findfirst(c -> c != ' ' && c != '\t',
+                                     @inbounds @view content[point:clen])
+            if !isnothing(nextnonspace)
+                content[point + nextnonspace - 1]
+            else
+                content[point]
+            end
+        else
+            content[point]
+        end
         if char in keys(typematchers)
             types = typematchers[char]
             for type in types
