@@ -65,5 +65,8 @@ end
 structurename(::C) where {C<:OrgComponent} = string(nameof(C))
 structuredesc(_::OrgComponent) = nothing
 
+structuredesc(n::NodeProperty) = string(n.name, if n.additive "+" else "" end)
+structuredesc(s::SourceBlock) = s.lang
+structuredesc(l::Link) = l.path.protocol
 structurename(t::TextMarkup) = "Text" * uppercasefirst(string(t.type))
 structuredesc(t::TextMarkup) = string(t.marker)
