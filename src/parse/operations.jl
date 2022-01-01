@@ -1,13 +1,8 @@
-function Base.:(==)(a::T, b::T) where {T <: OrgComponent}
-    for f in fieldnames(T)
-        if getproperty(a, f) != getproperty(b, f)
-            return false
-        end
-    end
-    true
-end
-
 import Base: (*), (==)
+
+# ---------------------
+# Concatenation
+# ---------------------
 
 *(a::Org) = a
 *(a::Org, b::Org) = Org(vcat(a.contents, b.contents))
@@ -79,14 +74,27 @@ end
 
 *(a::TextPlain, b::TextPlain) = TextPlain(a.text * b.text)
 
-## Equality of elements with different subtypes
+# ---------------------
+# Equality
+# ---------------------
+
+function ==(a::T, b::T) where {T <: OrgComponent}
+    for f in fieldnames(T)
+        if getproperty(a, f) != getproperty(b, f)
+            return false
+        end
+    end
+    true
+end
 
 ==(a::Org, b::Org) = a.contents == b.contents
 ==(a::TextPlain, b::TextPlain) = a.text == b.text
 
 ## conversion
 
-## iteration
+# ---------------------
+# Iteration
+# ---------------------
 
 import Base: iterate, length
 
@@ -173,7 +181,40 @@ iterate(p::Paragraph, index::Integer) =
 
 # Object
 
-## utilities
+# ---------------------
+# Accessors
+# ---------------------
+
+import Base.getindex
+
+getindex(o::Org, i::Integer) = o.contents[i]
+
+function getindex(props::PropertyDrawer, name::AbstractString)
+    additive = if endswith(name, '+')
+        name = name[1:end-1]
+        true
+    else
+        false
+    end
+    matches = filter(n -> n.name == name && n.additive == additive, props.contents)
+    if length(matches) == 1
+        matches[1].value
+    else
+        missing
+    end
+end
+
+function getindex(h::Heading, prop::AbstractString)
+    if isnothing(h.properties)
+        missing
+    else
+        getindex(h.properties, prop)
+    end
+end
+
+# ---------------------
+# Utilities
+# ---------------------
 
 function flatten(component::OrgComponent; keepself=false, recursive=false)
     if applicable(iterate, component)
@@ -192,3 +233,6 @@ function filtermap(org::Org, types::Vector{<:Type}=[OrgComponent], fn::Function=
         components -> filter(c -> any(T -> c isa T, types), components) .|>
         fn
 end
+
+filtermap(org::Org, type::Type, fn::Function=identity) =
+    filtermap(org, [type], fn)
