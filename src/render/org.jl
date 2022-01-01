@@ -97,18 +97,30 @@ function org(io::IO, item::Item, indent::Integer=0, offset::Integer=0)
         print(io, item.tag, " ::")
         offset += length(item.tag) + 3
     end
-    if !isnothing(item.contents)
+    if length(item.contents) > 0
         print(io, ' ')
         offset += 1
-        contents = string(Paragraph(item.contents))
-        lines = wraplines(contents, displaysize(io)[2] - indent, offset)
+        contentbuf = IOContext(IOBuffer(), :color => get(io, :color, false),
+                               :displaysize => (displaysize(io)[1],
+                                                displaysize(io)[2] - indent - 2))
+        parlines = if item.contents[1] isa Paragraph
+            for obj in item.contents[1]; org(contentbuf, obj) end
+            contents = String(take!(contentbuf.io))
+            wraplines(contents, displaysize(io)[2] - indent - 2, offset)
+        else
+            ["\n"]
+        end
+        components = @view item.contents[if item.contents[1] isa Paragraph 2 else 1 end:end]
+        for component in components
+            org(contentbuf, component, indent)
+            component === last(components) || print(contentbuf, '\n')
+        end
+        otherlines = split(String(take!(contentbuf.io)), '\n')
+        lines = vcat(parlines, if otherlines == [""]; [] else otherlines end)
         for line in lines
             print(io, line)
             line === last(lines) || print(io, '\n', ' '^(indent+2))
         end
-    end
-    if !isnothing(item.sublist)
-        org(io, item.sublist, indent + 2)
     end
 end
 
@@ -254,9 +266,9 @@ org(io::IO, entity::Entity) = print(io, '\\', entity.name, entity.post)
 
 function org(io::IO, latex::LaTeXFragment)
     if isnothing(latex.delimiters)
-        print(io, latex.delimiters[1], latex.contents, latex.delimiters[2])
+        print(io, latex.contents)
     else
-        print(io. latex.contents)
+        print(io, latex.delimiters[1], latex.contents, latex.delimiters[2])
     end
 end
 
