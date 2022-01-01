@@ -209,7 +209,7 @@ end
 
 function NodeProperty(components::Vector{Union{Nothing, SubString{String}}})
     name, additive, value = components
-    NodeProperty(name, !isnothing(additive), value)
+    NodeProperty(name, !isnothing(additive), strip(value))
 end
 
 function Paragraph(components::Vector{Union{Nothing, SubString{String}}})

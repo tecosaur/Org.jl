@@ -200,13 +200,13 @@ function getindex(props::PropertyDrawer, name::AbstractString)
     if length(matches) == 1
         matches[1].value
     else
-        missing
+        nothing
     end
 end
 
 function getindex(h::Heading, prop::AbstractString)
     if isnothing(h.properties)
-        missing
+        nothing
     else
         getindex(h.properties, prop)
     end
