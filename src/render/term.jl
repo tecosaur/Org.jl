@@ -76,7 +76,7 @@ function termheadingonly(io::IO, heading::Heading)
     end
 end
 
-function contents(io::IO, org::Org, depthrange::UnitRange=1:9, indent::Integer=2)
+function tableofcontents(io::IO, org::Org, depthrange::UnitRange=1:9, indent::Integer=2)
     function printheading(h)
         if h.level in depthrange
             print(io, ' '^indent)
@@ -88,10 +88,10 @@ function contents(io::IO, org::Org, depthrange::UnitRange=1:9, indent::Integer=2
     nothing
 end
 
-contents(io::IO, org::Org, depth::Integer, indent::Integer=2) =
-    contents(io, org, depth:depth, indent)
+tableofcontents(io::IO, org::Org, depth::Integer, indent::Integer=2) =
+    tableofcontents(io, org, depth:depth, indent)
 
-contents(org::Org, depth) = contents(stdout, org, depth)
+tableofcontents(org::Org, depth) = tableofcontents(stdout, org, depth)
 
 function term(io::IO, heading::Heading, indent::Integer=0)
     print(io, ' '^indent)
