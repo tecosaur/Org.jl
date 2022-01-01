@@ -45,8 +45,8 @@ mutable struct Comment{S <: AbstractString} <: OrgElement
     contents::Vector{S}
 end
 
-mutable struct FixedWidth <: OrgElement
-    contents::AbstractString
+mutable struct FixedWidth{S <: AbstractString} <: OrgElement
+    contents::Vector{S}
 end
 
 struct HorizontalRule <: OrgElement end
