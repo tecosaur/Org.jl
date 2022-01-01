@@ -214,7 +214,7 @@ term(::IO, ::BabelCall) = nothing
 function printblockcontent(io, prefix::AbstractString, prefixcolor::Symbol, lines::Vector{<:AbstractString}, contentcolor::Symbol=:default)
     printstyled(io, prefix, color=prefixcolor)
     if length(lines) > 0
-        printstyled(lines[1], color=contentcolor)
+        printstyled(io, lines[1], color=contentcolor)
         if length(lines) > 1
             for line in lines[2:end]
                 printstyled(io, '\n', prefix, color=prefixcolor)
