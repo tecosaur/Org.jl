@@ -55,7 +55,7 @@ function wraplines(s::AbstractString, width::Integer, offset::Integer=0)
                 if isnothing(nextbreak)
                     mostrecentbreakoppotunity = slen
                 else
-                    mostrecentbreakoppotunity = nextbreak
+                    mostrecentbreakoppotunity = lastwrap + nextbreak
                 end
                 i = mostrecentbreakoppotunity
             end
