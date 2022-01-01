@@ -1,28 +1,6 @@
 include("matchers.jl")
+include("consumers.jl")
 include("operations.jl")
-
-function consume(component::Type{<:OrgComponent}, text::AbstractString)
-    matcher = orgmatcher(component)
-    if !isnothing(component)
-        if matcher isa Regex
-            rxmatch = match(matcher, text)
-            if !isnothing(rxmatch)
-                (rxmatch.match, component(rxmatch.captures))
-            end
-        elseif matcher isa Function
-            matchresult = matcher(text)
-            if isnothing(matchresult)
-            elseif matchresult isa Tuple{AbstractString, OrgComponent}
-                matchresult
-            elseif matchresult isa AbstractString
-                (matchresult, parse(component, matchresult, false))
-            else
-                @warn "Matcher for $(typeof(component)) returned an unworkable result type: $(typeof(matchresult))"
-                nothing
-            end
-        end
-    end
-end
 
 struct OrgParseError
     content::AbstractString
@@ -45,7 +23,8 @@ function Base.showerror(io::IO, ex::OrgParseError)
 end
 
 function parseorg(content::AbstractString, typematchers::Dict{Char, <:AbstractVector{<:Type}},
-                  typefallbacks::AbstractVector{<:Type}; debug=false, pointonfail=false)
+                  typefallbacks::AbstractVector{<:Type};
+                  debug::Bool=false, partial::Bool=false, maxobj::Integer=0)
     point, objects = 1, OrgComponent[]
     points = [point]
     clen = lastindex(content) # this does not change, help the compiler
@@ -72,8 +51,8 @@ function parseorg(content::AbstractString, typematchers::Dict{Char, <:AbstractVe
                 # third faster than @inbounds @view content[point:end] for large strings
                 res = consume(type, @inbounds @view content[point:clen])
                 if !isnothing(res)
-                    text, obj = res
-                    point += ncodeunits(text)
+                    width, obj = res
+                    point += width
                     break
                 end
             end
@@ -82,17 +61,18 @@ function parseorg(content::AbstractString, typematchers::Dict{Char, <:AbstractVe
             for type in typefallbacks
                 res = consume(type, @inbounds @view content[point:clen])
                 if !isnothing(res)
-                    text, obj = res
-                    point += ncodeunits(text)
+                    width, obj = res
+                    point += width
                     break
                 end
             end
         end
         if isnothing(obj)
-            if pointonfail
-                return point
+            if partial
+                return point-1, objects
             elseif content isa SubString
-                throw(OrgParseError(content.string, content.offset + point, vcat(types, typefallbacks)))
+                throw(OrgParseError(content.string, content.offset + point,
+                                    vcat(types, typefallbacks)))
             else
                 throw(OrgParseError(content, point, vcat(types, typefallbacks)))
             end
@@ -109,18 +89,25 @@ function parseorg(content::AbstractString, typematchers::Dict{Char, <:AbstractVe
             print(rpad(" ─[\e[33m$(typeof(objects[end]))\e[37m" *
                 "(\e[35m$(length(objects))\e[37m)]─", 42, '─'),
                   "> \e[36m$(lpad(point, 4))\e[37m\n",
-                  "     \e[32m'", rpad(content[points[end-1]:points[end]-1] * "'", 28),
+                  "     \e[32m'", rpad(content[points[end-1]:prevind(content, points[end])] * "'", 28),
                   "\e[37m  ", objects[end])
+        end
+        if partial && 0 < length(objects) == maxobj
+            return point-1, objects
         end
     end
     if debug print("\n\n") end
-    objects
+    if partial
+        point-1, objects
+    else
+        objects
+    end
 end
 
 function parseorg(content::AbstractString, typefallbacks::AbstractVector{<:Type};
-                  debug=false, pointonfail=false)
+                  debug=false, partial=false)
     parseorg(content, Dict{Char, Vector{DataType}}(),
-             typefallbacks; debug, pointonfail)
+             typefallbacks; debug, partial)
 end
 
 # parsing utilities

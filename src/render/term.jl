@@ -149,23 +149,30 @@ function term(io::IO, item::Item, unordered::Bool=true, indent::Integer=0, depth
         printstyled(io, ' ', item.tag, "::", color=:blue)
         offset += length(item.tag) + 3
     end
-    if !isnothing(item.contents)
+    if length(item.contents) > 0
         print(io, ' ')
         offset += 1
-        contentbuf = IOContext(IOBuffer(), :color => get(io, :color, false))
-        for obj in item.contents
-            term(contentbuf, obj)
+        contentbuf = IOContext(IOBuffer(), :color => get(io, :color, false),
+                               :displaysize => (displaysize(io)[1],
+                                                displaysize(io)[2] - indent - 2))
+        parlines = if item.contents[1] isa Paragraph
+            for obj in item.contents[1]; term(contentbuf, obj) end
+            contents = String(take!(contentbuf.io))
+            wraplines(contents, displaysize(io)[2] - indent - 2, offset)
+        else
+            ["\n"]
         end
-        contents = String(take!(contentbuf.io))
-        lines = wraplines(contents, displaysize(io)[2] - indent, offset)
+        components = @view item.contents[if item.contents[1] isa Paragraph 2 else 1 end:end]
+        for component in components
+            term(contentbuf, component, indent)
+            component === last(components) || print(contentbuf, '\n')
+        end
+        otherlines = split(String(take!(contentbuf.io)), '\n')
+        lines = vcat(parlines, if otherlines == [""]; [] else otherlines end)
         for line in lines
             print(io, line)
             line === last(lines) || print(io, '\n', ' '^(indent+2))
         end
-    end
-    if !isnothing(item.sublist)
-        print(io, '\n')
-        term(io, item.sublist, indent + 2, depth + 1)
     end
 end
 

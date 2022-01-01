@@ -34,25 +34,15 @@ include("parser.jl")
 
 import Base.parse
 
-function parse(component::Type{<:OrgComponent}, content::AbstractString, verify::Bool=true)
-    matcher = orgmatcher(component)
-    if !verify
-        return component(match(matcher, content).captures)
-    end
-    @parseassert(component, !isnothing(matcher),
-                 "no matcher is defined for $component")
-    if matcher isa Regex
-        rxmatch = match(matcher, content)
-        @parseassert(component, !isnothing(rxmatch),
-                     "\"$content\" does not match any known form for a $component")
-        @parseassert(component, length(rxmatch.match) == length(content),
-                     "\"$content\" is not just a $component")
-        component(rxmatch.captures)
-    elseif matcher isa Function
-        ErrorException("as $component uses a function matcher, it needs a dedicated " *
-            "conversion function to be defined")
+function parse(component::Type{<:OrgComponent}, content::AbstractString)
+    result = consume(component, content)
+    if isnothing(result)
+        throw(OrgComponentParseError(component, "\"$content\" does not start with any recognised form of $(component)"))
     else
-        ErrorException("cannot handle $component matcher of type $(typeof(matcher))")
+        len, obj = result
+        @parseassert(component, len == ncodeunits(content),
+                     "\"$content\" is not just a $component")
+        obj
     end
 end
 
@@ -63,62 +53,6 @@ end
 function parse(::Type{Org}, content::AbstractString)
     Org(parseorg(content, [Heading, Section]))
 end
-
-const OrgElementMatchers =
-    Dict{Char, Vector{<:Type}}(
-        '#' => [BabelCall, Keyword, Block, Comment],
-        '-' => [HorizontalRule, List],
-        '|' => [Table],
-        ':' => [PropertyDrawer, Drawer, FixedWidth],
-        '+' => [List],
-        '*' => [List],
-        '[' => [FootnoteDef],
-        '\\' => [LaTeXEnvironment],
-        '\n' => [EmptyLine])
-
-const OrgElementFallbacks = [Paragraph, List]
-
-const OrgObjectMatchers =
-    Dict{Char, Vector{<:Type}}(
-        '[' => [Link, Timestamp, StatisticsCookie],
-        '{' => [Macro],
-        '<' => [RadioTarget, Target, Timestamp],
-        '\\' => [LineBreak, Entity, LaTeXFragment],
-        '*' => [TextMarkup],
-        '/' => [TextMarkup],
-        '_' => [TextMarkup],
-        '+' => [TextMarkup],
-        '=' => [TextMarkup],
-        '~' => [TextMarkup],
-        '@' => [ExportSnippet],
-        'c' => [InlineBabelCall, Script, TextPlain],
-        's' => [InlineSourceBlock, Script, TextPlain],
-        # FootnoteRef
-    )
-
-abstract type TextPlainForce end
-function consume(::Type{TextPlainForce}, s::AbstractString)
-    c = SubString(s, 1, 1)
-    # printstyled(stderr, "Warning:", bold=true, color=:yellow)
-    # print(stderr, " Force matching ")
-    # printstyled(stderr, '\'', c, '\'', color=:cyan)
-    # print(stderr, " from ")
-    # b = IOBuffer()
-    # show(b, s[1:min(50,end)])
-    # printstyled(stderr, String(take!(b)), if length(s) > 50 "…" else "" end, color=:green)
-    # print(stderr, "\n         This usually indicates a case where the plain text matcher can be improved.\n")
-    if c == "\n"
-        (c, TextPlain(" "))
-    else
-        (c, TextPlain(c))
-    end
-end
-
-const OrgObjectFallbacks =
-    [TextPlain,
-     TextMarkup,
-     Script,
-     TextPlainForce] # we *must* move forwards by some ammount, c.f. §4.10
 
 # ---------------------
 # Sections
@@ -133,14 +67,14 @@ function Heading(components::Vector{Union{Nothing, SubString{String}}})
         plan = consume(Planning, section)
         if !isnothing(plan)
             section = @inbounds SubString(section.string,
-                                          1 + section.offset + ncodeunits(plan[1]),
+                                          section.offset + plan[1],
                                           section.offset + section.ncodeunits)
             planning = plan[2]
         end
         props = consume(PropertyDrawer, section)
         if !isnothing(props)
             section = @inbounds SubString(section.string,
-                                          1 + section.offset + ncodeunits(props[1]),
+                                          section.offset + props[1] + 1,
                                           section.offset + section.ncodeunits)
             properties = props[2]
         end
@@ -150,12 +84,14 @@ function Heading(components::Vector{Union{Nothing, SubString{String}}})
     end
     Heading(level, keyword, priority,
             parseorg(title, OrgObjectMatchers, OrgObjectFallbacks), tagsvec,
-            if !isnothing(section) parse(Section, section) end,
+            if !isnothing(section) && !isempty(section)
+                parse(Section, section) end,
             planning, properties)
 end
 
 function Section(components::Vector{Union{Nothing, SubString{String}}})
-    Section(parseorg(components[1], OrgElementMatchers, OrgElementFallbacks))
+    content = rstrip(components[1])
+    Section(parseorg(content, OrgElementMatchers, OrgElementFallbacks))
 end
 
 # ---------------------
@@ -173,30 +109,8 @@ end
 # FootnoteDef
 # InlineTask
 
-function Item(components::Vector{Union{Nothing, SubString{String}}})
-    indent, bullet, counterset, checkbox, tag, contents = components
-    text = consume(Paragraph, contents)
-    sublist = consume(List,
-                      if isnothing(text) contents
-                      else @inbounds @view contents[1+length(text[1]):end]
-                      end)
-    Item(bullet, counterset, if !isnothing(checkbox) checkbox[1] end, tag,
-         if !isnothing(text) text[2].contents else OrgObject[] end,
-         if !isnothing(sublist) sublist[2] end)
-end
-
-function List(components::Vector{Union{Nothing, SubString{String}}})
-    indent, rest = components
-    # since we know that indent and rest are contiguous
-    whole = @inbounds SubString(rest.string, 1 + rest.offset - indent.ncodeunits,
-                                rest.offset + rest.ncodeunits)
-    items = Vector{Item}(parseorg(whole, [Item]))
-    if items[1].bullet in ["+", "-", "*"]
-        UnorderedList(items)
-    else
-        OrderedList(items)
-    end
-end
+# Item has a custom consumer
+# List has a custom consumer
 
 function PropertyDrawer(components::Vector{Union{Nothing, SubString{String}}})
     nodetext = components[1]
@@ -207,7 +121,7 @@ end
 function Table(components::Vector{Union{Nothing, SubString{String}}})
     table, tblfms = components
     rows = map(row -> if !isnothing(match(r"^[ \t]*\|[\-\+]+\|*$", row))
-                   TableHrule() else parse(TableRow, row, true) end,
+                   TableHrule() else parse(TableRow, row) end,
                split(table, '\n'))
     # fill rows to same number of columns
     ncolumns = maximum(r -> if r isa TableRow length(r.cells) else 0 end, rows)
@@ -263,15 +177,7 @@ end
 
 # DiarySexp
 
-function parse(::Type{Planning}, content::AbstractString, verify::Bool=true)
-    planning = orgmatcher(Planning)(content)
-    verify && @parseassert(Planning, !isnothing(planning),
-                           "\"$content\" does not match any recognised form")
-    plantext, plan = planning
-    verify && @parseassert(Planning, length(plantext) == length(content),
-                           "\"$content\" is not just a $component")
-    plan
-end
+# Planning has a custom consumer
 
 function Comment(components::Vector{Union{Nothing, SubString{String}}})
     content = components[1]
@@ -322,20 +228,7 @@ end
 # Objects
 # ---------------------
 
-function parse(::Type{Entity}, content::AbstractString, verify::Bool=true)
-    entitymatch = match(r"^\\([A-Za-z]*)({}|[^A-Za-z]|$)", content)
-    local name, post
-    if !verify
-        name, post = entitymatch.captures
-    else
-        @parseassert(Entitymatch, !isnothing(entitymatch),
-                     "\"$content\" is not an Entity")
-        name, post = entitymatch.captures
-        @parseassert(Entity, name in keys(Entities),
-                     "\"$name\" is not a registered in Entities")
-    end
-    Entity(name, post)
-end
+# Entity has a custom consumer
 
 function LaTeXFragment(components::Vector{Union{Nothing, SubString{String}}})
     command, delimitedform = components
@@ -362,18 +255,7 @@ function InlineBabelCall(components::Vector{Union{Nothing, SubString{String}}})
     InlineBabelCall(name, if isnothing(header1) header2 else header1 end, arguments)
 end
 
-function parse(::Type{InlineSourceBlock}, content::AbstractString, verify::Bool=true)
-    srcmatch = match(r"^src_(\S+?)(?:\[([^\n]+)\])?{(.*\n?.*)}$", content)
-    if verify
-        @parseassert(InlineSourceBlock, !isnothing(srcmatch),
-                     "\"$content\" does not match any recognised form")
-        codeend = forwardsinlinesrc(content, length(srcmatch.match) - length(srcmatch.captures[3]))
-        @parseassert(InlineSourceBlock, codeend == length(srcmatch),
-                     "does not end at the end of the input \"$content\"")
-    end
-    lang, options, code = srcmatch.captures
-    InlineSourceBlock(lang, options, code)
-end
+# InlineSourceBlock has a custom consumer
 
 function LineBreak(::Vector{Union{Nothing, SubString{String}}})
     LineBreak()
@@ -454,31 +336,6 @@ function TableCell(components::Vector{Union{Nothing, SubString{String}}})
     @parseassert(TableCell, !occursin("|", content),
                  "\"$content\" cannot contain \"|\"")
     TableCell(strip(content))
-end
-
-function parse(::Type{Timestamp}, content::AbstractString, verify::Bool=true)
-    tsmatch = orgmatcher(Timestamp)(content)
-    verify && @parseassert(Timestamp, !isnothing(tsmatch),
-                           "\"$content\" does not match any recognised form")
-    tstext, ts = tsmatch
-    verify && @parseassert(Timestamp, length(tstext) == length(content),
-                           "\"$content\" is not just a $component")
-    ts
-end
-
-function parse(T::Type{<:Timestamp}, content::AbstractString, verify::Bool=true)
-    ts = parse(Timestamp, content, verify)
-    verify && @parseassert(T, ts isa T,
-                           "\"$content\" is a $(typeof(ts))")
-    ts
-end
-
-function parse(::Type{TextPlain}, text::AbstractString, _verify::Bool=false)
-    if occursin('\n', text) || occursin("  ", text)
-        TextPlain(replace(text, r"[ \t\n]{2,}|\n" => " "))
-    else
-        TextPlain(text)
-    end
 end
 
 const TextMarkupMarkers =
