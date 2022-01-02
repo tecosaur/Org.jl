@@ -228,7 +228,8 @@ function consume(::Type{TextPlain}, content::AbstractString)
                        substr
                    end))
     end
-    if ncodeunits(content) == 1
+    clen = lastindex(content)
+    if clen == 1
         return (1, TextPlain(content))
     end
     # last index/char, current index/char, next index/char
@@ -236,7 +237,6 @@ function consume(::Type{TextPlain}, content::AbstractString)
     li, i, ni = 0, 1, nextind(content, 1)
     lc, c, nc = ' ', content[i], content[ni]
     cc = 1 # char count
-    clen = lastindex(content)
     while true
         if alphnum(c) || c in (' ', '\t')
         elseif c == '\n' && lc == '\n' # empty line
