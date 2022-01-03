@@ -30,7 +30,7 @@ const OrgElementFallbacks = [Paragraph, List]
 # Greater Block
 @inline orgmatcher(::Type{Drawer}) = r"^[ \t]*:([\w\-_]+):\n([\s\S]*?)\n?:END:(?:\n|$)"i
 # Dynamic Block
-# Footnote Def r"^\[fn:([A-Za-z0-9-_]*)\] "
+# FootnoteDef has a dedicated consumer
 # InlineTask
 @inline orgmatcher(::Type{PropertyDrawer}) = r"^[ \t]*:PROPERTIES:\n((?:[ \t]*:[^\+\n]+\+?:(?:[ \t]+[^\n]*|[ \t]*)?\n??)*)\n?[ \t]*:END:(?:[\n \t]*\n|$)"i
 @inline orgmatcher(::Type{Table}) = r"^([ \t]*\|[^\n]+(?:\n[ \t]*\|[^\n]+)*)((?:\n[ \t]*#\+TBLFM: [^\n]*)+)?(?:\n|$)"
@@ -52,7 +52,7 @@ const OrgElementFallbacks = [Paragraph, List]
 @inline orgmatcher(::Type{Keyword}) = r"^[ \t]*#\+(\S+): ?(.*)\n?"
 @inline orgmatcher(::Type{LaTeXEnvironment}) = r"^[ \t]*\\begin{([A-Za-z*]*)}\n(.*)\n[ \t]*\\end{\1}(?:\n|$)"
 @inline orgmatcher(::Type{NodeProperty}) = r"^[ \t]*:([^\+\n]+)(\+)?:([ \t]+[^\n]*|[ \t]*)(?:\n|$)"
-@inline orgmatcher(::Type{Paragraph}) = r"^[ \t]*+((?!\*+ |#\+\S|\[fn:([A-Za-z0-9-_]*)\] |[ \t]*(?:[*\-\+]|[A-Za-z]\.|\d+\.)[ \t]|:([\w\-_]+):(?:\n|$)|\||#\n|# |:\n|: |[ \t]*\-{5,}[ \t]*(?:\n|$)|\\begin\{)[^\n]+(?:\n[ \t]*+(?!\*+ |#\+\S|\[fn:([A-Za-z0-9-_]*)\] |[ \t]*(?:[*\-\+]|[A-Za-z]\.|\d+\.)[ \t]|:([\w\-_]+):(?:\n|$)|\||#\n|# |:\n|: |[ \t]*\-{5,}[ \t]*(?:\n|$)|\\begin\{)[^\n]+)*)(?:\n|$)"
+@inline orgmatcher(::Type{Paragraph}) = r"^[ \t]*+((?!\*+ |#\+\S|\[fn:([A-Za-z0-9-_]+)\] |[ \t]*(?:[*\-\+]|[A-Za-z]\.|\d+\.)[ \t]|:([\w\-_]+):(?:\n|$)|\||#\n|# |:\n|: |[ \t]*\-{5,}[ \t]*(?:\n|$)|\\begin\{)[^\n]+(?:\n[ \t]*+(?!\*+ |#\+\S|\[fn:([A-Za-z0-9-_]*)\] |[ \t]*(?:[*\-\+]|[A-Za-z]\.|\d+\.)[ \t]|:([\w\-_]+):(?:\n|$)|\||#\n|# |:\n|: |[ \t]*\-{5,}[ \t]*(?:\n|$)|\\begin\{)[^\n]+)*)(?:\n|$)"
 @inline orgmatcher(::Type{TableRow}) = r"^[ \t]*(\|[^\n]*)(?:\n|$)"
 @inline orgmatcher(::Type{TableHrule}) = r"^|[\-\+]+|"
 @inline orgmatcher(::Type{EmptyLine}) = r"[\n \t]*\n"
@@ -68,7 +68,7 @@ abstract type TextPlainForce end
 
 const OrgObjectMatchers =
     Dict{Char, Vector{<:Type}}(
-        '[' => [Link, Timestamp, StatisticsCookie],
+        '[' => [Link, Timestamp, StatisticsCookie, FootnoteRef],
         '{' => [Macro],
         '<' => [RadioTarget, Target, Timestamp],
         '\\' => [LineBreak, Entity, LaTeXFragment],
@@ -81,7 +81,6 @@ const OrgObjectMatchers =
         '@' => [ExportSnippet],
         'c' => [InlineBabelCall, Script, TextPlain],
         's' => [InlineSourceBlock, Script, TextPlain],
-        # FootnoteRef
     )
 
 const OrgObjectFallbacks =
@@ -94,7 +93,7 @@ const OrgObjectFallbacks =
 
 @inline orgmatcher(::Type{LaTeXFragment}) = r"^(\\[A-Za-z]+(?:{[^{}\n]*}|\[[^][{}\n]*\])*)|(\\\(.*?\\\)|\\\[.*?\\\])"
 @inline orgmatcher(::Type{ExportSnippet}) = r"^\@\@([A-Za-z0-9-]+):(.*?)\@\@"
-@inline orgmatcher(::Type{FootnoteRef}) = r"^\[fn:([^:]+)?(?::(.+))?\]"
+# FootnoteRef has a dedicated consumer
 @inline orgmatcher(::Type{InlineBabelCall}) = r"^call_([^()\n]+?)(?:(\[[^]\n]+\]))?\(([^)\n]*)\)(?:(\[[^]\n]+\]))?"
 # OrgInlineSource has a custom consumer
 @inline orgmatcher(::Type{LineBreak}) = r"^\\\\[ \t]*(?:\n *|$)"

@@ -17,7 +17,7 @@ end
 
 mutable struct FootnoteDef <: OrgGreaterElement
     label::AbstractString
-    contents::Vector{OrgElement}
+    definition::Vector{OrgElement}
 end
 
 mutable struct InlineTask <: OrgGreaterElement

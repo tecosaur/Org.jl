@@ -79,7 +79,32 @@ function org(io::IO, drawer::Drawer, indent::Integer=0)
 end
 
 # Dynamic Block
-# FootnoteDef
+
+function org(io::IO, fn::FootnoteDef, indent::Integer=0)
+    print(io, ' '^indent, "[fn:", fn.label, "] ")
+    contentbuf = IOContext(IOBuffer(), :color => get(io, :color, false),
+                           :displaysize => (displaysize(io)[1],
+                                            displaysize(io)[2] - indent - 2))
+    parlines = if fn.definition[1] isa Paragraph
+        for obj in fn.definition[1]; org(contentbuf, obj) end
+        contents = String(take!(contentbuf.io))
+        wraplines(contents, displaysize(io)[2] - indent, 6 + ncodeunits(fn.label))
+    else
+        [""]
+    end
+    components = @view fn.definition[if fn.definition[1] isa Paragraph 2 else 1 end:end]
+    for component in components
+        org(contentbuf, component, indent)
+        component === last(components) || print(contentbuf, '\n')
+    end
+    otherlines = split(String(take!(contentbuf.io)), '\n')
+    lines = vcat(parlines, if otherlines == [""]; [] else otherlines end)
+    for line in lines
+        print(io, line)
+        line === last(lines) || print(io, '\n', ' '^indent)
+    end
+end
+
 # InlineTask
 
 function org(io::IO, item::Item, indent::Integer=0, offset::Integer=0)
@@ -108,7 +133,7 @@ function org(io::IO, item::Item, indent::Integer=0, offset::Integer=0)
             contents = String(take!(contentbuf.io))
             wraplines(contents, displaysize(io)[2] - indent - 2, offset)
         else
-            ["\n"]
+            [""]
         end
         components = @view item.contents[if item.contents[1] isa Paragraph 2 else 1 end:end]
         for component in components
@@ -275,7 +300,21 @@ end
 org(io::IO, snippet::ExportSnippet) =
     print(io, "@@", snippet.backend, ':', snippet.snippet, "@@")
 
-# Footnote Ref
+function org(io::IO, fn::FootnoteRef)
+    print(io, "[fn:")
+    if !isnothing(fn.label)
+        print(io, fn.label)
+    end
+    if !isnothing(fn.definition)
+        print(io, ':')
+        contentbuf = IOContext(IOBuffer(), :color => get(io, :color, false))
+        for obj in fn.definition
+            org(contentbuf, obj)
+        end
+        print(io, String(take!(contentbuf.io)))
+    end
+    print(io, ']')
+end
 
 function org(io::IO, bcall::InlineBabelCall)
     print(io, "call_", bcall.name)

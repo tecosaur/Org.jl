@@ -1,3 +1,5 @@
+include("matchers.jl")
+
 function consume(component::Type{<:OrgComponent}, text::AbstractString)
     matcher = orgmatcher(component)
     if isnothing(matcher)
@@ -21,8 +23,41 @@ function consume(component::Type{<:OrgComponent}, text::AbstractString)
     end
 end
 
+# A handy utility function
+
+"""
+    startofline(::Union{String, SubString})::Bool
+Return whether the (Sub)String starts with a line,
+i.e. is not part-way through a line."""
+startofline(::String) = true
+function startofline(s::SubString)
+    s.offset == 0 && return true
+    prevind(s.string, s.offset+1) == s.offset || return false
+    i = s.offset
+    while i > 0 && s.string[i] in (' ', '\t')
+        i -= 1
+    end
+    s.string[i] == '\n'
+end
+
 # Some more complicated elements can not simply be matched, and so need
 # specific consumers.
+
+const OrgFootnoteElementMatchers =
+    filter(p -> !isempty(p.second),
+           Dict{Char, Vector{<:Type}}(key => filter(v -> v ∉ (FootnoteDef, EmptyLine), value)
+                                      for (key, value) in OrgElementMatchers))
+
+function consume(::Type{FootnoteDef}, text::AbstractString)
+    labelfn = match(r"^\[fn:([A-Za-z0-9\-_]+)\][ \t]*\n?", text)
+    if !isnothing(labelfn)
+        fnend, contents = parseorg((@inbounds @view text[1+ncodeunits(labelfn.match):end]),
+                                   OrgFootnoteElementMatchers, OrgElementFallbacks;
+                                   partial=true)
+        (ncodeunits(labelfn.match) + fnend,
+         FootnoteDef(labelfn.captures[1], contents))
+    end
+end
 
 const OrgItemElementMatchers =
     filter(p -> !isempty(p.second),
@@ -131,6 +166,27 @@ function consume(::Type{Entity}, text::AbstractString)
         name, post = entitymatch.captures
         if name in keys(Entities)
             ncodeunits(entitymatch.match), Entity(name, post)
+        end
+    end
+end
+
+function consume(::Type{FootnoteRef}, text::AbstractString)
+    if startswith(text, "[fn:") && ncodeunits(text) >= 6 && text[5] != ']'
+        labelfn = match(r"^\[fn:([A-Za-z0-9\-_]+)(\]|:)", text)
+        if !isnothing(labelfn) && !startofline(text) && labelfn.captures[2] == "]"
+            (ncodeunits(labelfn.match), FootnoteRef(labelfn.captures[1], nothing))
+        else
+            label = if text[5] == ':'
+                Some(nothing)
+            elseif labelfn.captures[2] == ":"
+                labelfn.captures[1]
+            end
+            defend = forwardsbalenced(text, 1, bracketpairs=Dict('[' => ']'))
+            if !isnothing(label) && !isnothing(defend)
+                definition = parseorg((@inbounds view(text, 6:defend-1)),
+                                      OrgObjectMatchers, OrgObjectFallbacks)
+                (defend, FootnoteRef(something(label), definition))
+            end
         end
     end
 end

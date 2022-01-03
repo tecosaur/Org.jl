@@ -20,7 +20,7 @@ end
 
 mutable struct FootnoteRef <: OrgObject
     label::Union{AbstractString, Nothing}
-    definition::Vector{OrgObject}
+    definition::Union{Vector{OrgObject}, Nothing}
 end
 
 mutable struct InlineBabelCall <: OrgObject
