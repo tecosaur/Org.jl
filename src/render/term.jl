@@ -9,20 +9,24 @@ function Base.show(io::IO, ::MIME"text/plain", org::Org)
 end
 
 function term(io::IO, o::Org, indent::Integer=2)
-    term(io, o.contents, indent)
+    term(io, o, o.contents, indent)
+    termfootnotes(io, o, indent)
 end
 
-function term(io::IO, components::Vector{<:OrgComponent}, indent::Integer=2)
+function term(io::IO, o::Org, component::OrgComponent, indent::Integer)
+    print(io, ' '^indent)
+    term(io, o, component)
+end
+
+term(io::IO, ::Org, component::OrgComponent) =
+    term(io, component)
+
+function term(io::IO, o::Org, components::Vector{<:OrgComponent}, indent::Integer=2)
     for component in components
         (component isa Heading && component !== first(components)) && print(io, '\n')
-        term(io, component, indent)
+        term(io, o, component, indent)
         component === last(components) || print(io, '\n')
     end
-end
-
-function term(io::IO, component::OrgComponent, indent::Integer)
-    print(io, ' '^indent)
-    term(io, component)
 end
 
 term(o::Union{Org, OrgComponent}) = term(stdout, o, 2)
@@ -76,6 +80,30 @@ function termheadingonly(io::IO, heading::Heading)
     end
 end
 
+function term(io::IO, o::Org, heading::Heading, indent::Integer=0)
+    print(io, ' '^indent)
+    termheadingonly(io, heading)
+    if !isnothing(heading.planning)
+        print(io, '\n')
+        term(io, o, heading.planning, indent)
+    end
+    # Don't show properties
+    if !isnothing(heading.section)
+        print(io, "\n\n")
+        term(io, o, heading.section, indent)
+    end
+end
+
+function term(io::IO, o::Org, section::Section, indent::Integer=0)
+    for component in section.contents
+        component isa FootnoteDef && continue
+        term(io, o, component, indent)
+        component === last(section.contents) || print(io, '\n')
+    end
+end
+
+# Extras
+
 function tableofcontents(io::IO, org::Org, depthrange::UnitRange=1:9, indent::Integer=2)
     function printheading(h)
         if h.level in depthrange
@@ -93,24 +121,19 @@ tableofcontents(io::IO, org::Org, depth::Integer, indent::Integer=2) =
 
 tableofcontents(org::Org, depth) = tableofcontents(stdout, org, depth)
 
-function term(io::IO, heading::Heading, indent::Integer=0)
-    print(io, ' '^indent)
-    termheadingonly(io, heading)
-    if !isnothing(heading.planning)
+function termfootnotes(io::IO, o::Org, indent::Integer=0)
+    footnotes = filtermap(o, [FootnoteRef, FootnoteDef]) |>
+        fn -> filter(f -> !isnothing(f.definition), fn)
+    if length(footnotes) > 0
         print(io, '\n')
-        term(io, heading.planning, indent)
-    end
-    # Don't show properties
-    if !isnothing(heading.section)
-        print(io, "\n\n")
-        term(io, heading.section, indent)
-    end
-end
-
-function term(io::IO, section::Section, indent::Integer=0)
-    for component in section.contents
-        term(io, component, indent)
-        component === last(section.contents) || print(io, '\n')
+        for (i, fn) in enumerate(footnotes)
+            if fn isa FootnoteRef
+                term(io, o, FootnoteDef(string(i), [Paragraph(fn.definition)]), indent)
+            else
+                term(io, o, FootnoteDef(string(i), fn.definition), indent)
+            end
+            i == length(footnotes) || println(io, '\n')
+        end
     end
 end
 
@@ -120,18 +143,44 @@ end
 
 # Greater Block
 
-function term(io::IO, drawer::Drawer, indent::Integer=0)
+function term(io::IO, o::Org, drawer::Drawer, indent::Integer=0)
     for component in drawer.contents
-        term(io, component, indent)
+        component isa FootnoteDef && continue
+        term(io, o, component, indent)
         component === last(drawer.contents) || print(io, '\n')
     end
 end
 
 # Dynamic Block
-# FootnoteDef
+
+function term(io::IO, o::Org, fn::FootnoteDef, indent::Integer=0)
+    printstyled(io, ' '^indent, "[", fn.label, "] ", color=:yellow)
+    contentbuf = IOContext(IOBuffer(), :color => get(io, :color, false),
+                           :displaysize => (displaysize(io)[1],
+                                            displaysize(io)[2] - indent - 2))
+    parlines = if fn.definition[1] isa Paragraph
+        for obj in fn.definition[1]; term(contentbuf, o, obj) end
+        contents = String(take!(contentbuf.io))
+        wraplines(contents, displaysize(io)[2] - indent, 6 + ncodeunits(fn.label))
+    else
+        [""]
+    end
+    components = @view fn.definition[if fn.definition[1] isa Paragraph 2 else 1 end:end]
+    for component in components
+        term(contentbuf, o, component, indent)
+        component === last(components) || print(contentbuf, '\n')
+    end
+    otherlines = split(String(take!(contentbuf.io)), '\n')
+    lines = vcat(parlines, if otherlines == [""]; [] else otherlines end)
+    for line in lines
+        print(io, line)
+        line === last(lines) || print(io, '\n', ' '^indent)
+    end
+end
+
 # InlineTask
 
-function term(io::IO, item::Item, unordered::Bool=true, indent::Integer=0, depth::Integer=0)
+function term(io::IO, o::Org, item::Item, unordered::Bool=true, indent::Integer=0, depth::Integer=0)
     print(io, ' '^indent)
     offset = indent
     if unordered
@@ -156,7 +205,7 @@ function term(io::IO, item::Item, unordered::Bool=true, indent::Integer=0, depth
                                :displaysize => (displaysize(io)[1],
                                                 displaysize(io)[2] - indent - 2))
         parlines = if item.contents[1] isa Paragraph
-            for obj in item.contents[1]; term(contentbuf, obj) end
+            for obj in item.contents[1]; term(contentbuf, o, obj) end
             contents = String(take!(contentbuf.io))
             wraplines(contents, displaysize(io)[2] - indent - 2, offset)
         else
@@ -164,7 +213,7 @@ function term(io::IO, item::Item, unordered::Bool=true, indent::Integer=0, depth
         end
         components = @view item.contents[if item.contents[1] isa Paragraph 2 else 1 end:end]
         for component in components
-            term(contentbuf, component, indent)
+            term(contentbuf, o, component, indent)
             component === last(components) || print(contentbuf, '\n')
         end
         otherlines = split(String(take!(contentbuf.io)), '\n')
@@ -176,9 +225,9 @@ function term(io::IO, item::Item, unordered::Bool=true, indent::Integer=0, depth
     end
 end
 
-function term(io::IO, list::List, indent::Integer=0, depth=0)
+function term(io::IO, o::Org, list::List, indent::Integer=0, depth=0)
     for item in list.items
-        term(io, item, list isa UnorderedList, indent, depth)
+        term(io, o, item, list isa UnorderedList, indent, depth)
         item === last(list.items) || print(io, '\n')
     end
 end
@@ -202,7 +251,7 @@ const table_charset_boxdraw_slim =
          '-' => '─',
          '+' => '─')
 
-term(io::IO, table::Table, indent::Integer=0) =
+term(io::IO, ::Org, table::Table, indent::Integer=0) =
     layouttable(io, table, table_charset_boxdraw, indent)
 
 # ---------------------
@@ -252,10 +301,10 @@ function term(io::IO, block::Block)
     printstyled(io, "#+end_", name, color=:light_grey)
 end
 
-term(io::IO, block::ExampleBlock, indent::Integer=0) =
+term(io::IO, ::Org, block::ExampleBlock, indent::Integer=0) =
     printblockcontent(io, ' '^indent * "║ ", :light_black, block.contents, :cyan)
 
-function term(io::IO, srcblock::SourceBlock, indent::Integer=0)
+function term(io::IO, ::Org, srcblock::SourceBlock, indent::Integer=0)
     printstyled(io, ' '^indent, "╭", color=:light_black)
     if !isnothing(srcblock.lang)
         printstyled(io, '╴', srcblock.lang, '\n', color=:light_black)
@@ -270,7 +319,7 @@ end
 
 # DiarySexp
 
-function term(io::IO, planning::Planning)
+function term(io::IO, ::Org, planning::Planning)
     values = [(type, getproperty(planning, type))
               for type in (:deadline, :scheduled, :closed)] |>
                   vals -> filter(v -> !isnothing(v[2]), vals)
@@ -312,10 +361,10 @@ end
 term(io::IO, node::NodeProperty) =
     print(io, ':', node.name, if node.additive "+:" else ":" end, node.value)
 
-function term(io::IO, par::Paragraph, indent::Integer=0)
+function term(io::IO, o::Org, par::Paragraph, indent::Integer=0)
     contentbuf = IOContext(IOBuffer(), :color => get(io, :color, false))
     for obj in par.contents
-        term(contentbuf, obj)
+        term(contentbuf, o, obj)
     end
     contents = String(take!(contentbuf.io))
     lines = wraplines(contents, displaysize(io)[2] - indent)
@@ -346,7 +395,31 @@ end
 
 term(::IO, ::ExportSnippet) = nothing
 
-# Footnote Ref
+const FootnoteUnicodeSuperscripts =
+    Dict('1' => '¹',
+         '2' => '²',
+         '3' => '³',
+         '4' => '⁴',
+         '5' => '⁵',
+         '6' => '⁶',
+         '7' => '⁷',
+         '8' => '⁸',
+         '9' => '⁹',
+         '0' => '⁰')
+
+function term(io::IO, o::Org, fn::FootnoteRef)
+    footnotes = filtermap(o, [FootnoteRef, FootnoteDef]) |>
+        fn -> filter(f -> !isnothing(f.definition), fn)
+    def = if isnothing(fn.definition)
+        filter(f -> f.label == fn.label, footnotes)
+    else
+        filter(f -> f.definition == fn.definition, footnotes)
+    end
+    @assert length(def) == 1
+    index = indexin(def, footnotes)[1]
+    printstyled(io, join([FootnoteUnicodeSuperscripts[c] for c in string(index)]);
+                color=:yellow)
+end
 
 term(::IO, ::InlineBabelCall) = nothing
 
