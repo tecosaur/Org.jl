@@ -122,11 +122,11 @@ tableofcontents(io::IO, org::Org, depth::Integer, indent::Integer=2) =
 tableofcontents(org::Org, depth) = tableofcontents(stdout, org, depth)
 
 function termfootnotes(io::IO, o::Org, indent::Integer=0)
-    footnotes = filtermap(o, [FootnoteRef, FootnoteDef]) |>
-        fn -> filter(f -> !isnothing(f.definition), fn)
+    footnotes = collect(o.cache.footnotes)
     if length(footnotes) > 0
+        sort!(footnotes, by=f->f.second[1])
         print(io, '\n')
-        for (i, fn) in enumerate(footnotes)
+        for (i, fn) in map(f->f.second, footnotes)
             if fn isa FootnoteRef
                 term(io, o, FootnoteDef(string(i), [Paragraph(fn.definition)]), indent)
             else
@@ -410,15 +410,7 @@ const FootnoteUnicodeSuperscripts =
          '0' => '⁰')
 
 function term(io::IO, o::Org, fn::FootnoteRef)
-    footnotes = filtermap(o, [FootnoteRef, FootnoteDef]) |>
-        fn -> filter(f -> !isnothing(f.definition), fn)
-    def = if isnothing(fn.definition)
-        filter(f -> f.label == fn.label, footnotes)
-    else
-        filter(f -> f.definition == fn.definition, footnotes)
-    end
-    @assert length(def) == 1
-    index = indexin(def, footnotes)[1]
+    index = o.cache.footnotes[something(fn.label, fn)][1]
     printstyled(io, join([FootnoteUnicodeSuperscripts[c] for c in string(index)]);
                 color=:yellow)
 end

@@ -51,7 +51,7 @@ end
 # ---------------------
 
 function parse(::Type{Org}, content::AbstractString)
-    Org(parseorg(content, [Heading, Section]))
+    Org(Vector{Union{Heading, Section}}(parseorg(content, [Heading, Section])))
 end
 
 # ---------------------
