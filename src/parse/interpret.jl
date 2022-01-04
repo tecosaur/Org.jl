@@ -291,8 +291,8 @@ end
 
 function Macro(components::Vector{Union{Nothing, SubString{String}}})
     name, arguments = components
-    args = split(arguments, r"(?<!\\), ?")
-    Macro(name, if args == [""]; [] else args end)
+    Macro(name, if isnothing(arguments) || length(arguments) == 0; []
+          else split(arguments, r"(?<!\\), ?") end)
 end
 
 function RadioTarget(components::Vector{Union{Nothing, SubString{String}}})
