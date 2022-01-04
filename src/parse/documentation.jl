@@ -1,7 +1,23 @@
 # Thanks to load order issues, we have to do the documentation seperately
 
-const README = parse(Org, read("$(dirname(dirname(@__DIR__)))/README.org", String))
-const compatability = Org([README.contents[3].section])
+const README, compatability =
+    let readme=read("$(dirname(dirname(@__DIR__)))/README.org", String)
+        prolouge=match(r"\n([^#\n][\s\S]*)\n\* Progress", readme).captures[1]
+        progress=match(r"\n\* Progress\s*((?:\|[^\n]+\n)+)", readme).captures[1]
+        Base.Docs.doc!(@__MODULE__,
+                       Base.Docs.Binding(@__MODULE__, Symbol(@__MODULE__)),
+                       Base.Docs.docstr(parse(Org, prolouge),
+                                        Dict(:path => joinpath(@__DIR__, @__FILE__),
+                                             :linenumber => @__LINE__,
+                                             :module => @__MODULE__)),
+                       Union{})
+        (parse(Org, readme),
+         parse(Org,
+               replace(replace(replace(progress,
+                                       "| X " => "| =✓="),
+                               r"\| +\|" => "| ~⋅~ |"),
+                       r"\| +\|" => "| ~⋅~ |")))
+    end
 
 @doc org"""
 #+begin_src julia
