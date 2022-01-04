@@ -450,7 +450,7 @@ function term(io::IO, mac::Macro)
     elseif mac.name == "results" && length(mac.arguments) == 0
         nothing
     else
-        print(io, "{{{", mac.name, '(', join(mac.arguments, ","), ")}}}")
+        printstyled(io, "{{{", mac.name, '(', join(mac.arguments, ","), ")}}}", color=:light_black)
     end
 end
 
