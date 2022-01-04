@@ -47,9 +47,10 @@ parsetree(io::IO, l::L, maxdepth::Integer, depth::Integer) where {L <: List} =
     printstructure(io, string(L), l.items[1].bullet, l.items, maxdepth, depth, :magenta, true)
 
 function parsetree(io::IO, component::T, maxdepth::Integer, depth::Integer=0) where {T <: OrgComponent}
-    contents = if :contents in fieldnames(T) &&
-        component.contents isa Vector{<:OrgComponent}
-        component.contents
+    orgprops = filter(prop -> getfield(component, prop) isa Union{OrgComponent, <:Vector{<:OrgComponent}},
+                      fieldnames(T))
+    contents = if length(orgprops) > 0
+        vcat.(getfield.(Ref(component), orgprops) .|> collect) |> Iterators.flatten
     end
     bold, color = if T <: OrgGreaterElement
         (false, :magenta)
@@ -65,6 +66,8 @@ end
 structurename(::C) where {C<:OrgComponent} = string(nameof(C))
 structuredesc(_::OrgComponent) = nothing
 
+structuredesc(f::FootnoteDef) = f.label
+structuredesc(f::FootnoteRef) = something(f.label, "")
 structuredesc(n::NodeProperty) = string(n.name, if n.additive "+" else "" end)
 structuredesc(s::SourceBlock) = s.lang
 structuredesc(l::Link) = l.path.protocol
