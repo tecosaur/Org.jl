@@ -59,7 +59,7 @@ function termheadingonly(io::IO, heading::Heading)
         else
             :green
         end
-        printstyled(heading.keyword, ' ', color=kcolor)
+        printstyled(io, heading.keyword, ' ', color=kcolor)
     end
     if !isnothing(heading.priority)
         printstyled(io, "[#", heading.priority, "] ", color=:light_red)
@@ -76,7 +76,7 @@ function termheadingonly(io::IO, heading::Heading)
         org.(Ref(io), heading.title)
     end
     if length(heading.tags) > 0
-        printstyled(" :", join(heading.tags, ":"), ":", color=:light_black)
+        printstyled(io, " :", join(heading.tags, ":"), ":", color=:light_black)
     end
 end
 
