@@ -174,7 +174,8 @@ const table_charset_org =
          '-' => '-',
          '+' => '+')
 
-org(io::IO, table::Table, indent::Integer=0) = layouttable(io, table, table_charset_org, indent)
+org(io::IO, table::Table, indent::Integer=0) =
+    layouttable(io, org, table, table_charset_org, indent)
 
 # ---------------------
 # Elements

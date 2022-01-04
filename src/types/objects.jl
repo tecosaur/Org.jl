@@ -76,9 +76,8 @@ mutable struct Superscript <: Script
 end
 
 mutable struct TableCell <: OrgObject
-    contents::AbstractString
+    contents::Vector{OrgObject}
 end
-Base.length(cell::TableCell) = length(cell.contents)
 
 abstract type Timestamp <: OrgObject end
 mutable struct TimestampRepeaterOrDelay

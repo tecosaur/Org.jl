@@ -251,8 +251,10 @@ const table_charset_boxdraw_slim =
          '-' => '─',
          '+' => '─')
 
-term(io::IO, ::Org, table::Table, indent::Integer=0) =
-    layouttable(io, table, table_charset_boxdraw, indent)
+function term(io::IO, o::Org, table::Table, indent::Integer=0)
+    printer = (io, c) -> term(io, o, c)
+    layouttable(io, printer, table, table_charset_boxdraw, indent)
+end
 
 # ---------------------
 # Elements

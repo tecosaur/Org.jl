@@ -217,7 +217,8 @@ function Paragraph(components::Vector{Union{Nothing, SubString{String}}})
 end
 
 function TableRow(components::Vector{Union{Nothing, SubString{String}}})
-    split(strip(components[1], '|'), '|') .|> strip .|> TableCell |> TableRow
+    TableRow(split(strip(components[1], '|'), '|') .|> strip .|>
+        c -> TableCell(parseorg(c, OrgObjectMatchers, OrgObjectFallbacks)))
 end
 
 function EmptyLine(_::Vector{Union{Nothing, SubString{String}}})
@@ -335,7 +336,7 @@ function TableCell(components::Vector{Union{Nothing, SubString{String}}})
     content = components[1]
     @parseassert(TableCell, !occursin("|", content),
                  "\"$content\" cannot contain \"|\"")
-    TableCell(strip(content))
+    TableCell(parseorg(strip(content), OrgObjectMatchers, OrgObjectFallbacks))
 end
 
 const TextMarkupMarkers =
