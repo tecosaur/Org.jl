@@ -105,16 +105,17 @@ end
 # Extras
 
 function tableofcontents(io::IO, org::Org, depthrange::UnitRange=1:9, indent::Integer=2)
-    function printheading(h)
+    for h in org.cache.headings
         if h.level in depthrange
             print(io, ' '^indent)
             termheadingonly(io, h)
             print(io, '\n')
         end
     end
-    filtermap(org, [Heading], printheading)
-    nothing
 end
+
+tableofcontents(org::Org, depthrange::UnitRange=1:9, indent::Integer=2) =
+    tableofcontents(stdout, org, depthrange, indent)
 
 tableofcontents(io::IO, org::Org, depth::Integer, indent::Integer=2) =
     tableofcontents(io, org, depth:depth, indent)

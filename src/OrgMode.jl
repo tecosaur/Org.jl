@@ -1,7 +1,6 @@
 module OrgMode
 
 export Org, @org_str,                 # types/org.jl, here
-    flatten, filtermap,               # parse/operations.jl
     org, term, tableofcontents, html, # render/*
     parsetree                         # analysis/parsetree.jl
 

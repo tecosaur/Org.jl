@@ -181,6 +181,91 @@ iterate(p::Paragraph, index::Integer) =
 
 # Object
 
+length(f::FootnoteRef{<:Any, Vector{OrgObject}}) = length(f.definition)
+iterate(f::FootnoteRef{<:Any, Vector{OrgObject}}) =
+    if length(f) > 0 (f.definition[1], 2) end
+iterate(f::FootnoteRef{<:Any, Vector{OrgObject}}, index::Integer) =
+    if index <= length(f.definition)
+        (f.definition[index], index + 1)
+    end
+
+length(c::TableCell) = length(c.contents)
+iterate(c::TableCell) = if length(c) > 0 (c.contents[1], 2) end
+iterate(c::TableCell, index::Integer) =
+    if index <= length(c.contents)
+        (c.contents[index], index + 1)
+    end
+
+length(t::TextMarkup{Vector{OrgObject}}) = length(t.contents)
+iterate(t::TextMarkup{Vector{OrgObject}}) =
+    if length(t) > 0 (t.contents[1], 2) end
+iterate(t::TextMarkup{Vector{OrgObject}}, index::Integer) =
+    if index <= length(t.contents)
+        (t.contents[index], index + 1)
+    end
+
+# More iterating
+
+struct OrgIterator
+    o::Org
+end
+
+Base.IteratorSize(::OrgIterator) = Base.SizeUnknown()
+iterate(it::OrgIterator) =
+    if length(it.o.contents) > 0
+        el, state = iterate(it.o)
+        (el, Vector{Tuple}([(it.o, state), (el, nothing)]))
+    end
+iterate(it::OrgIterator, stack::Vector) =
+    if length(stack) > 0
+        next = if isnothing(stack[end][2])
+            iterate(stack[end][1])
+        else
+            iterate(stack[end][1], stack[end][2])
+        end
+        if isnothing(next)
+            pop!(stack)
+            iterate(it, stack)
+        else
+            el, state = next
+            stack[end] = (stack[end][1], state)
+            if applicable(iterate, el)
+                push!(stack, (el, nothing))
+            end
+            (el, stack)
+        end
+    end
+
+struct OrgElementIterator
+    o::Org
+end
+
+Base.IteratorSize(::OrgElementIterator) = Base.SizeUnknown()
+iterate(it::OrgElementIterator) =
+    if length(it.o.contents) > 0
+        el, state = iterate(it.o)
+        (el, Vector{Tuple}([(it.o, state), (el, nothing)]))
+    end
+iterate(it::OrgElementIterator, stack::Vector) =
+    if length(stack) > 0
+        next = if isnothing(stack[end][2])
+            iterate(stack[end][1])
+        else
+            iterate(stack[end][1], stack[end][2])
+        end
+        if isnothing(next) || next[1] isa OrgObject
+            pop!(stack)
+            iterate(it, stack)
+        else
+            el, state = next
+            stack[end] = (stack[end][1], state)
+            if applicable(iterate, el)
+                push!(stack, (el, nothing))
+            end
+            (el, stack)
+        end
+    end
+
 # ---------------------
 # Accessors
 # ---------------------
@@ -211,28 +296,3 @@ function getindex(h::Heading, prop::AbstractString)
         getindex(h.properties, prop)
     end
 end
-
-# ---------------------
-# Utilities
-# ---------------------
-
-function flatten(component::OrgComponent; keepself=false, recursive=false)
-    if applicable(iterate, component)
-        finaliser = if recursive
-            cs -> map(c -> flatten(c; keepself, recursive), cs) |> Iterators.flatten |> collect
-        else identity end
-        children = component |> collect |> finaliser
-        if keepself vcat(component, children) else children end
-    else (component,) end
-end
-
-flatten(org::Org; keepself=false, recursive=false) = flatten.(org.contents; keepself, recursive) |> Iterators.flatten |> collect
-
-function filtermap(org::Org, types::Vector{<:Type}=[OrgComponent], fn::Function=identity)
-    flatten(org, keepself=true, recursive=true) |>
-        components -> filter(c -> any(T -> c isa T, types), components) .|>
-        fn
-end
-
-filtermap(org::Org, type::Type, fn::Function=identity) =
-    filtermap(org, [type], fn)

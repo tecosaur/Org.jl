@@ -18,9 +18,24 @@ mutable struct ExportSnippet <: OrgObject
     snippet::AbstractString
 end
 
-mutable struct FootnoteRef <: OrgObject
-    label::Union{AbstractString, Nothing}
-    definition::Union{Vector{OrgObject}, Nothing}
+mutable struct FootnoteRef{L <: Union{<:AbstractString, Nothing},
+                           D <: Union{Vector{OrgObject}, Nothing}} <: OrgObject
+    label::L
+    definition::D
+end
+
+mutable struct KeyCite <: OrgObject
+    prefix::Union{AbstractString, Nothing}
+    key::Vector{OrgObject}
+    suffix::Union{AbstractString, Nothing}
+end
+
+mutable struct Citation <: OrgObject
+    style::Tuple{Union{AbstractString, Nothing},
+                 Union{AbstractString, Nothing}}
+    globalprefix::Union{AbstractString, Nothing}
+    keycites::Vector{KeyCite}
+    globalsuffix::Union{AbstractString, Nothing}
 end
 
 mutable struct InlineBabelCall <: OrgObject
@@ -115,11 +130,11 @@ mutable struct TextPlain{S <: AbstractString} <: OrgObject
     text::S
 end
 
-mutable struct TextMarkup <: OrgObject
+mutable struct TextMarkup{C <: Union{Vector{OrgObject}, <:AbstractString}} <: OrgObject
     type::Symbol
     marker::Char
     pre::AbstractString
-    contents::Union{Vector{OrgObject}, AbstractString}
+    contents::C
     post::AbstractString
 end
 
