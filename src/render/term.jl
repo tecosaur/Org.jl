@@ -105,7 +105,7 @@ end
 # Extras
 
 function tableofcontents(io::IO, org::Org, depthrange::UnitRange=1:9, indent::Integer=2)
-    for h in org.cache.headings
+    for h in org.headings
         if h.level in depthrange
             print(io, ' '^indent)
             termheadingonly(io, h)
@@ -123,7 +123,7 @@ tableofcontents(io::IO, org::Org, depth::Integer, indent::Integer=2) =
 tableofcontents(org::Org, depth) = tableofcontents(stdout, org, depth)
 
 function termfootnotes(io::IO, o::Org, indent::Integer=0)
-    footnotes = collect(o.cache.footnotes)
+    footnotes = collect(o.footnotes)
     if length(footnotes) > 0
         sort!(footnotes, by=f->f.second[1])
         print(io, '\n')
@@ -411,7 +411,7 @@ const FootnoteUnicodeSuperscripts =
          '0' => '⁰')
 
 function term(io::IO, o::Org, fn::FootnoteRef)
-    index = o.cache.footnotes[something(fn.label, fn)][1]
+    index = o.footnotes[something(fn.label, fn)][1]
     printstyled(io, join([FootnoteUnicodeSuperscripts[c] for c in string(index)]);
                 color=:yellow)
 end

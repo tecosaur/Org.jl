@@ -2,8 +2,20 @@
 function Base.setproperty!(o::Org, name::Symbol, value)
     if name == :contents
         o.cache = OrgCache(o)
+        setfield!(o, name, value)
+    elseif name == :settings
+        setfield!(o, name, value)
+    else # Anything other than .contents or .settings is a cache reference
+        setfield!(getfield(o, :cache), name, value)
     end
-    setfield!(o, name, value)
+end
+
+function Base.getproperty(o::Org, name::Symbol)
+    if name == :contents || name == :settings || name == :cache
+        getfield(o, name)
+    else
+        getproperty(getfield(o, :cache), name)
+    end
 end
 
 function Base.getproperty(c::OrgCache, name::Symbol)

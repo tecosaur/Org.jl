@@ -36,7 +36,7 @@ string(dochead)  # as above, but produces a String
 parse(Org, string(dochead)) == dochead  # round-trip equality
 
 # get the lang of each source block
-[c.lang for c in dochead.cache.components if c isa OrgMode.SourceBlock]
+[c.lang for c in dochead.components if c isa OrgMode.SourceBlock]
 #+end_src
 
 * Progress
