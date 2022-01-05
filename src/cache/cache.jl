@@ -26,6 +26,18 @@ function gencache(c::OrgCache, ::Val{:headings})
     Vector{Heading}(filter(h -> h isa Heading, c.elements))
 end
 
+function gencache(c::OrgCache, ::Val{:keywords})
+    kwdict = Dict{AbstractString, Vector{AbstractString}}()
+    for kw in filter(k -> k isa Keyword, c.elements)
+        if haskey(kwdict, kw.key)
+            push!(kwdict[kw.key], kw.value)
+        else
+            kwdict[kw.key] = [kw.value]
+        end
+    end
+    kwdict
+end
+
 function gencache(c::OrgCache, ::Val{:footnotes})
     footnotes = Dict{Union{AbstractString, FootnoteRef}, Tuple{Int, Union{FootnoteRef, FootnoteDef}}}()
     i = 1
