@@ -17,6 +17,7 @@ include("parse/documentation.jl")
 
 include("cache/cache.jl")
 
+include("render/utils.jl")
 include("render/formatting.jl")
 include("render/org.jl")
 include("render/term.jl")

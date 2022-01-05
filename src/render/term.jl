@@ -445,13 +445,12 @@ function term(io::IO, link::Link)
     end
 end
 
-function term(io::IO, mac::Macro)
-    if mac.name == "results" && length(mac.arguments) == 1
-        term.(Ref(io), parse(Paragraph, mac.arguments[1]).contents)
-    elseif mac.name == "results" && length(mac.arguments) == 0
-        nothing
-    else
+function term(io::IO, o::Org, mac::Macro)
+    expanded = macroexpand(o, mac)
+    if isnothing(expanded)
         printstyled(io, "{{{", mac.name, '(', join(mac.arguments, ","), ")}}}", color=:light_black)
+    else
+        term.(Ref(io), parseorg(expanded, OrgObjectMatchers, OrgObjectFallbacks))
     end
 end
 

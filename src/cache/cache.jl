@@ -50,6 +50,23 @@ function gencache(c::OrgCache, ::Val{:keywords})
     kwdict
 end
 
+function gencache(c::OrgCache, ::Val{:macros})
+    macros = Dict{AbstractString, Function}()
+    if haskey(c.keywords, "macro")
+        for (name, replacement) in split.(c.keywords["macro"], r"[ \t]+", limit=2)
+            if startswith(replacement, "(eval ")
+                macros[name] = _ -> nothing
+            else
+                n = getproperty.(eachmatch(r"\$\d+", replacement), :match) |> unique |> length
+                macros[name] = arguments -> if length(arguments) == n
+                    replace(replacement, r"\$\d+" => i -> arguments[parse(Int, i[2:end])])
+                end
+            end
+        end
+    end
+    macros
+end
+
 function gencache(c::OrgCache, ::Val{:footnotes})
     footnotes = Dict{Union{AbstractString, FootnoteRef}, Tuple{Int, Union{FootnoteRef, FootnoteDef}}}()
     i = 1
