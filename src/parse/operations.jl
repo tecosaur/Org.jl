@@ -55,8 +55,6 @@ end
 
 *(rows::TableRow...) = Table(rows, [])
 
-*(e::EmptyLine...) = EmptyLine()
-
 # Object
 
 *(objects::OrgObject...) = Paragraph(objects)

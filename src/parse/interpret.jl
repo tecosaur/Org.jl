@@ -221,10 +221,6 @@ function TableRow(components::Vector{Union{Nothing, SubString{String}}})
         c -> TableCell(parseorg(c, OrgObjectMatchers, OrgObjectFallbacks)))
 end
 
-function EmptyLine(_::Vector{Union{Nothing, SubString{String}}})
-    EmptyLine()
-end
-
 # ---------------------
 # Objects
 # ---------------------

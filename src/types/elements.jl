@@ -75,5 +75,3 @@ mutable struct TableRow <: OrgElement
     cells::Vector{TableCell}
 end
 struct TableHrule <: OrgElement end
-
-struct EmptyLine <: OrgElement end

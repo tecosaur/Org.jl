@@ -45,7 +45,7 @@ end
 
 const OrgFootnoteElementMatchers =
     filter(p -> !isempty(p.second),
-           Dict{Char, Vector{<:Type}}(key => filter(v -> v ∉ (FootnoteDef, EmptyLine), value)
+           Dict{Char, Vector{<:Type}}(key => filter(v -> v == FootnoteDef, value)
                                       for (key, value) in OrgElementMatchers))
 
 function consume(::Type{FootnoteDef}, text::AbstractString)
@@ -102,6 +102,10 @@ function consume(::Type{Item}, text::AbstractString)
             contentlen += len
             push!(contentobjs, obj)
             rest = @inbounds @view text[contentlen + ncodeunits(itemstart.match) + ncodeunits(itemextras.match):end]
+        end
+        trailingspace = match(r"^(?:[ \t]*\n)+", rest)
+        if !isnothing(trailingspace)
+            contentlen += ncodeunits(trailingspace.match)
         end
         (contentlen + ncodeunits(itemstart.match) + ncodeunits(itemextras.match) - 1,
          Item(bullet, counterset, if !isnothing(checkbox) checkbox[1] end,

@@ -145,8 +145,6 @@ end
 
 # Table Row
 
-html(io::IO, ::EmptyLine) = print(io, "<br>")
-
 # ---------------------
 # Objects
 # ---------------------

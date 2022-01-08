@@ -496,7 +496,7 @@ value::AbstractString
 *Paragraphs* are the /default element/, and so any unrecognised content
 is a paragraph.
 
-A paragraph can contain every Org *Object*, and is ended by *Empty Lines*
+A paragraph can contain every Org *Object*, and is ended by a blank line
 and other *Elements*.
 
 * Examples
@@ -530,8 +530,6 @@ objects::Vector{OrgObject}
 cells::Vector{TableCell}
 #+end_src
 """ TableRow
-
-# Empty Line
 
 # ---------------------
 # Objects

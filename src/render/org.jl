@@ -282,8 +282,6 @@ end
 
 # Table Row
 
-org(::IO, ::EmptyLine, _::Integer=0) = nothing
-
 # ---------------------
 # Objects
 # ---------------------

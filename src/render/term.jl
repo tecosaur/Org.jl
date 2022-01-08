@@ -379,8 +379,6 @@ end
 
 # Table Row
 
-term(::IO, ::EmptyLine, _::Integer=0) = nothing
-
 # ---------------------
 # Objects
 # ---------------------
