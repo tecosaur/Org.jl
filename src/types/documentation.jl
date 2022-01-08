@@ -617,7 +617,7 @@ snippet::AbstractString
 * Fields
 #+begin_src julia
 label::Union{AbstractString, Nothing}
-definition::OrgObject[]
+definition::Union{Vector{OrgObject}, Nothing}
 #+end_src
 """ FootnoteRef
 
