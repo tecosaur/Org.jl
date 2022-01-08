@@ -1,6 +1,6 @@
 include("greaterelements.jl") # Org Syntax §3
 
-mutable struct Section <: OrgComponent # Org Syntax §1
+mutable struct Section <: OrgComponent
     contents::Vector{Union{OrgGreaterElement, OrgElement}}
 end
 

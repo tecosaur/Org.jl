@@ -64,6 +64,9 @@ end
 structurename(::C) where {C<:OrgComponent} = string(nameof(C))
 structuredesc(_::OrgComponent) = nothing
 
+structuredesc(k::KeyCite) = string('@', k.key)
+structuredesc(c::Citation) =
+    string(something(c.style[1], "⋅"), " ", something(c.style[2], "⋅"))
 structuredesc(f::FootnoteDef) = f.label
 structuredesc(f::FootnoteRef) = something(f.label, "")
 structuredesc(n::NodeProperty) = string(n.name, if n.additive "+" else "" end)

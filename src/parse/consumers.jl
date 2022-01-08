@@ -195,6 +195,52 @@ function consume(::Type{FootnoteRef}, text::AbstractString)
     end
 end
 
+function consume(::Type{Citation}, text::AbstractString)
+    if startswith(text, "[cite") && ncodeunits(text) >= 8
+        citeend = forwardsbalenced(text, 1, bracketpairs=Dict('[' => ']'))
+        if !isnothing(citeend)
+            citeinner = @inbounds @view text[6:citeend-1]
+            @assert occursin(':', citeinner)
+            styles, body = split(citeinner, ':', limit=2)
+            stylematch = match(r"^(?:\/([A-Za-z0-9\-_]+)(?:\/([A-Za-z0-9\-_\/]+))?)?$", styles)
+            if !isnothing(stylematch) && !isnothing(match(r"@[\w\-\.:?!`'\/*@+|(){}<>&_^$#^~]", body))
+                style, substyle = stylematch.captures
+                keycites = map(split(body, ';')) do keycite
+                    keymatch = match(r"^(.+?)?@([\w\-\.:?!`'\/*@+|(){}<>&_^$#^~]+)(.+)?$", keycite)
+                    if isnothing(keymatch)
+                        keycite
+                    else
+                        prefixstr, key, suffixstr = keymatch.captures
+                        prefix = if isnothing(prefixstr)
+                            OrgObject[]
+                        else
+                            parseorg(prefixstr, OrgObjectMatchers, OrgObjectFallbacks)
+                        end
+                        suffix = if isnothing(suffixstr)
+                            OrgObject[]
+                        else
+                            parseorg(suffixstr, OrgObjectMatchers, OrgObjectFallbacks)
+                        end
+                        KeyCite(prefix, key, suffix)
+                    end
+                end
+                globalprefix = if !isa(keycites[1], KeyCite)
+                    parseorg(popfirst!(keycites), OrgObjectMatchers, OrgObjectFallbacks)
+                else
+                    OrgObject[]
+                end
+                globalsuffix = if !isa(keycites[end], KeyCite)
+                    parseorg(pop!(keycites), OrgObjectMatchers, OrgObjectFallbacks)
+                else
+                    OrgObject[]
+                end
+                (citeend,
+                 Citation((style, substyle), globalprefix, keycites, globalsuffix))
+            end
+        end
+    end
+end
+
 function consume(::Type{InlineSourceBlock}, text::AbstractString)
     srcmatch = match(r"^src_(\S+?)(?:\[([^\n]+)\])?{", text)
     if !isnothing(srcmatch)

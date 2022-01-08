@@ -29,9 +29,10 @@ function term(io::IO, o::Org, components::Vector{<:OrgComponent}, indent::Intege
     end
 end
 
-term(o::Union{Org, OrgComponent}) = term(stdout, o, 2)
+term(o::Org) = term(stdout, o, 2)
+term(c::OrgComponent) = term(stdout, Org(), c, 2)
 term(p::Paragraph) = (term(stdout, p, 2); print('\n'))
-term(o::OrgObject) = (term(stdout, o, 2); print('\n'))
+term(o::OrgObject) = (term(stdout, Org(), o, 2); print('\n'))
 
 # ---------------------
 # Sections
@@ -364,11 +365,15 @@ end
 term(io::IO, node::NodeProperty) =
     print(io, ':', node.name, if node.additive "+:" else ":" end, node.value)
 
+function term(io::IO, o::Org, objs::Vector{OrgObject})
+    for obj in objs
+        term(io, o, obj)
+    end
+end
+
 function term(io::IO, o::Org, par::Paragraph, indent::Integer=0)
     contentbuf = IOContext(IOBuffer(), :color => get(io, :color, false))
-    for obj in par.contents
-        term(contentbuf, o, obj)
-    end
+    term(contentbuf, o, par.contents)
     contents = String(take!(contentbuf.io))
     lines = wraplines(contents, displaysize(io)[2] - indent)
     for line in lines
@@ -412,6 +417,36 @@ function term(io::IO, o::Org, fn::FootnoteRef)
     index = o.footnotes[something(fn.label, fn)][1]
     printstyled(io, join([FootnoteUnicodeSuperscripts[c] for c in string(index)]);
                 color=:yellow)
+end
+
+function term(io::IO, o::Org, keycite::KeyCite)
+    term(io, o, keycite.prefix)
+    printstyled(io, '@', keycite.key, bold=true, color=:magenta)
+    term(io, o, keycite.suffix)
+end
+
+function term(io::IO, o::Org, cite::Citation)
+    printstyled(io, "[", color=:magenta)
+    # if !isnothing(cite.style[1])
+    #     printstyled(io, '/', cite.style[1], color=:blue)
+    # end
+    # if !isnothing(cite.style[2])
+    #     printstyled(io, '/', cite.style[2], color=:light_blue)
+    # end
+    # printstyled(io, ':', color=:light_black)
+    if !isnothing(cite.globalprefix)
+        term(io, o, cite.globalprefix)
+        printstyled(io, ';', color=:light_magenta)
+    end
+    for keycite in cite.keycites
+        term(io, o, keycite)
+        keycite === last(cite.keycites) || printstyled(io, ';', color=:light_magenta)
+    end
+    if !isnothing(cite.globalsuffix)
+        printstyled(io, ';', color=:light_magenta)
+        term(io, o, cite.globalsuffix)
+    end
+    printstyled(io, ']', color=:magenta)
 end
 
 term(::IO, ::InlineBabelCall) = nothing

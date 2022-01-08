@@ -84,7 +84,7 @@ parse(Org, string(dochead)) == dochead  # round-trip equality
 | Link                | X    | X     | X   | X    |      |
 | LineBreak           | X    | X     | X   | X    |      |
 | Macro               | X    | X     | X   | X    |      |
-| Cite                |      |       |     |      |      |
+| Citation            | X    | X     | X   | X    |      |
 | RadioTarget         | X    | X     | X   | X    |      |
 | Target              | X    | X     | X   | X    | X    |
 | StatisticsCookie    | X    | X     | X   | X    |      |

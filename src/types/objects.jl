@@ -25,17 +25,17 @@ mutable struct FootnoteRef{L <: Union{<:AbstractString, Nothing},
 end
 
 mutable struct KeyCite <: OrgObject
-    prefix::Union{AbstractString, Nothing}
-    key::Vector{OrgObject}
-    suffix::Union{AbstractString, Nothing}
+    prefix::Vector{OrgObject}
+    key::AbstractString
+    suffix::Vector{OrgObject}
 end
 
 mutable struct Citation <: OrgObject
     style::Tuple{Union{AbstractString, Nothing},
                  Union{AbstractString, Nothing}}
-    globalprefix::Union{AbstractString, Nothing}
+    globalprefix::Vector{OrgObject}
     keycites::Vector{KeyCite}
-    globalsuffix::Union{AbstractString, Nothing}
+    globalsuffix::Vector{OrgObject}
 end
 
 mutable struct InlineBabelCall <: OrgObject

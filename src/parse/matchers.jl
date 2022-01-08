@@ -66,7 +66,7 @@ abstract type TextPlainForce end
 
 const OrgObjectMatchers =
     Dict{Char, Vector{<:Type}}(
-        '[' => [Link, Timestamp, StatisticsCookie, FootnoteRef],
+        '[' => [Link, Timestamp, StatisticsCookie, FootnoteRef, Citation],
         '{' => [Macro],
         '<' => [RadioTarget, Target, Timestamp],
         '\\' => [LineBreak, Entity, LaTeXFragment],

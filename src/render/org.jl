@@ -264,11 +264,15 @@ end
 org(io::IO, node::NodeProperty) =
     print(io, ':', node.name, if node.additive "+:" else ":" end, if !isnothing(node.value) node.value else "" end)
 
+function org(io::IO, objs::Vector{OrgObject})
+    for obj in objs
+        org(io, obj)
+    end
+end
+
 function Base.string(par::Paragraph)
     b = IOBuffer()
-    for obj in par.contents
-        org(b, obj)
-    end
+    org(b, par.contents)
     String(take!(b))
 end
 
@@ -311,6 +315,36 @@ function org(io::IO, fn::FootnoteRef)
             org(contentbuf, obj)
         end
         print(io, String(take!(contentbuf.io)))
+    end
+    print(io, ']')
+end
+
+function org(io::IO, keycite::KeyCite)
+    org(io, keycite.prefix)
+    print(io, '@', keycite.key)
+    org(io, keycite.suffix)
+end
+
+function org(io::IO, cite::Citation)
+    print(io, "[cite")
+    if !isnothing(cite.style[1])
+        print(io, '/', cite.style[1])
+    end
+    if !isnothing(cite.style[2])
+        print(io, '/', cite.style[2])
+    end
+    print(io, ':')
+    if !isnothing(cite.globalprefix)
+        org(io, cite.globalprefix)
+        print(io, ';')
+    end
+    for keycite in cite.keycites
+        org(io, keycite)
+        keycite === last(cite.keycites) || print(io, ';')
+    end
+    if !isnothing(cite.globalsuffix)
+        print(io, ';')
+        org(io, cite.globalsuffix)
     end
     print(io, ']')
 end
