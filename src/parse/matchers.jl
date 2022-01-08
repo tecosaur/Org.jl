@@ -98,7 +98,7 @@ const OrgObjectFallbacks =
 # OrgInlineSource has a custom consumer
 @inline orgmatcher(::Type{LineBreak}) = r"^\\\\[ \t]*(?:\n *|$)"
 @inline orgmatcher(::Type{Link}) = r"^\[\[([^]]+)\](?:\[([^]]+)\])?\]"
-@inline orgmatcher(::Type{Macro}) = r"^{{{([A-Za-z][A-Za-z0-9-_]*)(?:\((.*)\))?}}}"
+@inline orgmatcher(::Type{Macro}) = r"^{{{([A-Za-z][A-Za-z0-9-_]*?)(?:\((.*?)\))?}}}"
 @inline orgmatcher(::Type{RadioTarget}) = r"^<<<(.*?)>>>"
 @inline orgmatcher(::Type{Target}) = r"^<<(.*?)>>"
 @inline orgmatcher(::Type{StatisticsCookie}) = r"^\[([\d.]*%)\]|^\[(\d+)?\/(\d+)?\]"
