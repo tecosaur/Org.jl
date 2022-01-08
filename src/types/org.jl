@@ -16,3 +16,4 @@ mutable struct Org
 end
 
 Org(contents::Vector) = Org(Dict(), contents)
+Org() = Org(Union{Heading, Section}[])
