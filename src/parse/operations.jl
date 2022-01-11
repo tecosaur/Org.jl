@@ -179,6 +179,38 @@ iterate(p::Paragraph, index::Integer) =
 
 # Object
 
+length(k::KeyCite) =
+    length(k.prefix) + length(k.suffix)
+iterate(k::KeyCite) =
+    if length(k.prefix) > 0
+         (k.prefix[1], 2)
+     elseif length(k.suffix) > 0
+         (k.suffix[1], 2)
+     end
+iterate(k::KeyCite, index::Integer) =
+    if index <= length(k.prefix)
+        (k.prefix[index], index + 1)
+    elseif index <= length(k.prefix) + length(k.suffix)
+        (k.suffix[index-length(k.prefix)], index + 1)
+    end
+
+length(c::Citation) =
+    length(c.globalprefix) + length(c.keycites) + length(c.globalsuffix)
+iterate(c::Citation) =
+    (if length(c.globalprefix) > 0
+         c.globalprefix[1]
+     else
+         c.keycites[1]
+     end, 2)
+iterate(c::Citation, index::Integer) =
+    if index <= length(c.globalprefix)
+        (c.globalprefix[index], index + 1)
+    elseif index <= length(c.globalprefix) + length(c.keycites)
+        (c.keycites[index-length(c.globalprefix)], index + 1)
+    elseif index <= length(c.globalprefix) + length(c.keycites) + length(c.globalsuffix)
+        (c.globalsuffix[index-length(c.globalprefix)-length(c.keycites)], index + 1)
+    end
+
 length(f::FootnoteRef{<:Any, Vector{OrgObject}}) = length(f.definition)
 iterate(f::FootnoteRef{<:Any, Vector{OrgObject}}) =
     if length(f) > 0 (f.definition[1], 2) end
