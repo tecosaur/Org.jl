@@ -469,12 +469,20 @@ end
 
 org(io::IO, text::TextPlain) = print(io, text.text)
 
+const TextMarkupMarkers =
+    Dict(:bold => '*',
+         :italic => '/',
+         :underline => '_',
+         :verbatim => '=',
+         :code => '~',
+         :strikethrough => '+')
+
 function org(io::IO, markup::TextMarkup)
-    print(io, markup.pre, markup.marker)
+    print(io, TextMarkupMarkers[markup.formatting])
     if markup.contents isa AbstractString
         print(io, markup.contents)
     else
         org.(Ref(io), markup.contents)
     end
-    print(io, markup.marker, markup.post)
+    print(io, TextMarkupMarkers[markup.formatting])
 end

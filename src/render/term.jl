@@ -571,9 +571,8 @@ const markup_term_codes =
 
 function term(io::IO, markup::TextMarkup, accumulatedmarkup::String="")
     color = get(stdout, :color, false)
-    print(io, markup.pre)
-    if color && markup.type in keys(markup_term_codes)
-        accumulatedmarkup *= markup_term_codes[markup.type]
+    if color
+        accumulatedmarkup *= markup_term_codes[markup.formatting]
     end
     if markup.contents isa AbstractString
         print(io, accumulatedmarkup, markup.contents,
@@ -587,7 +586,6 @@ function term(io::IO, markup::TextMarkup, accumulatedmarkup::String="")
             end
         end
     end
-    print(io, markup.post)
 end
 
 function term(io::IO, text::TextPlain, accumulatedmarkup::String="")

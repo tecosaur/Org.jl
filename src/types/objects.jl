@@ -131,11 +131,8 @@ mutable struct TextPlain{S <: AbstractString} <: OrgObject
 end
 
 mutable struct TextMarkup{C <: Union{Vector{OrgObject}, <:AbstractString}} <: OrgObject
-    type::Symbol
-    marker::Char
-    pre::AbstractString
+    formatting::Symbol
     contents::C
-    post::AbstractString
 end
 
 mutable struct RadioTarget <: OrgObject

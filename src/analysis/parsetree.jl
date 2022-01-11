@@ -73,10 +73,9 @@ structuredesc(n::NodeProperty) = string(n.name, if n.additive "+" else "" end)
 structuredesc(s::SourceBlock) = s.lang
 structuredesc(l::Link) = l.path.protocol
 structuredesc(m::Macro) = m.name
-structurename(t::TextMarkup) = "Text" * uppercasefirst(string(t.type))
-structuredesc(t::TextMarkup{Vector{OrgObject}}) = string(t.marker)
+structurename(t::TextMarkup) = "Text" * uppercasefirst(string(t.formatting))
 structuredesc(t::TextMarkup{<:AbstractString}) =
-    string(t.marker, " ", structuredesc(TextPlain(t.contents)))
+    string(structuredesc(TextPlain(t.contents)))
 structuredesc(t::TextPlain) = if length(t.text) <= 40
     sprint(show, t.text)
 else

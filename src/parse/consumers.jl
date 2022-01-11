@@ -320,6 +320,33 @@ function consume(T::Type{<:Timestamp}, text::AbstractString)
     end
 end
 
+const TextMarkupFormatting =
+    Dict('*' => :bold,
+         '/' => :italic,
+         '+' => :strikethrough,
+         '_' => :underline,
+         '=' => :verbatim,
+         '~' => :code)
+
+function consume(::Type{TextMarkup}, text::AbstractString)
+    if text[1] in ('*', '/', '_', '=', '~', '+') &&
+        if text isa SubString
+            text.offset == 0 ||
+            text.string[prevind(text.string, 1+text.offset)] in
+            (' ', '\t', '\n', '-', '(', '{', ''', '"') # pre condition
+        else
+            true
+        end
+        markupmatch = match(r"^([*\/_=~+])(\S[^\n]*?(?:\n[^\n]+?(?:\n[^\n]+?)?)?(?<=\S))\1([ \t\n\-.,;:!?'\")\[}]|$)", text)
+        if !isnothing(markupmatch)
+            char, content, _ = markupmatch.captures
+            formatting = TextMarkupFormatting[char[1]]
+            (2 + ncodeunits(content),
+             TextMarkup(formatting, content))
+        end
+    end
+end
+
 function consume(::Type{TextPlain}, content::AbstractString)
     alph(c) = c in 'a':'z' || c in 'A':'Z'
     alphnum(c) = alph(c) || c in '0':'9'
@@ -347,7 +374,7 @@ function consume(::Type{TextPlain}, content::AbstractString)
         if alphnum(c) || c in (' ', '\t')
         elseif c == '\n' && lc == '\n' # empty line
             return if i > 1 textobjupto(li) end
-        elseif c in ('+', '-', '*') && lc == '\n' && spc(nc) # list items
+        elseif c in ('+', '-', '*') && lc == '\n' && spc(nc) # list items, heading
             return if i > 1 textobjupto(li) end
         elseif c == '|' && lc == '\n'
             return if i > 1 textobjupto(li) end
@@ -368,7 +395,7 @@ function consume(::Type{TextPlain}, content::AbstractString)
         elseif c == '@' && nc == '@' # export snippet
             return if i > 1 textobjupto(li) end
         elseif c in ('*', '/', '+', '_', '~', '=') && (spc(lc) || lc in ('-', '(', '{', '\'', '"')) && !spc(nc) # markup
-            return if cc > 2 textobjupto(prevind(content, li)) end
+            return if cc > 2 textobjupto(li) end
         elseif c == '\\' && !spc(nc) # entities & latex & line break
             return if i > 1 textobjupto(li) end
         elseif c == '<' && (nc == '<' || nc in '0':'9') # targets & active timestamps

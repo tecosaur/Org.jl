@@ -225,14 +225,14 @@ const html_markup_codes =
          :code => html_tagpair("code"))
 
 function html(io::IO, markup::TextMarkup)
-    tagopen, tagclose = html_markup_codes[markup.type]
-    print(io, html_escape(markup.pre), tagopen)
+    tagopen, tagclose = html_markup_codes[markup.formatting]
+    print(io, tagopen)
     if markup.contents isa AbstractString
         print(io, html_escape(markup.contents))
     else
         html.(Ref(io), markup.contents)
     end
-    print(io, tagclose, html_escape(markup.post))
+    print(io, tagclose)
 end
 
 

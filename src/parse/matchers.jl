@@ -107,5 +107,5 @@ const OrgObjectFallbacks =
 @inline orgmatcher(::Type{TimestampInactive}) = r"\[\d{4}-\d\d-\d\d(?: \d?\d:\d\d)?(?: [A-Za-z]{3,7})?\]"
 # Timestamp has a custom consumer
 
-@inline orgmatcher(::Type{TextMarkup}) = r"^(^|[\n \t\-({'\"])([*\/+_~=])(\S.*?\n?.*?(?<=\S))\2([\n \t\]\-.,;:!?')}\"]|$)" # TODO peek at start of string being applied to, to properly check PRE condition
+# TextMarkup has a custom consumer
 # TextPlain has a custom consumer
