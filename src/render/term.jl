@@ -99,7 +99,7 @@ function term(io::IO, o::Org, section::Section, indent::Integer=0)
     for component in section.contents
         component isa FootnoteDef && continue
         term(io, o, component, indent)
-        component === last(section.contents) || print(io, '\n')
+        component === last(section.contents) || print(io, "\n\n")
     end
 end
 

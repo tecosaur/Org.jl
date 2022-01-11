@@ -59,7 +59,7 @@ end
 function org(io::IO, section::Section, indent::Integer=0)
     for component in section.contents
         org(io, component, indent)
-        component === last(section.contents) || print(io, '\n')
+        component === last(section.contents) || print(io, "\n\n")
     end
 end
 

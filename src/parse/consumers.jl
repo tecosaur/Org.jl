@@ -12,6 +12,7 @@ function consume(component::Type{<:OrgComponent}, text::AbstractString)
                 (ncodeunits(rxmatch.match), component(rxmatch.captures))
             end
         elseif matcher isa Function
+            @warn "$(component) is using a Function matcher, this should be changed to a dedicated consumer" maxlog=1
             matchresult = matcher(text)
             if isnothing(matchresult) || matchresult isa Tuple{Int64, OrgComponent}
                 matchresult
