@@ -149,7 +149,7 @@ end
 # Objects
 # ---------------------
 
-html(io::IO, entity::Entity) = print(io, Entities[entity.name].html, entity.post)
+html(io::IO, entity::Entity) = print(io, Entities[entity.name].html)
 
 # LaTeX Fragment
 

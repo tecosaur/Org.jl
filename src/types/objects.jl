@@ -5,7 +5,6 @@ abstract type OrgObject <: OrgComponent end
 include("../data/entities.jl")
 mutable struct Entity <: OrgObject
     name::AbstractString
-    post::AbstractString
 end
 
 mutable struct LaTeXFragment <: OrgObject

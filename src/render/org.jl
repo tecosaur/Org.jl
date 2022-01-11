@@ -290,7 +290,7 @@ end
 # Objects
 # ---------------------
 
-org(io::IO, entity::Entity) = print(io, '\\', entity.name, entity.post)
+org(io::IO, entity::Entity) = print(io, '\\', entity.name)
 
 function org(io::IO, latex::LaTeXFragment)
     if isnothing(latex.delimiters)

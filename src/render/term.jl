@@ -388,7 +388,7 @@ end
 # Objects
 # ---------------------
 
-term(io::IO, entity::Entity) = print(io, Entities[entity.name].utf8, entity.post)
+term(io::IO, entity::Entity) = print(io, Entities[entity.name].utf8)
 
 function term(io::IO, latex::LaTeXFragment)
     if isnothing(latex.delimiters)

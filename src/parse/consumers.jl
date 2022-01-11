@@ -166,11 +166,13 @@ function consume(::Type{Planning}, text::AbstractString)
 end
 
 function consume(::Type{Entity}, text::AbstractString)
-    entitymatch = match(r"^\\([A-Za-z]*)({}|[^A-Za-z]|$)", text)
+    # TODO work out how to properly handle \entitity{}
+    # maybe this should be handled at the render stage?
+    entitymatch = match(r"^\\([A-Za-z]+)(?:{}|[^A-Za-z]|$)", text)
     if !isnothing(entitymatch)
-        name, post = entitymatch.captures
+        name = entitymatch.captures[1]
         if name in keys(Entities)
-            ncodeunits(entitymatch.match), Entity(name, post)
+            1+ncodeunits(name), Entity(name)
         end
     end
 end
