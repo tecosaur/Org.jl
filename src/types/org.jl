@@ -1,6 +1,7 @@
 abstract type OrgComponent end
 
-include("sections.jl")
+include("objects.jl")
+include("elements.jl")
 
 include("cache.jl")
 

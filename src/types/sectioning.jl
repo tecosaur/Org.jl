@@ -1,10 +1,8 @@
-include("greaterelements.jl") # Org Syntax §3
-
-mutable struct Section <: OrgComponent
-    contents::Vector{Union{OrgGreaterElement, OrgElement}}
+mutable struct Section <: OrgElement
+    contents::Vector{Union{OrgElement}}
 end
 
-mutable struct Heading <: OrgComponent
+mutable struct Heading <: OrgElement
     level::Integer
     keyword::Union{AbstractString, Nothing}
     priority::Union{AbstractString, Nothing}

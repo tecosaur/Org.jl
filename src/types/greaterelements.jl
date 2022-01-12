@@ -1,12 +1,11 @@
-abstract type OrgGreaterElement <: OrgComponent end # Org Syntax §3
-include("elements.jl") # Org Syntax §4
+abstract type OrgGreaterElement <: OrgElement end # Org Syntax §3
 
 mutable struct GreaterBlock <: OrgGreaterElement
 end
 
 mutable struct Drawer <: OrgGreaterElement
     name::AbstractString
-    contents::Vector{Union{OrgGreaterElement, OrgElement}}
+    contents::Vector{OrgElement}
 end
 
 mutable struct DynamicBlock <: OrgGreaterElement

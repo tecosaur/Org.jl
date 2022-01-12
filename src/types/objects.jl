@@ -66,6 +66,10 @@ mutable struct Macro <: OrgObject
     arguments::Vector{AbstractString}
 end
 
+mutable struct RadioTarget <: OrgObject
+    contents::Vector{OrgObject}
+end
+
 mutable struct Target <: OrgObject
     target::AbstractString
 end
@@ -125,15 +129,11 @@ mutable struct TimestampInactiveRange <: TimestampRange
     stop::TimestampInactive
 end
 
-mutable struct TextPlain{S <: AbstractString} <: OrgObject
-    text::S
-end
-
 mutable struct TextMarkup{C <: Union{Vector{OrgObject}, <:AbstractString}} <: OrgObject
     formatting::Symbol
     contents::C
 end
 
-mutable struct RadioTarget <: OrgObject
-    contents::Vector{Union{TextPlain, TextMarkup, Entity, LaTeXFragment, Subscript, Superscript}}
+mutable struct TextPlain{S <: AbstractString} <: OrgObject
+    text::S
 end
