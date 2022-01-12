@@ -68,9 +68,9 @@ function gencache(c::OrgCache, ::Val{:macros})
 end
 
 function gencache(c::OrgCache, ::Val{:footnotes})
-    footnotes = Dict{Union{AbstractString, FootnoteReference}, Tuple{Int, Union{FootnoteReference, FootnoteDef}}}()
+    footnotes = Dict{Union{AbstractString, FootnoteReference}, Tuple{Int, Union{FootnoteReference, FootnoteDefinition}}}()
     i = 1
-    for f in filter(f -> f isa FootnoteDef || f isa FootnoteReference, c.components)
+    for f in filter(f -> f isa FootnoteDefinition || f isa FootnoteReference, c.components)
         if !isnothing(f.definition)
             footnotes[something(f.label, f)] = (i, f)
             i += 1

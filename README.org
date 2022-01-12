@@ -49,7 +49,7 @@ parse(Org, string(dochead)) == dochead  # round-trip equality
 | GreaterBlock        | X    |       |     |      |      |
 | Drawer              | X    | X     | X   | X    |      |
 | DynamicBlock        | X    |       |     |      |      |
-| FootnoteDef         | X    | X     | X   | X    |      |
+| FootnoteDefinition  | X    | X     | X   | X    |      |
 | InlineTask          | X    |       |     |      |      |
 | Item                | X    | X     | X   | X    | X    |
 | List                | X    | X     | X   | X    | X    |

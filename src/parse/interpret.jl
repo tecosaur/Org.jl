@@ -106,7 +106,7 @@ function Drawer(components::Vector{Union{Nothing, SubString{String}}})
 end
 
 # Dynamic Block
-# FootnoteDef
+# FootnoteDefinition
 # InlineTask
 
 # Item has a custom consumer

@@ -97,7 +97,7 @@ end
 
 function term(io::IO, o::Org, section::Section, indent::Integer=0)
     for component in section.contents
-        component isa FootnoteDef && continue
+        component isa FootnoteDefinition && continue
         term(io, o, component, indent)
         component === last(section.contents) || print(io, "\n\n")
     end
@@ -130,9 +130,9 @@ function termfootnotes(io::IO, o::Org, indent::Integer=0)
         print(io, '\n')
         for (i, fn) in map(f->f.second, footnotes)
             if fn isa FootnoteReference
-                term(io, o, FootnoteDef(string(i), [Paragraph(fn.definition)]), indent)
+                term(io, o, FootnoteDefinition(string(i), [Paragraph(fn.definition)]), indent)
             else
-                term(io, o, FootnoteDef(string(i), fn.definition), indent)
+                term(io, o, FootnoteDefinition(string(i), fn.definition), indent)
             end
             i == length(footnotes) || println(io, '\n')
         end
@@ -147,7 +147,7 @@ end
 
 function term(io::IO, o::Org, drawer::Drawer, indent::Integer=0)
     for component in drawer.contents
-        component isa FootnoteDef && continue
+        component isa FootnoteDefinition && continue
         term(io, o, component, indent)
         component === last(drawer.contents) || print(io, '\n')
     end
@@ -155,7 +155,7 @@ end
 
 # Dynamic Block
 
-function term(io::IO, o::Org, fn::FootnoteDef, indent::Integer=0)
+function term(io::IO, o::Org, fn::FootnoteDefinition, indent::Integer=0)
     printstyled(io, ' '^indent, "[", fn.label, "] ", color=:yellow)
     contentbuf = IOContext(IOBuffer(), :color => get(io, :color, false),
                            :displaysize => (displaysize(io)[1],

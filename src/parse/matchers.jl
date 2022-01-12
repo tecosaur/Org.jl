@@ -21,7 +21,7 @@ const OrgElementMatchers =
         ':' => [PropertyDrawer, Drawer, FixedWidth],
         '+' => [List],
         '*' => [List],
-        '[' => [FootnoteDef],
+        '[' => [FootnoteDefinition],
         '\\' => [LaTeXEnvironment])
 
 const OrgElementFallbacks = [Paragraph, List]
@@ -29,7 +29,7 @@ const OrgElementFallbacks = [Paragraph, List]
 # Greater Block
 @inline orgmatcher(::Type{Drawer}) = r"^[ \t]*:([\w\-_]+):\n([\s\S]*?)\n?:END:(?:\n(?:[ \t\r]*\n)*|$)"i
 # Dynamic Block
-# FootnoteDef has a dedicated consumer
+# FootnoteDefinition has a dedicated consumer
 # InlineTask
 @inline orgmatcher(::Type{PropertyDrawer}) = r"^[ \t]*:PROPERTIES:\n((?:[ \t]*:[^\+\n]+\+?:(?:[ \t]+[^\n]*|[ \t]*)?\n??)*)\n?[ \t]*:END:(?:[\n \t]*\n|$)"i
 @inline orgmatcher(::Type{Table}) = r"^([ \t]*\|[^\n]+(?:\n[ \t]*\|[^\n]+)*)((?:\n[ \t]*#\+TBLFM: [^\n]*)+)?(?:\n(?:[ \t\r]*\n)*|$)"

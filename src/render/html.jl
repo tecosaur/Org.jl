@@ -83,7 +83,7 @@ end
 # Greater Block
 # Drawer
 # Dynamic Block
-# FootnoteDef
+# FootnoteDefinition
 # InlineTask
 
 function html(io::IO, item::Item)

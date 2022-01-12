@@ -67,7 +67,7 @@ structuredesc(_::OrgComponent) = nothing
 structuredesc(k::CitationReference) = string('@', k.key)
 structuredesc(c::Citation) =
     string(something(c.style[1], "⋅"), " ", something(c.style[2], "⋅"))
-structuredesc(f::FootnoteDef) = f.label
+structuredesc(f::FootnoteDefinition) = f.label
 structuredesc(f::FootnoteReference) = something(f.label, "")
 structuredesc(n::NodeProperty) = string(n.name, if n.additive "+" else "" end)
 structuredesc(s::SourceBlock) = s.lang

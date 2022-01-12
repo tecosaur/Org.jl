@@ -46,17 +46,17 @@ end
 
 const OrgFootnoteElementMatchers =
     filter(p -> !isempty(p.second),
-           Dict{Char, Vector{<:Type}}(key => filter(v -> v == FootnoteDef, value)
+           Dict{Char, Vector{<:Type}}(key => filter(v -> v == FootnoteDefinition, value)
                                       for (key, value) in OrgElementMatchers))
 
-function consume(::Type{FootnoteDef}, text::AbstractString)
+function consume(::Type{FootnoteDefinition}, text::AbstractString)
     labelfn = match(r"^\[fn:([A-Za-z0-9\-_]+)\][ \t]*\n?", text)
     if !isnothing(labelfn)
         fnend, contents = parseorg((@inbounds @view text[1+ncodeunits(labelfn.match):end]),
                                    OrgFootnoteElementMatchers, OrgElementFallbacks;
                                    partial=true)
         (ncodeunits(labelfn.match) + fnend,
-         FootnoteDef(labelfn.captures[1], contents))
+         FootnoteDefinition(labelfn.captures[1], contents))
     end
 end
 

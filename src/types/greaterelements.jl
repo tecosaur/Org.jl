@@ -15,7 +15,7 @@ mutable struct DynamicBlock <: OrgGreaterElement
     contents::Vector{OrgElement}
 end
 
-mutable struct FootnoteDef <: OrgGreaterElement
+mutable struct FootnoteDefinition <: OrgGreaterElement
     label::AbstractString
     definition::Vector{OrgElement}
 end

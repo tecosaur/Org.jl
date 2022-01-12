@@ -80,7 +80,7 @@ end
 
 # Dynamic Block
 
-function org(io::IO, fn::FootnoteDef, indent::Integer=0)
+function org(io::IO, fn::FootnoteDefinition, indent::Integer=0)
     print(io, ' '^indent, "[fn:", fn.label, "] ")
     contentbuf = IOContext(IOBuffer(), :color => get(io, :color, false),
                            :displaysize => (displaysize(io)[1],
