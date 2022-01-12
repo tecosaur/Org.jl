@@ -177,11 +177,11 @@ function consume(::Type{Entity}, text::AbstractString)
     end
 end
 
-function consume(::Type{FootnoteRef}, text::AbstractString)
+function consume(::Type{FootnoteReference}, text::AbstractString)
     if startswith(text, "[fn:") && ncodeunits(text) >= 6 && text[5] != ']'
         labelfn = match(r"^\[fn:([A-Za-z0-9\-_]+)(\]|:)", text)
         if !isnothing(labelfn) && !startofline(text) && labelfn.captures[2] == "]"
-            (ncodeunits(labelfn.match), FootnoteRef(labelfn.captures[1], nothing))
+            (ncodeunits(labelfn.match), FootnoteReference(labelfn.captures[1], nothing))
         else
             label = if text[5] == ':'
                 Some(nothing)
@@ -192,7 +192,7 @@ function consume(::Type{FootnoteRef}, text::AbstractString)
             if !isnothing(label) && !isnothing(defend)
                 definition = parseorg((@inbounds view(text, 6:defend-1)),
                                       OrgObjectMatchers, OrgObjectFallbacks)
-                (defend, FootnoteRef(something(label), definition))
+                (defend, FootnoteReference(something(label), definition))
             end
         end
     end

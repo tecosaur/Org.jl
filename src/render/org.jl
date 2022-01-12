@@ -303,7 +303,7 @@ end
 org(io::IO, snippet::ExportSnippet) =
     print(io, "@@", snippet.backend, ':', snippet.snippet, "@@")
 
-function org(io::IO, fn::FootnoteRef)
+function org(io::IO, fn::FootnoteReference)
     print(io, "[fn:")
     if !isnothing(fn.label)
         print(io, fn.label)

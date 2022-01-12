@@ -17,8 +17,8 @@ mutable struct ExportSnippet <: OrgObject
     snippet::AbstractString
 end
 
-mutable struct FootnoteRef{L <: Union{<:AbstractString, Nothing},
-                           D <: Union{Vector{OrgObject}, Nothing}} <: OrgObject
+mutable struct FootnoteReference{L <: Union{<:AbstractString, Nothing},
+                                 D <: Union{Vector{OrgObject}, Nothing}} <: OrgObject
     label::L
     definition::D
 end

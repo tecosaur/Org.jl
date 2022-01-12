@@ -619,7 +619,7 @@ snippet::AbstractString
 label::Union{AbstractString, Nothing}
 definition::Union{Vector{OrgObject}, Nothing}
 #+end_src
-""" FootnoteRef
+""" FootnoteReference
 
 @doc org"""
 *Org Syntax Reference*: \S5.4 \\

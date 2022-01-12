@@ -211,10 +211,10 @@ iterate(c::Citation, index::Integer) =
         (c.globalsuffix[index-length(c.globalprefix)-length(c.citerefs)], index + 1)
     end
 
-length(f::FootnoteRef{<:Any, Vector{OrgObject}}) = length(f.definition)
-iterate(f::FootnoteRef{<:Any, Vector{OrgObject}}) =
+length(f::FootnoteReference{<:Any, Vector{OrgObject}}) = length(f.definition)
+iterate(f::FootnoteReference{<:Any, Vector{OrgObject}}) =
     if length(f) > 0 (f.definition[1], 2) end
-iterate(f::FootnoteRef{<:Any, Vector{OrgObject}}, index::Integer) =
+iterate(f::FootnoteReference{<:Any, Vector{OrgObject}}, index::Integer) =
     if index <= length(f.definition)
         (f.definition[index], index + 1)
     end

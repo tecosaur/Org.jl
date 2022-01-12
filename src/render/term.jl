@@ -129,7 +129,7 @@ function termfootnotes(io::IO, o::Org, indent::Integer=0)
         sort!(footnotes, by=f->f.second[1])
         print(io, '\n')
         for (i, fn) in map(f->f.second, footnotes)
-            if fn isa FootnoteRef
+            if fn isa FootnoteReference
                 term(io, o, FootnoteDef(string(i), [Paragraph(fn.definition)]), indent)
             else
                 term(io, o, FootnoteDef(string(i), fn.definition), indent)
@@ -413,7 +413,7 @@ const FootnoteUnicodeSuperscripts =
          '9' => '⁹',
          '0' => '⁰')
 
-function term(io::IO, o::Org, fn::FootnoteRef)
+function term(io::IO, o::Org, fn::FootnoteReference)
     index = o.footnotes[something(fn.label, fn)][1]
     printstyled(io, join([FootnoteUnicodeSuperscripts[c] for c in string(index)]);
                 color=:yellow)

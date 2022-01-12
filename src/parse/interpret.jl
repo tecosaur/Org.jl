@@ -242,9 +242,9 @@ function ExportSnippet(components::Vector{Union{Nothing, SubString{String}}})
     ExportSnippet(backend, snippet)
 end
 
-function FootnoteRef(components::Vector{Union{Nothing, SubString{String}}})
+function FootnoteReference(components::Vector{Union{Nothing, SubString{String}}})
     label, definition = components
-    FootnoteRef(label, definition)
+    FootnoteReference(label, definition)
 end
 
 function InlineBabelCall(components::Vector{Union{Nothing, SubString{String}}})

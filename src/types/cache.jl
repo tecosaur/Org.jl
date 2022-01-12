@@ -5,8 +5,8 @@ mutable struct OrgCache
     components::Union{Nothing, Vector{OrgComponent}}
     keywords::Union{Nothing, Dict{AbstractString, Vector{AbstractString}}}
     macros::Union{Nothing, Dict{AbstractString, Function}}
-    footnotes::Union{Nothing, Dict{Union{AbstractString, FootnoteRef},
-                                   Tuple{Int, Union{FootnoteDef, FootnoteRef}}}}
+    footnotes::Union{Nothing, Dict{Union{AbstractString, FootnoteReference},
+                                   Tuple{Int, Union{FootnoteDef, FootnoteReference}}}}
 end
 
 OrgCache(doc) = OrgCache(doc, nothing, nothing, nothing,

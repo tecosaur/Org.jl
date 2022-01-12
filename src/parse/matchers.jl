@@ -66,7 +66,7 @@ abstract type TextPlainForce end
 
 const OrgObjectMatchers =
     Dict{Char, Vector{<:Type}}(
-        '[' => [Link, Timestamp, StatisticsCookie, FootnoteRef, Citation],
+        '[' => [Link, Timestamp, StatisticsCookie, FootnoteReference, Citation],
         '{' => [Macro],
         '<' => [RadioTarget, Target, Timestamp],
         '\\' => [LineBreak, Entity, LaTeXFragment],
@@ -91,7 +91,7 @@ const OrgObjectFallbacks =
 
 @inline orgmatcher(::Type{LaTeXFragment}) = r"^(\\[A-Za-z]+(?:{[^{}\n]*}|\[[^][{}\n]*\])*)|(\\\(.*?\\\)|\\\[.*?\\\])"
 @inline orgmatcher(::Type{ExportSnippet}) = r"^\@\@([A-Za-z0-9-]+):(.*?)\@\@"
-# FootnoteRef has a dedicated consumer
+# FootnoteReference has a dedicated consumer
 @inline orgmatcher(::Type{InlineBabelCall}) = r"^call_([^()\n]+?)(?:(\[[^]\n]+\]))?\(([^)\n]*)\)(?:(\[[^]\n]+\]))?"
 # OrgInlineSource has a custom consumer
 @inline orgmatcher(::Type{LineBreak}) = r"^\\\\[ \t]*(?:\n *|$)"
