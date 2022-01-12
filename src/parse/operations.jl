@@ -179,15 +179,15 @@ iterate(p::Paragraph, index::Integer) =
 
 # Object
 
-length(k::KeyCite) =
+length(k::CitationReference) =
     length(k.prefix) + length(k.suffix)
-iterate(k::KeyCite) =
+iterate(k::CitationReference) =
     if length(k.prefix) > 0
          (k.prefix[1], 2)
      elseif length(k.suffix) > 0
          (k.suffix[1], 2)
      end
-iterate(k::KeyCite, index::Integer) =
+iterate(k::CitationReference, index::Integer) =
     if index <= length(k.prefix)
         (k.prefix[index], index + 1)
     elseif index <= length(k.prefix) + length(k.suffix)
@@ -195,20 +195,20 @@ iterate(k::KeyCite, index::Integer) =
     end
 
 length(c::Citation) =
-    length(c.globalprefix) + length(c.keycites) + length(c.globalsuffix)
+    length(c.globalprefix) + length(c.citerefs) + length(c.globalsuffix)
 iterate(c::Citation) =
     (if length(c.globalprefix) > 0
          c.globalprefix[1]
      else
-         c.keycites[1]
+         c.citerefs[1]
      end, 2)
 iterate(c::Citation, index::Integer) =
     if index <= length(c.globalprefix)
         (c.globalprefix[index], index + 1)
-    elseif index <= length(c.globalprefix) + length(c.keycites)
-        (c.keycites[index-length(c.globalprefix)], index + 1)
-    elseif index <= length(c.globalprefix) + length(c.keycites) + length(c.globalsuffix)
-        (c.globalsuffix[index-length(c.globalprefix)-length(c.keycites)], index + 1)
+    elseif index <= length(c.globalprefix) + length(c.citerefs)
+        (c.citerefs[index-length(c.globalprefix)], index + 1)
+    elseif index <= length(c.globalprefix) + length(c.citerefs) + length(c.globalsuffix)
+        (c.globalsuffix[index-length(c.globalprefix)-length(c.citerefs)], index + 1)
     end
 
 length(f::FootnoteRef{<:Any, Vector{OrgObject}}) = length(f.definition)

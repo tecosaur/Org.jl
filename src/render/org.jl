@@ -319,7 +319,7 @@ function org(io::IO, fn::FootnoteRef)
     print(io, ']')
 end
 
-function org(io::IO, keycite::KeyCite)
+function org(io::IO, keycite::CitationReference)
     org(io, keycite.prefix)
     print(io, '@', keycite.key)
     org(io, keycite.suffix)
@@ -338,9 +338,9 @@ function org(io::IO, cite::Citation)
         org(io, cite.globalprefix)
         print(io, ';')
     end
-    for keycite in cite.keycites
+    for keycite in cite.citerefs
         org(io, keycite)
-        keycite === last(cite.keycites) || print(io, ';')
+        keycite === last(cite.citerefs) || print(io, ';')
     end
     if !isnothing(cite.globalsuffix)
         print(io, ';')

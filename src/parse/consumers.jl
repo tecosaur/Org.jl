@@ -208,7 +208,7 @@ function consume(::Type{Citation}, text::AbstractString)
             stylematch = match(r"^(?:\/([A-Za-z0-9\-_]+)(?:\/([A-Za-z0-9\-_\/]+))?)?$", styles)
             if !isnothing(stylematch) && !isnothing(match(r"@[\w\-\.:?!`'\/*@+|(){}<>&_^$#^~]", body))
                 style, substyle = stylematch.captures
-                keycites = map(split(body, ';')) do keycite
+                citerefs = map(split(body, ';')) do keycite
                     keymatch = match(r"^(.+?)?@([\w\-\.:?!`'\/*@+|(){}<>&_^$#^~]+)(.+)?$", keycite)
                     if isnothing(keymatch)
                         keycite
@@ -224,21 +224,21 @@ function consume(::Type{Citation}, text::AbstractString)
                         else
                             parseorg(suffixstr, OrgObjectMatchers, OrgObjectFallbacks)
                         end
-                        KeyCite(prefix, key, suffix)
+                        CitationReference(prefix, key, suffix)
                     end
                 end
-                globalprefix = if !isa(keycites[1], KeyCite)
-                    parseorg(popfirst!(keycites), OrgObjectMatchers, OrgObjectFallbacks)
+                globalprefix = if !isa(citerefs[1], CitationReference)
+                    parseorg(popfirst!(citerefs), OrgObjectMatchers, OrgObjectFallbacks)
                 else
                     OrgObject[]
                 end
-                globalsuffix = if !isa(keycites[end], KeyCite)
-                    parseorg(pop!(keycites), OrgObjectMatchers, OrgObjectFallbacks)
+                globalsuffix = if !isa(citerefs[end], CitationReference)
+                    parseorg(pop!(citerefs), OrgObjectMatchers, OrgObjectFallbacks)
                 else
                     OrgObject[]
                 end
                 (citeend,
-                 Citation((style, substyle), globalprefix, keycites, globalsuffix))
+                 Citation((style, substyle), globalprefix, citerefs, globalsuffix))
             end
         end
     end

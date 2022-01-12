@@ -23,7 +23,7 @@ mutable struct FootnoteRef{L <: Union{<:AbstractString, Nothing},
     definition::D
 end
 
-mutable struct KeyCite <: OrgObject
+mutable struct CitationReference <: OrgObject
     prefix::Vector{OrgObject}
     key::AbstractString
     suffix::Vector{OrgObject}
@@ -33,7 +33,7 @@ mutable struct Citation <: OrgObject
     style::Tuple{Union{AbstractString, Nothing},
                  Union{AbstractString, Nothing}}
     globalprefix::Vector{OrgObject}
-    keycites::Vector{KeyCite}
+    citerefs::Vector{CitationReference}
     globalsuffix::Vector{OrgObject}
 end
 

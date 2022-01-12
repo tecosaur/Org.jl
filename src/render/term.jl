@@ -419,7 +419,7 @@ function term(io::IO, o::Org, fn::FootnoteRef)
                 color=:yellow)
 end
 
-function term(io::IO, o::Org, keycite::KeyCite)
+function term(io::IO, o::Org, keycite::CitationReference)
     term(io, o, keycite.prefix)
     printstyled(io, '@', keycite.key, bold=true, color=:magenta)
     term(io, o, keycite.suffix)
@@ -438,9 +438,9 @@ function term(io::IO, o::Org, cite::Citation)
         term(io, o, cite.globalprefix)
         printstyled(io, ';', color=:light_magenta)
     end
-    for keycite in cite.keycites
+    for keycite in cite.citerefs
         term(io, o, keycite)
-        keycite === last(cite.keycites) || printstyled(io, ';', color=:light_magenta)
+        keycite === last(cite.citerefs) || printstyled(io, ';', color=:light_magenta)
     end
     if !isnothing(cite.globalsuffix)
         printstyled(io, ';', color=:light_magenta)
