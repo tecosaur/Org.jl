@@ -190,8 +190,9 @@ function consume(::Type{FootnoteReference}, text::AbstractString)
             end
             defend = forwardsbalenced(text, 1, bracketpairs=Dict('[' => ']'))
             if !isnothing(label) && !isnothing(defend)
-                definition = parseorg((@inbounds view(text, 6:defend-1)),
-                                      OrgObjectMatchers, OrgObjectFallbacks)
+                labellen = if isnothing(something(label)) 0 else ncodeunits(label) end
+                definition = Vector{OrgObject}(parseorg((@inbounds view(text, 6+labellen:defend-1)),
+                                                        OrgObjectMatchers, OrgObjectFallbacks))
                 (defend, FootnoteReference(something(label), definition))
             end
         end
