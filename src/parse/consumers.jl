@@ -435,6 +435,6 @@ function consume(::Type{TextPlainForce}, s::AbstractString)
     if c == "\n"
         (1, TextPlain(" "))
     else
-        (1, TextPlain(c))
+        (ncodeunits(c), TextPlain(c))
     end
 end
