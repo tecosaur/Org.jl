@@ -353,13 +353,12 @@ function term(io::IO, keyword::Keyword)
     end
 end
 
-function term(io::IO, env::LaTeXEnvironment, indent::Integer=0)
-    printstyled(io, ' '^indent, "\begin{", env.name, "}\n", color=:light_magenta)
+function term(io::IO, ::Org, env::LaTeXEnvironment, indent::Integer=0)
+    printstyled(io, ' '^indent, "\\begin{", env.name, "}\n", color=:light_magenta)
     for line in env.contents
-        printstyled(io, ' '^indent, line, color=:light_magenta)
-        line === last(env.contents) || print(io, '\n')
+        printstyled(io, ' '^(2+indent), line, '\n', color=:light_magenta)
     end
-    printstyled(io, ' '^indent, "\end{", env.name, "}", color=:light_magenta)
+    printstyled(io, ' '^indent, "\\end{", env.name, "}", color=:light_magenta)
 end
 
 term(io::IO, node::NodeProperty) =

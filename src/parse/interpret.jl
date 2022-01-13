@@ -203,8 +203,15 @@ function Keyword(components::Vector{Union{Nothing, SubString{String}}})
 end
 
 function LaTeXEnvironment(components::Vector{Union{Nothing, SubString{String}}})
-    name, content = components
-    LaTeXEnvironment(name, content)
+    indent, name, content = components
+    lines = map(split(content, '\n')) do line
+        if startswith(line, indent)
+            @inbounds @view line[1+ncodeunits(indent):end]
+        else
+            line
+        end
+    end
+    LaTeXEnvironment(name, lines)
 end
 
 function NodeProperty(components::Vector{Union{Nothing, SubString{String}}})

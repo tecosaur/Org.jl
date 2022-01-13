@@ -57,7 +57,7 @@ end
 
 mutable struct LaTeXEnvironment <: OrgLesserElement
     name::AbstractString
-    contents::AbstractString
+    contents::Vector{AbstractString}
 end
 
 mutable struct NodeProperty <: OrgLesserElement
