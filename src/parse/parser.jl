@@ -12,7 +12,7 @@ function Base.showerror(io::IO, ex::OrgParseError)
         replace(ex.content[max(1, ex.point-10):ex.point-1], '\n' => "\\n")
     afterpoint = replace(ex.content[ex.point:min(end, ex.point+45)], '\n' => "\\n") *
         if ex.point + 45 < length(ex.content) "…" else "" end
-    print(io, "Org parse failed at index $(ex.point) of string:\n")
+    print(io, "Org parse failed at index $(ex.point) (char $(length(ex.content[1:ex.point]))) of string:\n")
     printstyled(io, " ", beforepoint, color=:light_black)
     printstyled(io, "", afterpoint, "\n", color=:yellow)
     printstyled(io, " "^length(beforepoint), " ^", bold=true, color=:red)
