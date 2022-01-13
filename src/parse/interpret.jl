@@ -187,7 +187,7 @@ function Comment(components::Vector{Union{Nothing, SubString{String}}})
     content = components[1]
     lines = split(content, '\n') .|> l ->
         @inbounds SubString(l.string, 1 + l.offset + ncodeunits(match(r"^[ \t]*# ?", l).match),
-                            l.offset + l.ncodeunits)
+                            l.offset + lastindex(l))
     Comment(lines)
 end
 
@@ -195,7 +195,7 @@ function FixedWidth(components::Vector{Union{Nothing, SubString{String}}})
     content = components[1]
     lines = split(content, '\n') .|> l ->
         @inbounds SubString(l.string, 1 + l.offset + ncodeunits(match(r"^[ \t]*: ?", l).match),
-                            l.offset + l.ncodeunits)
+                            l.offset + lastindex(l))
     FixedWidth(lines)
 end
 
