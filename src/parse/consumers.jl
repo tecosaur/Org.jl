@@ -73,7 +73,7 @@ function consume(::Type{Item}, text::AbstractString)
                 lastindentedpos += something(findfirst('\n', rest), ncodeunits(rest))
                 rest = @inbounds @view text[lastindentedpos+1:end]
             end
-            @inbounds @view text[1:lastindentedpos]
+            @inbounds @view text[1:prevind(text, lastindentedpos+1)]
         end
         something(consume(Paragraph, indentedlines), # paragraphs must be entirely indented
                   parseorg(text, OrgItemElementMatchers, [List],
@@ -140,7 +140,7 @@ function consume(::Type{Planning}, text::AbstractString)
         "SCHEDULED" => nothing,
         "CLOSED" => nothing)
     point = 1
-    clen = ncodeunits(text)
+    clen = lastindex(text)
     while point <= clen+1
         kwdmatch = match(r"^[ \t]*(DEADLINE|SCHEDULED|CLOSED):[ \t]*", view(text, point:clen))
         if !isnothing(kwdmatch)

@@ -68,14 +68,14 @@ function Heading(components::Vector{Union{Nothing, SubString{String}}})
         if !isnothing(plan)
             section = @inbounds SubString(section.string,
                                           section.offset + plan[1],
-                                          section.offset + section.ncodeunits)
+                                          section.offset + lastindex(section))
             planning = plan[2]
         end
         props = consume(PropertyDrawer, section)
         if !isnothing(props)
             section = @inbounds SubString(section.string,
                                           section.offset + props[1] + 1,
-                                          section.offset + section.ncodeunits)
+                                          section.offset + lastindex(section))
             properties = props[2]
         end
         if ncodeunits(section) == 0
