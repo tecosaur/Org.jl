@@ -3,16 +3,16 @@ using Dates
 abstract type OrgObject <: OrgComponent end
 
 include("../data/entities.jl")
-mutable struct Entity <: OrgObject
+struct Entity <: OrgObject
     name::AbstractString
 end
 
-mutable struct LaTeXFragment <: OrgObject
+struct LaTeXFragment <: OrgObject
     contents::AbstractString
     delimiters::Union{Tuple{AbstractString, AbstractString}, Nothing}
 end
 
-mutable struct ExportSnippet <: OrgObject
+struct ExportSnippet <: OrgObject
     backend::AbstractString
     snippet::AbstractString
 end
@@ -37,13 +37,13 @@ mutable struct Citation <: OrgObject
     globalsuffix::Vector{OrgObject}
 end
 
-mutable struct InlineBabelCall <: OrgObject
+struct InlineBabelCall <: OrgObject
     name::AbstractString
     header::Union{AbstractString, Nothing}
     arguments::Union{AbstractString, Nothing}
 end
 
-mutable struct InlineSourceBlock <: OrgObject
+struct InlineSourceBlock <: OrgObject
     lang::AbstractString
     options::Union{AbstractString, Nothing}
     body::AbstractString
@@ -61,7 +61,7 @@ mutable struct Link <: OrgObject
     description::Union{AbstractString, Nothing}
 end
 
-mutable struct Macro <: OrgObject
+struct Macro <: OrgObject
     name::AbstractString
     arguments::Vector{AbstractString}
 end
@@ -75,20 +75,20 @@ mutable struct Target <: OrgObject
 end
 
 abstract type StatisticsCookie <: OrgObject end
-mutable struct StatisticsCookiePercent <: StatisticsCookie
+struct StatisticsCookiePercent <: StatisticsCookie
     percentage::AbstractString
 end
-mutable struct StatisticsCookieFraction <: StatisticsCookie
+struct StatisticsCookieFraction <: StatisticsCookie
     complete::Union{Integer, Nothing}
     total::Union{Integer, Nothing}
 end
 
 abstract type Script <: OrgObject end
-mutable struct Subscript <: Script
+struct Subscript <: Script
     char::Char
     script::AbstractString
 end
-mutable struct Superscript <: Script
+struct Superscript <: Script
     char::Char
     script::AbstractString
 end
@@ -134,6 +134,6 @@ mutable struct TextMarkup{C <: Union{Vector{OrgObject}, <:AbstractString}} <: Or
     contents::C
 end
 
-mutable struct TextPlain{S <: AbstractString} <: OrgObject
+struct TextPlain{S <: AbstractString} <: OrgObject
     text::S
 end
