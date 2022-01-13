@@ -42,6 +42,10 @@ end
 # Some more complicated elements can not simply be matched, and so need
 # specific consumers.
 
+# ---------------------
+# Elements
+# ---------------------
+
 const OrgFootnoteElementMatchers =
     filter(p -> !isempty(p.second),
            Dict{Char, Vector{<:Type}}(key => filter(v -> v != FootnoteDefinition, value)
@@ -163,6 +167,36 @@ function consume(::Type{Planning}, text::AbstractString)
     end
 end
 
+function consume(::Type{ParagraphForced}, text::AbstractString)
+    line = text[1:something(findfirst('\n', text), end+1)-1]
+    location = if text isa SubString
+        let char=1+length(text.string[1:text.offset])
+            linenum=1+count(==('\n'), text.string[1:text.offset])
+            column=length(text.string[1+something(findprev('\n', text.string, text.offset), 0):1+text.offset])
+        "\n(line $linenum, column $column, char $char)"
+            end
+        else
+        ""
+        end
+    @warn "The following line is being coerced to a paragraph:
+
+$line$location
+
+This is unusual, and likely caused by a malformed Org document."
+    rest = @inbounds @view text[1+length(line):end]
+    trailingspace = match(r"^[ \t\r\n]+", rest)
+    blanklength = if !isnothing(trailingspace)
+        ncodeunits(trailingspace.match)
+    else
+        0
+    end
+    ncodeunits(line)+blanklength, Paragraph(parseobjects(Paragraph, line))
+end
+
+# ---------------------
+# Objects
+# ---------------------
+
 function consume(::Type{Entity}, text::AbstractString)
     # TODO work out how to properly handle \entitity{}
     # maybe this should be handled at the render stage?
@@ -171,28 +205,6 @@ function consume(::Type{Entity}, text::AbstractString)
         name = entitymatch.captures[1]
         if name in keys(Entities)
             1+ncodeunits(name), Entity(name)
-        end
-    end
-end
-
-function consume(::Type{FootnoteReference}, text::AbstractString)
-    if startswith(text, "[fn:") && ncodeunits(text) >= 6 && text[5] != ']'
-        labelfn = match(r"^\[fn:([A-Za-z0-9\-_]+)(\]|:)", text)
-        if !isnothing(labelfn) && !startofline(text) && labelfn.captures[2] == "]"
-            (ncodeunits(labelfn.match), FootnoteReference(labelfn.captures[1], nothing))
-        else
-            label = if text[5] == ':'
-                Some(nothing)
-            elseif labelfn.captures[2] == ":"
-                labelfn.captures[1]
-            end
-            defend = forwardsbalenced(text, 1, bracketpairs=Dict('[' => ']'))
-            if !isnothing(label) && !isnothing(defend)
-                labellen = if isnothing(something(label)) 0 else ncodeunits(label) end
-                definition = parseobjects(FootnoteReference,
-                                          @inbounds view(text, 6+labellen:defend-1))
-                (defend, FootnoteReference(something(label), definition))
-            end
         end
     end
 end
@@ -238,6 +250,28 @@ function consume(::Type{Citation}, text::AbstractString)
                 end
                 (citeend,
                  Citation((style, substyle), globalprefix, citerefs, globalsuffix))
+            end
+        end
+    end
+end
+
+function consume(::Type{FootnoteReference}, text::AbstractString)
+    if startswith(text, "[fn:") && ncodeunits(text) >= 6 && text[5] != ']'
+        labelfn = match(r"^\[fn:([A-Za-z0-9\-_]+)(\]|:)", text)
+        if !isnothing(labelfn) && !startofline(text) && labelfn.captures[2] == "]"
+            (ncodeunits(labelfn.match), FootnoteReference(labelfn.captures[1], nothing))
+        else
+            label = if text[5] == ':'
+                Some(nothing)
+            elseif labelfn.captures[2] == ":"
+                labelfn.captures[1]
+            end
+            defend = forwardsbalenced(text, 1, bracketpairs=Dict('[' => ']'))
+            if !isnothing(label) && !isnothing(defend)
+                labellen = if isnothing(something(label)) 0 else ncodeunits(label) end
+                definition = parseobjects(FootnoteReference,
+                                          @inbounds view(text, 6+labellen:defend-1))
+                (defend, FootnoteReference(something(label), definition))
             end
         end
     end
@@ -437,30 +471,4 @@ function consume(::Type{TextPlainForced}, s::AbstractString)
     else
         (ncodeunits(c), TextPlain(c))
     end
-end
-
-function consume(::Type{ParagraphForced}, text::AbstractString)
-    line = text[1:something(findfirst('\n', text), end+1)-1]
-    location = if text isa SubString
-        let char=1+length(text.string[1:text.offset])
-            linenum=1+count(==('\n'), text.string[1:text.offset])
-            column=length(text.string[1+something(findprev('\n', text.string, text.offset), 0):1+text.offset])
-        "\n(line $linenum, column $column, char $char)"
-            end
-        else
-        ""
-        end
-    @warn "The following line is being coerced to a paragraph:
-
-$line$location
-
-This is unusual, and likely caused by a malformed Org document."
-    rest = @inbounds @view text[1+length(line):end]
-    trailingspace = match(r"^[ \t\r\n]+", rest)
-    blanklength = if !isnothing(trailingspace)
-        ncodeunits(trailingspace.match)
-    else
-        0
-    end
-    ncodeunits(line)+blanklength, Paragraph(parseobjects(Paragraph, line))
 end
