@@ -80,8 +80,10 @@ parse(Org, string(dochead)) == dochead  # round-trip equality
 | FootnoteReference   | X    | X     | X   | X    |      |
 | InlineBabelCall     | X    | X     | X   | X    |      |
 | InlineSrcBlock      | X    | X     | X   | X    |      |
-| LinkPath            | X    | X     | X   | X    |      |
-| Link                | X    | X     | X   | X    |      |
+| Radio Link          |      |       |     |      |      |
+| Plain Link          |      |       |     |      |      |
+| Angle Link          |      |       |     |      |      |
+| Regular Link        | X    | X     | X   | X    |      |
 | LineBreak           | X    | X     | X   | X    |      |
 | Macro               | X    | X     | X   | X    |      |
 | Citation            | X    | X     | X   | X    |      |
