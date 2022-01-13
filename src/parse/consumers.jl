@@ -102,7 +102,7 @@ function consume(::Type{Item}, text::AbstractString)
             push!(contentobjs, obj)
             rest = @inbounds @view text[contentlen + ncodeunits(itemstart.match) + ncodeunits(itemextras.match):end]
         end
-        trailingspace = match(r"^(?:[ \t]*\n)+", rest)
+        trailingspace = match(r"^(?:[ \t\r]*\n)+", rest)
         if !isnothing(trailingspace)
             contentlen += ncodeunits(trailingspace.match)
         end
