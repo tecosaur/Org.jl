@@ -121,7 +121,7 @@ const OrgObjectRestictedMatchers =
          for o in keys(OrgObjectRestrictions))
 
 const OrgObjectRestictedFallbacks =
-    Dict(o => [OrgObjectFallbacks ∩ OrgObjectRestrictions[o]; TextPlainForce]
+    Dict(o => [OrgObjectFallbacks ∩ OrgObjectRestrictions[o]; TextPlainForced]
          for o in keys(OrgObjectRestrictions))
 
 function parseobjects(context::Type, content::AbstractString; debug=false, partial=false)

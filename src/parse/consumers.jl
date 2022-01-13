@@ -420,7 +420,7 @@ function setforcematchwarn(b::Bool)
     global forcematchwarn = b
 end
 
-function consume(::Type{TextPlainForce}, s::AbstractString)
+function consume(::Type{TextPlainForced}, s::AbstractString)
     c = SubString(s, 1, 1)
     if forcematchwarn
         printstyled(stderr, "Warning:", bold=true, color=:yellow)

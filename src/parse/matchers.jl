@@ -60,7 +60,7 @@ const OrgElementFallbacks = [Paragraph, List]
 # ---------------------
 
 # Force matching
-abstract type TextPlainForce end
+abstract type TextPlainForced end
 
 # Matchers
 
@@ -85,7 +85,7 @@ const OrgObjectFallbacks =
     [TextPlain,
      TextMarkup,
      Script,
-     TextPlainForce] # we *must* move forwards by some ammount, c.f. §4.10
+     TextPlainForced] # we *must* move forwards by some ammount, c.f. §4.10
 
 # Entity has a custom consumer
 
