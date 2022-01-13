@@ -127,7 +127,7 @@ function termfootnotes(io::IO, o::Org, indent::Integer=0)
     footnotes = collect(o.footnotes)
     if length(footnotes) > 0
         sort!(footnotes, by=f->f.second[1])
-        print(io, '\n')
+        print(io, "\n\n")
         for (i, fn) in map(f->f.second, footnotes)
             if fn isa FootnoteReference
                 term(io, o, FootnoteDefinition(string(i), [Paragraph(fn.definition)]), indent)
@@ -354,12 +354,18 @@ function term(io::IO, keyword::Keyword)
 end
 
 function term(io::IO, ::Org, env::LaTeXEnvironment, indent::Integer=0)
-    printstyled(io, ' '^indent, "\\begin{", env.name, '}',
-                env.contents[1], '\n', color=:light_magenta)
+    printstyled(io, ' '^indent, "\\begin", color=:light_blue)
+    print(io, '{')
+    printstyled(io, env.name, color=:magenta)
+    print(io, '}')
+    printstyled(io, env.contents[1], '\n', color=:light_blue)
     for line in env.contents[2:end]
         printstyled(io, ' '^(2+indent), line, '\n', color=:light_magenta)
     end
-    printstyled(io, ' '^indent, "\\end{", env.name, '}', color=:light_magenta)
+    printstyled(io, ' '^indent, "\\end", color=:light_blue)
+    print(io, '{')
+    printstyled(io, env.name, color=:magenta)
+    print(io, '}')
 end
 
 term(io::IO, node::NodeProperty) =
