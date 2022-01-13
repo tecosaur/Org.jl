@@ -27,7 +27,7 @@ const OrgElementMatchers =
 const OrgElementFallbacks = [Paragraph, List]
 
 # Greater Block
-@inline orgmatcher(::Type{Drawer}) = r"^[ \t]*:([\w\-_]+):\n([\s\S]*?)\n?:END:(?:\n(?:[ \t\r]*\n)*|$)"i
+@inline orgmatcher(::Type{Drawer}) = r"^[ \t]*:([\w\-_]+):\n([\s\S]+?)?\n?:END:(?:\n(?:[ \t\r]*\n)*|$)"i
 # Dynamic Block
 # FootnoteDefinition has a dedicated consumer
 # InlineTask

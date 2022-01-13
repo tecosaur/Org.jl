@@ -100,9 +100,13 @@ end
 
 # Greater Block
 
-function Drawer(components::Vector{Union{Nothing, SubString{String}}})
+function Drawer(components::Vector{Union{Nothing,SubString{String}}})
     name, content = components
-    Drawer(name, parse(Section, content).contents)
+    Drawer(name, if !isnothing(content)
+               parse(Section, content).contents
+           else
+               OrgElement[]
+           end)
 end
 
 # Dynamic Block
