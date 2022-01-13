@@ -30,7 +30,10 @@ macro parseassert(elem, expr::Expr, msg)
     end
 end
 
+include("matchers.jl")
+include("operations.jl")
 include("parser.jl")
+include("consumers.jl")
 
 import Base.parse
 
@@ -83,7 +86,7 @@ function Heading(components::Vector{Union{Nothing, SubString{String}}})
         end
     end
     Heading(level, keyword, priority,
-            parseorg(title, OrgObjectMatchers, OrgObjectFallbacks), tagsvec,
+            parseobjects(Heading, title), tagsvec,
             if !isnothing(section) && isnothing(match(r"^[ \t\r\n]*$", section))
                 parse(Section, section) end,
             planning, properties)
@@ -224,12 +227,12 @@ function NodeProperty(components::Vector{Union{Nothing, SubString{String}}})
 end
 
 function Paragraph(components::Vector{Union{Nothing, SubString{String}}})
-    Paragraph(parseorg(components[1], OrgObjectMatchers, OrgObjectFallbacks))
+    Paragraph(parseobjects(Paragraph, components[1]))
 end
 
 function TableRow(components::Vector{Union{Nothing, SubString{String}}})
     TableRow(split(strip(components[1], '|'), '|') .|> strip .|>
-        c -> TableCell(parseorg(c, OrgObjectMatchers, OrgObjectFallbacks)))
+        c -> TableCell(parseobjects(TableCell, c)))
 end
 
 # ---------------------
@@ -308,7 +311,7 @@ function RadioTarget(components::Vector{Union{Nothing, SubString{String}}})
                  "\"$target\" cannot contain <, >, or \\n")
     @parseassert(RadioTarget, !match(r"^\s|\s$", target),
                  "\"$target\" cannot start or end with whitespace")
-    RadioTarget(parseorg(target, [TextPlain, TextMarkup, Entity, LaTeXFragment, Subscript, Superscript]))
+    RadioTarget(parseobjects(RadioTarget, target))
 end
 
 function Target(components::Vector{Union{Nothing, SubString{String}}})
@@ -343,5 +346,5 @@ function TableCell(components::Vector{Union{Nothing, SubString{String}}})
     content = components[1]
     @parseassert(TableCell, !occursin("|", content),
                  "\"$content\" cannot contain \"|\"")
-    TableCell(parseorg(strip(content), OrgObjectMatchers, OrgObjectFallbacks))
+    TableCell(parseobjects(TableCell, strip(content)))
 end

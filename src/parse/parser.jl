@@ -1,5 +1,3 @@
-include("consumers.jl")
-include("operations.jl")
 
 struct OrgParseError
     content::AbstractString
@@ -107,6 +105,30 @@ function parseorg(content::AbstractString, typefallbacks::AbstractVector{<:Type}
                   debug=false, partial=false)
     parseorg(content, Dict{Char, Vector{DataType}}(),
              typefallbacks; debug, partial)
+end
+
+# Parsing objects, with restrictions
+
+include("../data/objectrestrictions.jl")
+
+filtermatcher(allowed::Vector{<:Type}, matchers=OrgObjectMatchers) =
+    filter(p -> !isempty(p.second),
+           Dict{Char, Vector{<:Type}}(key => filter(v -> v ∈ allowed, value)
+                                      for (key, value) in matchers))
+
+const OrgObjectRestictedMatchers =
+    Dict(o => filtermatcher(OrgObjectRestrictions[o])
+         for o in keys(OrgObjectRestrictions))
+
+const OrgObjectRestictedFallbacks =
+    Dict(o => [OrgObjectFallbacks ∩ OrgObjectRestrictions[o]; TextPlainForce]
+         for o in keys(OrgObjectRestrictions))
+
+function parseobjects(context::Type, content::AbstractString; debug=false, partial=false)
+    @assert context in keys(OrgObjectRestrictions)
+    Vector{OrgObject}(
+        parseorg(content, OrgObjectRestictedMatchers[context],
+                 OrgObjectRestictedFallbacks[context]; debug, partial))
 end
 
 # parsing utilities

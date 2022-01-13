@@ -1,5 +1,3 @@
-include("matchers.jl")
-
 function consume(component::Type{<:OrgComponent}, text::AbstractString)
     matcher = orgmatcher(component)
     if isnothing(matcher)
@@ -191,8 +189,8 @@ function consume(::Type{FootnoteReference}, text::AbstractString)
             defend = forwardsbalenced(text, 1, bracketpairs=Dict('[' => ']'))
             if !isnothing(label) && !isnothing(defend)
                 labellen = if isnothing(something(label)) 0 else ncodeunits(label) end
-                definition = Vector{OrgObject}(parseorg((@inbounds view(text, 6+labellen:defend-1)),
-                                                        OrgObjectMatchers, OrgObjectFallbacks))
+                definition = parseobjects(FootnoteReference,
+                                          @inbounds view(text, 6+labellen:defend-1))
                 (defend, FootnoteReference(something(label), definition))
             end
         end
@@ -218,23 +216,23 @@ function consume(::Type{Citation}, text::AbstractString)
                         prefix = if isnothing(prefixstr)
                             OrgObject[]
                         else
-                            parseorg(prefixstr, OrgObjectMatchers, OrgObjectFallbacks)
+                            parseobjects(CitationReference, prefixstr)
                         end
                         suffix = if isnothing(suffixstr)
                             OrgObject[]
                         else
-                            parseorg(suffixstr, OrgObjectMatchers, OrgObjectFallbacks)
+                            parseobjects(CitationReference, suffixstr)
                         end
                         CitationReference(prefix, key, suffix)
                     end
                 end
                 globalprefix = if !isa(citerefs[1], CitationReference)
-                    parseorg(popfirst!(citerefs), OrgObjectMatchers, OrgObjectFallbacks)
+                    parseobjects(CitationReference, popfirst!(citerefs))
                 else
                     OrgObject[]
                 end
                 globalsuffix = if !isa(citerefs[end], CitationReference)
-                    parseorg(pop!(citerefs), OrgObjectMatchers, OrgObjectFallbacks)
+                    parseobjects(CitationReference, pop!(citerefs))
                 else
                     OrgObject[]
                 end
