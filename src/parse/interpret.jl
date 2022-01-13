@@ -244,7 +244,7 @@ function LaTeXFragment(components::Vector{Union{Nothing, SubString{String}}})
         LaTeXFragment(command, nothing)
     else
         LaTeXFragment(delimitedform[3:end-2],
-                      (delimitedform[1:2], delimitedform[end-2:end]))
+                      (delimitedform[1:2], delimitedform[end-1:end]))
     end
 end
 
