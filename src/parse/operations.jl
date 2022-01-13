@@ -91,6 +91,23 @@ end
 ## conversion
 
 # ---------------------
+# Terminality
+# ---------------------
+
+terminal(::OrgElement) = false
+terminal(::OrgLesserElement) = true
+terminal(::Paragraph) = false
+terminal(::TableRow) = false
+
+terminal(::OrgObject) = true
+terminal(::Citation) = false
+terminal(::CitationReference) = false
+# terminal(::Link) = false
+# terminal(::RadioTarget) = false
+terminal(::TableCell) = false
+terminal(::TextMarkup{Vector{OrgObject}}) = false
+
+# ---------------------
 # Iteration
 # ---------------------
 
@@ -133,6 +150,14 @@ iterate(d::Drawer, index::Integer) =
         (d.contents[index], index + 1)
     end
 
+length(f::FootnoteDefinition) = length(f.definition)
+iterate(f::FootnoteDefinition) =
+    if length(f) > 0 (f.definition[1], 2) end
+iterate(f::FootnoteDefinition, index::Integer) =
+    if index <= length(f.definition)
+        (f.definition[index], index + 1)
+    end
+
 length(l::List) = length(l.items)
 iterate(l::List) = if length(l) > 0 (l.items[1], 2) end
 iterate(l::List, index::Integer) =
@@ -161,20 +186,20 @@ iterate(t::Table, index::Integer) =
         (t.rows[index], index + 1)
     end
 
-length(r::TableRow) = length(r.cells)
-iterate(r::TableRow) = if length(r) > 0 (r.cells[1], 2) end
-iterate(r::TableRow, index::Integer) =
-    if index <= length(r.cells)
-        (r.cells[index], index + 1)
-    end
-
-# Element
+# Lesser Element
 
 length(p::Paragraph) = length(p.contents)
 iterate(p::Paragraph) = if length(p) > 0 (p.contents[1], 2) end
 iterate(p::Paragraph, index::Integer) =
     if index <= length(p.contents)
         (p.contents[index], index + 1)
+    end
+
+length(r::TableRow) = length(r.cells)
+iterate(r::TableRow) = if length(r) > 0 (r.cells[1], 2) end
+iterate(r::TableRow, index::Integer) =
+    if index <= length(r.cells)
+        (r.cells[index], index + 1)
     end
 
 # Object
@@ -259,7 +284,7 @@ iterate(it::OrgIterator, stack::Vector) =
         else
             el, state = next
             stack[end] = (stack[end][1], state)
-            if applicable(iterate, el)
+            if ! terminal(el)
                 push!(stack, (el, nothing))
             end
             (el, stack)
