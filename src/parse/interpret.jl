@@ -273,7 +273,7 @@ function LineBreak(::Vector{Union{Nothing, SubString{String}}})
 end
 
 function parse(::Type{LinkPath}, content::AbstractString, verify::Bool=true)
-    protocolmatch = match(r"^([^#*\s:]+):(?://)?(.*)$", content)
+    protocolmatch = match(r"^([^:#*<>()\[\]{}\s]+):(?://)?(.*)$", content)
     if isnothing(protocolmatch)
         verify && @parseassert(LinkPath, !occursin(r"\[|\]", content),
                                "\"$content\" cannot contain square brackets")
@@ -294,10 +294,16 @@ function parse(::Type{LinkPath}, content::AbstractString, verify::Bool=true)
     end
 end
 
-function Link(components::Vector{Union{Nothing, SubString{String}}})
-    path, description = components
-    Link(parse(LinkPath, path), description)
+# RadioLink is handled in a post-processing step
+
+# PlainLink has a custom consumer
+
+function AngleLink(components::Vector{Union{Nothing, SubString{String}}})
+    path = components[1]
+    AngleLink(parse(LinkPath, path))
 end
+
+# RegularLink has a custom consumer
 
 function Macro(components::Vector{Union{Nothing, SubString{String}}})
     name, arguments = components

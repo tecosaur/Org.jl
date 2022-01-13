@@ -68,9 +68,9 @@ abstract type TextPlainForced end
 
 const OrgObjectMatchers =
     Dict{Char, Vector{<:Type}}(
-        '[' => [Link, Timestamp, StatisticsCookie, FootnoteReference, Citation],
+        '[' => [RegularLink, Timestamp, StatisticsCookie, FootnoteReference, Citation],
         '{' => [Macro],
-        '<' => [RadioTarget, Target, Timestamp],
+        '<' => [RadioTarget, Target, AngleLink, Timestamp],
         '\\' => [LineBreak, Entity, LaTeXFragment],
         '*' => [TextMarkup],
         '/' => [TextMarkup],
@@ -97,7 +97,7 @@ const OrgObjectFallbacks =
 @inline orgmatcher(::Type{InlineBabelCall}) = r"^call_([^()\n]+?)(?:(\[[^]\n]+\]))?\(([^)\n]*)\)(?:(\[[^]\n]+\]))?"
 # OrgInlineSource has a custom consumer
 @inline orgmatcher(::Type{LineBreak}) = r"^\\\\[ \t]*(?:\n *|$)"
-@inline orgmatcher(::Type{Link}) = r"^\[\[([^]]+)\](?:\[([^]]+)\])?\]"
+@inline orgmatcher(::Type{AngleLink}) = r"<([^:#*<>()\[\]{}\s]+:[^>\n]*(?:\n[^>\n]*)*)>"
 @inline orgmatcher(::Type{Macro}) = r"^{{{([A-Za-z][A-Za-z0-9-_]*?)(?:\((.*?)\))?}}}"
 @inline orgmatcher(::Type{RadioTarget}) = r"^<<<(.*?)>>>"
 @inline orgmatcher(::Type{Target}) = r"^<<(.*?)>>"

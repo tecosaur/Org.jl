@@ -291,6 +291,29 @@ function consume(::Type{InlineSourceBlock}, text::AbstractString)
     end
 end
 
+function consume(::Type{PlainLink}, text::AbstractString)
+end
+
+function consume(::Type{RegularLink}, text::AbstractString)
+    path = match(r"\[\[((?:[^\]\[\\]+|\\(?:\\\\)*[\[\]]|\\+[^\]\[])+)\]", text)
+    if !isnothing(path) && ncodeunits(path.match) < ncodeunits(text)
+        linkpath = parse(LinkPath, path.captures[1])
+        matchoffset = 1+ncodeunits(path.match)
+        if text[matchoffset] == ']'
+            (1+matchoffset,
+             RegularLink(linkpath, nothing))
+        else
+            descriptionend = forwardsbalenced(text, matchoffset, bracketpairs=Dict('[' => ']'))
+            if !isnothing(descriptionend)
+                (descriptionend,
+                RegularLink(linkpath,
+                            parseobjects(RegularLink,
+                                         @inbounds @view text[1+matchoffset:descriptionend-1])))
+            end
+        end
+    end
+end
+
 function consume(::Type{Timestamp}, text::AbstractString)
     rodtypes = Dict("+" => :cumulative,
                     "++" => :catchup,

@@ -51,14 +51,28 @@ end
 
 struct LineBreak <: OrgObject end
 
-mutable struct LinkPath <: OrgObject
+abstract type Link <: OrgObject end
+
+mutable struct RadioLink <: Link
+    radio::Vector{OrgObject}
+end
+
+struct LinkPath <: OrgObject
     protocol::Union{Symbol, AbstractString}
     path::AbstractString
 end
 
-mutable struct Link <: OrgObject
+struct PlainLink <: Link
     path::LinkPath
-    description::Union{AbstractString, Nothing}
+end
+
+struct AngleLink <: Link
+    path::LinkPath
+end
+
+struct RegularLink <: Link
+    path::LinkPath
+    description::Union{Vector{OrgObject}, Nothing}
 end
 
 struct Macro <: OrgObject

@@ -475,21 +475,32 @@ const link_uri_schemes =
     Dict("https" => p -> "https://$p",
          "file" => p -> "file://$(abspath(p))")
 
-function term(io::IO, link::Link)
-    pathstr = string(link.path)
-    if link.path.protocol in keys(link_uri_schemes)
-        pathuri = link_uri_schemes[link.path.protocol](link.path.path)
-        if isnothing(link.description)
-            print(io, "\e]8;;$pathuri\e\\\e[4;34m$pathstr\e[0;0m\e]8;;\e\\")
-        else
-            print(io, "\e]8;;$pathuri\e\\\e[4;34m$(link.description)\e[0;0m\e]8;;\e\\")
-        end
+function term(io::IO, path::LinkPath)
+    if path.protocol in keys(link_uri_schemes)
+        pathuri = link_uri_schemes[path.protocol](path.path)
+        print(io, "\e]8;;", pathuri, "\e\\\e[4;34m")
+        "\e[0;31mꜛ\e[0;0m\e]8;;\e\\"
     else
-        print(io, "\e[4;34m", "[[$pathstr]",
-              if isnothing(link.description) "" else
-                  "[$(link.description)]" end,
-              "]", "\e[0;0m")
+        "\e[0;0m"
     end
+end
+
+function term(io::IO, link::AngleLink)
+    pathlink = term(io, link.path)
+    print(io, '<', string(link.path), '>')
+    print(io, pathlink)
+end
+
+function term(io::IO, link::RegularLink)
+    pathlink = term(io, link.path)
+    if isnothing(link.description) || length(link.description) == 0
+        print(io, string(link.path))
+    else
+        for obj in link.description
+            term(io, obj)
+        end
+    end
+    print(io, pathlink)
 end
 
 function term(io::IO, o::Org, mac::Macro)

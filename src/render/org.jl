@@ -366,6 +366,12 @@ end
 
 org(io::IO, ::LineBreak) = print(io, "\\\\\n")
 
+function org(io::IO, link::RadioLink)
+    for obj in link.radio
+        org(io, obj)
+    end
+end
+
 const link_protocol_prefixes =
     Dict(:coderef => p -> "($p)",
          :custom_id => p -> "#$p",
@@ -382,13 +388,25 @@ function org(io::IO, path::LinkPath)
     end
 end
 
-function org(io::IO, link::Link)
+org(io::IO, link::PlainLink) = org(io, link.path)
+
+function org(io::IO, link::AngleLink)
+    print(io, '<')
+    org(io, link.path)
+    print(io, '>')
+end
+
+function org(io::IO, link::RegularLink)
     print(io, "[[")
     org(io, link.path)
     if isnothing(link.description)
         print(io, "]]")
     else
-        print(io, "][", link.description, "]]")
+        print(io, "][")
+        for obj in link.description
+            org(io, obj)
+        end
+        print(io, "]]")
     end
 end
 
