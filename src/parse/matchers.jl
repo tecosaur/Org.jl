@@ -13,6 +13,8 @@ orgmatcher(::Type{<:OrgComponent}) = nothing
 # Greater Elements
 # ---------------------
 
+abstract type ParagraphForced end
+
 const OrgElementMatchers =
     Dict{Char, Vector{<:Type}}(
         '#' => [BabelCall, Keyword, Block, Comment],
@@ -24,7 +26,7 @@ const OrgElementMatchers =
         '[' => [FootnoteDefinition],
         '\\' => [LaTeXEnvironment])
 
-const OrgElementFallbacks = [Paragraph, List]
+const OrgElementFallbacks = [Paragraph, List, ParagraphForced]
 
 # Greater Block
 @inline orgmatcher(::Type{Drawer}) = r"^[ \t]*:([\w\-_]+):\n([\s\S]+?)?\n?:END:(?:\n(?:[ \t\r]*\n)*|$)"i

@@ -438,3 +438,29 @@ function consume(::Type{TextPlainForced}, s::AbstractString)
         (ncodeunits(c), TextPlain(c))
     end
 end
+
+function consume(::Type{ParagraphForced}, text::AbstractString)
+    line = text[1:something(findfirst('\n', text), end+1)-1]
+    location = if text isa SubString
+        let char=1+length(text.string[1:text.offset])
+            linenum=1+count(==('\n'), text.string[1:text.offset])
+            column=length(text.string[1+something(findprev('\n', text.string, text.offset), 0):1+text.offset])
+        "\n(line $linenum, column $column, char $char)"
+            end
+        else
+        ""
+        end
+    @warn "The following line is being coerced to a paragraph:
+
+$line$location
+
+This is unusual, and likely caused by a malformed Org document."
+    rest = @inbounds @view text[1+length(line):end]
+    trailingspace = match(r"^[ \t\r\n]+", rest)
+    blanklength = if !isnothing(trailingspace)
+        ncodeunits(trailingspace.match)
+    else
+        0
+    end
+    ncodeunits(line)+blanklength, Paragraph(parseobjects(Paragraph, line))
+end
