@@ -32,7 +32,7 @@ const OrgElementFallbacks = [Paragraph, List]
 # FootnoteDefinition has a dedicated consumer
 # InlineTask
 @inline orgmatcher(::Type{PropertyDrawer}) = r"^[ \t]*:PROPERTIES:\n((?:[ \t]*:[^\+\n]+\+?:(?:[ \t]+[^\n]*|[ \t]*)?\n??)*)\n?[ \t]*:END:(?:[\n \t]*\n|$)"i
-@inline orgmatcher(::Type{Table}) = r"^([ \t]*\|[^\n]+(?:\n[ \t]*\|[^\n]+)*)((?:\n[ \t]*#\+TBLFM: [^\n]*)+)?(?:\n(?:[ \t\r]*\n)*|$)"
+@inline orgmatcher(::Type{Table}) = r"^([ \t]*\|[^\n]*(?:\n[ \t]*\|[^\n]+)*)((?:\n[ \t]*#\+TBLFM: [^\n]*)+)?(?:\n(?:[ \t\r]*\n)*|$)"
 # List and Item have dedicated consumers
 @inline orgmatcher(::Type{List}) = r"^([ \t]*)(\+|\-| \*|(?:[A-Za-z]|[0-9]+)[\.\)]) "
 @inline orgmatcher(::Type{Item}) = r"^([ \t]*)(\+|\-| \*|(?:[A-Za-z]|[0-9]+)[\.\)]) "
