@@ -142,7 +142,7 @@ function consume(::Type{Planning}, text::AbstractString)
     point = 1
     clen = ncodeunits(text)
     while point <= clen+1
-        kwdmatch = match(r"^[ \t]*(DEADLINE|SCEDULED|CLOSED):[ \t]*", view(text, point:clen))
+        kwdmatch = match(r"^[ \t]*(DEADLINE|SCHEDULED|CLOSED):[ \t]*", view(text, point:clen))
         if !isnothing(kwdmatch)
             point += ncodeunits(kwdmatch.match)
             tsmatch = consume(Timestamp, view(text, point:clen))
