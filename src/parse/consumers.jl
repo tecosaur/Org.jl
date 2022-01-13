@@ -356,12 +356,14 @@ function consume(::Type{TextPlain}, content::AbstractString)
     regularisewhitespace(s) = replace(s, r"[ \t\n]{2,}|\n" => " ")
     function textobjupto(index)
         substr = @inbounds @view content[1:index]
+        if index > 0
         (ncodeunits(substr),
          TextPlain(if occursin('\n', substr) || occursin("  ", substr)
                        replace(substr, r"[ \t\n]{2,}|\n" => " ")
                    else
                        substr
                    end))
+        end
     end
     clen = lastindex(content)
     if clen == 1
