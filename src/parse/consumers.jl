@@ -46,7 +46,7 @@ end
 
 const OrgFootnoteElementMatchers =
     filter(p -> !isempty(p.second),
-           Dict{Char, Vector{<:Type}}(key => filter(v -> v == FootnoteDefinition, value)
+           Dict{Char, Vector{<:Type}}(key => filter(v -> v != FootnoteDefinition, value)
                                       for (key, value) in OrgElementMatchers))
 
 function consume(::Type{FootnoteDefinition}, text::AbstractString)
