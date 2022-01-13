@@ -84,7 +84,7 @@ function Heading(components::Vector{Union{Nothing, SubString{String}}})
     end
     Heading(level, keyword, priority,
             parseorg(title, OrgObjectMatchers, OrgObjectFallbacks), tagsvec,
-            if !isnothing(section) && !isempty(section)
+            if !isnothing(section) && isnothing(match(r"^[ \t\r\n]*$", section))
                 parse(Section, section) end,
             planning, properties)
 end
