@@ -424,9 +424,13 @@ const FootnoteUnicodeSuperscripts =
          '0' => '⁰')
 
 function term(io::IO, o::Org, fn::FootnoteReference)
-    index = o.footnotes[something(fn.label, fn)][1]
-    printstyled(io, join([FootnoteUnicodeSuperscripts[c] for c in string(index)]);
-                color=:yellow)
+    if haskey(o.footnotes, something(fn.label, fn))
+        index = o.footnotes[something(fn.label, fn)][1]
+        printstyled(io, join([FootnoteUnicodeSuperscripts[c] for c in string(index)]);
+            color=:yellow)
+    else
+        printstyled(io, "[#undefined#]", color=:yellow)
+    end
 end
 
 function term(io::IO, o::Org, keycite::CitationReference)
