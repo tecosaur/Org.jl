@@ -64,6 +64,7 @@ end
 structurename(::C) where {C<:OrgComponent} = string(nameof(C))
 structuredesc(_::OrgComponent) = nothing
 
+structuredesc(d::Drawer) = d.name
 structuredesc(k::CitationReference) = string('@', k.key)
 structuredesc(c::Citation) =
     string(something(c.style[1], "⋅"), " ", something(c.style[2], "⋅"))
