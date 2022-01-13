@@ -64,7 +64,7 @@ function *(a::TextPlain{SubString}, b::TextPlain{SubString})
     if a.text.string === b.text.string &&
         a.text.offset + a.text.ncodeunits == b.text.offset
         TextPlain(@inbounds SubString(a.text.string, 1 + a.text.offset,
-                                      b.text.offset + b.text.ncodeunits))
+                                      b.text.offset + lastindex(b.text)))
     else
         TextPlain(a.text * b.text)
     end
