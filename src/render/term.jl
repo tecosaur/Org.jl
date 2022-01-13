@@ -215,7 +215,11 @@ function term(io::IO, o::Org, item::Item, unordered::Bool=true, indent::Integer=
         end
         components = @view item.contents[if item.contents[1] isa Paragraph 2 else 1 end:end]
         for component in components
-            term(contentbuf, o, component, indent)
+            if component isa List
+                term(contentbuf, o, component, indent, depth+1)
+            else
+                term(contentbuf, o, component, indent)
+            end
             component === last(components) || print(contentbuf, '\n')
         end
         otherlines = split(String(take!(contentbuf.io)), '\n')
