@@ -253,11 +253,11 @@ org(io::IO, ::HorizontalRule) = print(io, "-----")
 org(io::IO, keyword::Keyword) = print(io, "#+", keyword.key, ": ", keyword.value)
 
 function org(io::IO, env::LaTeXEnvironment, indent::Integer=0)
-    print(io, ' '^indent, "\\begin{", env.name, "}\n")
-    for line in env.contents
+    print(io, ' '^indent, "\\begin{", env.name, '}', env.contents[1], '\n')
+    for line in env.contents[2:end]
         print(io, ' '^(2+indent), line, '\n')
     end
-    print(io, ' '^indent, "\\end{", env.name, "}")
+    print(io, ' '^indent, "\\end{", env.name, '}')
 end
 
 org(io::IO, node::NodeProperty) =
