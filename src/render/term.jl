@@ -65,17 +65,11 @@ function termheadingonly(io::IO, heading::Heading)
     if !isnothing(heading.priority)
         printstyled(io, "[#", heading.priority, "] ", color=:light_red)
     end
-    if get(stdout, :color, false)
-        for obj in heading.title
-            if obj isa TextMarkup || obj isa TextPlain
-                term(io, obj, "\e[1;34m")
-            else
-                term(io, obj)
-            end
-        end
-    else
-        org.(Ref(io), heading.title)
+    print(io, termstyle("34"))
+    for obj in heading.title
+        term(io, obj, ["34"])
     end
+    print(io, termstyle(String[]))
     if length(heading.tags) > 0
         printstyled(io, " :", join(heading.tags, ":"), ":", color=:light_black)
     end
@@ -398,6 +392,31 @@ end
 # Objects
 # ---------------------
 
+# Terminal styling
+
+termstyle(code::String) = if !get(stdout, :color, false)
+    ""
+else
+    "\e[$(code)m"
+end
+
+termstyle(codes::Vector{String}) = if !get(stdout, :color, false)
+    ""
+else
+    if length(codes) > 0
+        string("\e[0;", join(codes, ';'), "m")
+    else
+        "\e[0m"
+    end
+end
+
+term(io::IO, o::Org, obj::OrgObject, _::Vector{String}) =
+    term(io::IO, o::Org, obj::OrgObject)
+term(io::IO, obj::OrgObject, _::Vector{String}) =
+    term(io::IO, obj::OrgObject)
+
+# Now onto the objects
+
 term(io::IO, entity::Entity) = print(io, Entities[entity.name].utf8)
 
 function term(io::IO, latex::LaTeXFragment)
@@ -471,6 +490,16 @@ end
 
 term(io::IO, ::LineBreak) = print(io, '\n')
 
+const term_stylecodes_link = ["4", "34"]
+
+function term(io::IO, link::RadioLink, stylecodes::Vector{String}=String[])
+    print(io, termstyle(term_stylecodes_link))
+    for obj in link.radio.contents
+        term(io, obj, [stylecodes; term_stylecodes_link])
+    end
+    print(io, termstyle(stylecodes))
+end
+
 const link_uri_schemes =
     Dict("https" => p -> "https://$p",
          "file" => p -> "file://$(abspath(p))")
@@ -478,29 +507,31 @@ const link_uri_schemes =
 function term(io::IO, path::LinkPath)
     if path.protocol in keys(link_uri_schemes)
         pathuri = link_uri_schemes[path.protocol](path.path)
-        print(io, "\e]8;;", pathuri, "\e\\\e[4;34m")
+        print(io, "\e]8;;", pathuri, "\e\\")
         "\e[0;31mꜛ\e[0;0m\e]8;;\e\\"
     else
-        "\e[0;0m"
+        ""
     end
 end
 
-function term(io::IO, link::AngleLink)
+function term(io::IO, link::AngleLink, stylecodes::Vector{String}=String[])
+    print(io, termstyle(term_stylecodes_link))
     pathlink = term(io, link.path)
     print(io, '<', string(link.path), '>')
-    print(io, pathlink)
+    print(io, pathlink, termstyle(stylecodes))
 end
 
-function term(io::IO, link::RegularLink)
+function term(io::IO, link::RegularLink, stylecodes::Vector{String}=String[])
+    print(io, termstyle(term_stylecodes_link))
     pathlink = term(io, link.path)
     if isnothing(link.description) || length(link.description) == 0
         print(io, string(link.path))
     else
         for obj in link.description
-            term(io, obj)
+            term(io, obj, [stylecodes; term_stylecodes_link])
         end
     end
-    print(io, pathlink)
+    print(io, pathlink, termstyle(stylecodes))
 end
 
 function term(io::IO, o::Org, mac::Macro)
@@ -512,8 +543,12 @@ function term(io::IO, o::Org, mac::Macro)
     end
 end
 
-function term(io::IO, radio::RadioTarget)
-    term.(Ref(io), radio.contents)
+function term(io::IO, radio::RadioTarget, stylecodes::Vector{String}=String[])
+    print(io, termstyle("4"))
+    for obj in radio.contents
+        term(io, obj, [stylecodes; "4"])
+    end
+    print(io, termstyle(stylecodes))
 end
 
 term(::IO, ::Target) = nothing
@@ -587,43 +622,33 @@ function term(io::IO, tsr::TimestampRange)
 end
 
 const markup_term_codes =
-    Dict(:bold => "\e[1m",
-         :italic => "\e[3m",
-         :strikethrough => "\e[9m",
-         :underline => "\e[4m",
-         :verbatim => "\e[32m", # green
-         :code => "\e[36m") # cyan
+    Dict(:bold => "1",
+         :italic => "3",
+         :strikethrough => "9",
+         :underline => "4",
+         :verbatim => "32", # green
+         :code => "36") # cyan
 
-function term(io::IO, markup::TextMarkup, accumulatedmarkup::String="")
-    color = get(stdout, :color, false)
-    if color
-        accumulatedmarkup *= markup_term_codes[markup.formatting]
-    end
+function term(io::IO, markup::TextMarkup, stylecodes::Vector{String}=String[])
+    markuptermcode = markup_term_codes[markup.formatting]
+    print(io, termstyle(markuptermcode))
     if markup.contents isa AbstractString
-        print(io, accumulatedmarkup, markup.contents,
-              if color "\e[0;0m" else "" end)
+        print(io, markup.contents)
     else
         for obj in markup.contents
-            if obj isa TextMarkup || obj isa TextPlain
-                term(io, obj, accumulatedmarkup)
-            else
-                term(io, obj)
-            end
+            term(io, obj, [stylecodes; markuptermcode])
         end
     end
+    print(io, termstyle(stylecodes))
 end
 
-function term(io::IO, text::TextPlain, accumulatedmarkup::String="")
+function term(io::IO, text::TextPlain)
     tsub = replace(replace(replace(replace(text.text,
                                            "..." => "…"),
                                    r"---([^-])" => s"—\1"),
                            r"--([^-])" => s"–\1"),
                    r"\\-" => "-")
-    if get(stdout, :color, false)
-        print(io, accumulatedmarkup, tsub, "\e[0;0m")
-    else
-        print(io, tsub)
-    end
+    print(io, tsub)
 end
 
 # ---------------------
