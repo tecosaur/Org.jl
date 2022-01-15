@@ -1102,6 +1102,52 @@ This pattern must occur at the end of any otherwise non-empty line.
 """ LineBreak
 
 @doc org"""
+*Org Syntax Reference*: \S4.10 \\
+*Org Component Type*: Object
+
+Links come in four subtypes:
++ ~RadioLink~
++ ~PlainLink~
++ ~AngleLink~
++ ~RegularLink~
+
+Each of those have dedicated docstrings.
+""" Link
+
+@doc org"""
+*Org Syntax Reference*: \S4.10.1 \\
+*Org Component Type*: Object
+
+* Form
+
+#+begin_example
+PRE RADIO POST
+#+end_example
+
++ PRE :: A non-alphanumeric character.
++ RADIO :: A series of objects matched by some *radio target*.  It can
+  contain the minimal set of objects.
++ POST :: A non-alphanumeric character.
+
+* Example
+
+#+begin_example
+This is some <<<*important* information>>> which we refer to lots.
+Make sure you remember the *important* information.
+#+end_example
+
+The first instance of =*important* information= defines a radio target,
+which is matched by the second instance of =*important* information=,
+forming a radio link.
+
+* Fields
+
+#+begin_src julia
+radio::RadioTarget
+#+end_src
+""" RadioLink
+
+@doc org"""
 *Org Syntax Reference*: \S4.10.4 \\
 *Org Component Type*: Object
 
@@ -1127,34 +1173,118 @@ path::AbstractString
 """ LinkPath
 
 @doc org"""
+*Org Syntax Reference*: \S4.10.2 \\
+*Org Component Type*: Object
+
+* Form
+
+#+begin_example
+PRE PROTOCOL:PATHPLAIN POST
+#+end_example
+
++ PRE :: A non word constituent character.
++ PROTOCOL :: A string which is one of the link type strings in
+  ~org-link-parameters~[fn:olp:By default, ~org-link-parameters~ defines
+  links of type =file+sys=, =file+emacs=, =shell=, =news=, =mailto=, =https=,
+  =http=, =ftp=, =help=, =file=, and =elisp=.].
++ PATHPLAIN :: A string containing any non-whitespace character but =(=, =)=,
+  =<=, or =>=.  It must end with a word-constituent character, or any
+  non-whitespace non-punctuation character followed by =/=.
++ POST :: A non word constituent character.
+
+* Example
+
+#+begin_example
+Be sure to look at https://orgmode.org.
+#+end_example
+
+* Fields
+
+#+begin_src julia
+path::LinkPath
+#+end_src
+""" PlainLink
+
+@doc org"""
+*Org Syntax Reference*: \S4.10.3 \\
+*Org Component Type*: Object
+
+Angle-type essentially provide a method to disambiguate plain links
+from surrounding text.
+
+* Form
+
+#+begin_example
+<PROTOCOL:PATHANGLE>
+#+end_example
+
++ PROTOCOL :: A string which is one of the link type strings in
+  ~org-link-parameters~[fn:olp]
++ PATHANGLE :: A string containing any character but =]=, =<=, =>= or =\n=.
+
+The angle brackets allow for a more permissive PATH syntax, without
+accidentally matching surrounding text.
+
+* Fields
+
+#+begin_src julia
+path::LinkPath
+#+end_src
+""" AngleLink
+
+@doc org"""
 *Org Syntax Reference*: \S4.10.4 \\
 *Org Component Type*: Object
 
-*Note* Links are in need of being overhauled to properly deal
-with the four different forms of links. This currently just matches
-"Regular links".
-
 * Forms
-#+begin_src org
-[[LINKPATH]]
-[[LINKPATH][DESCRIPTION]]
-<LINKPATH> # currently unsupported
-PRE1 RADIO POST1 # currently unsupported
-PRE2 LINKPATH POST2 # currently unsupported
-#+end_src
 
-+ =LINKPATH= is descriped by =LinkPath=
-+ =DESCRIPTION= can contain any character but square brackets
-+ =PRE1= and =POST1= are non-alphanumeric characters
-+ =PRE2= and =POST2= are non-word-constituent characters
-+ =RADIO= is a string matched by some =RadioTarget=
+#+begin_example
+[[PATHREG]]
+[[PATHREG][DESCRIPTION]]
+#+end_example
+
++ PATHREG :: An instance of one of the seven following annotated patterns:
+  #+begin_example
+FILENAME               ("file" type)
+PROTOCOL:PATHINNER     ("PROTOCOL" type)
+PROTOCOL://PATHINNER   ("PROTOCOL" type)
+id:ID                  ("id" type)
+#CUSTOM-ID             ("custom-id" type)
+(CODEREF)              ("coderef" type)
+FUZZY                  ("fuzzy" type)
+  #+end_example
+  - FILENAME :: A string representing an absolute or relative file path.
+  - PROTOCOL :: A string which is one of the link type strings in
+    ~org-link-parameters~[fn:olp]
+  - PATHINNER :: A string consisting of any character besides square brackets.
+  - ID :: A string consisting of hexadecimal numbers separated by hyphens.
+  - CUSTOM-ID :: A string consisting of any character besides square brackets.
+  - CODEREF :: A string consisting of any character besides square brackets.
+  - FUZZY :: A string consisting of any character besides square brackets.
+  Square brackets and backslashes can be present in PATHREG so long as
+  they are escaped by a backslash (i.e. =\]=, =\\=).
++ DESCRIPTION (optional) :: A series of objects enclosed by square
+  brackets.  It can contain the minimal set of objects as well as
+  *export snippets*, *inline babel calls*, *inline source blocks*, *macros*,
+  and *statistics cookies*.  It can also contain another link, but only
+  when it is a plain or angle link.  It can contain square brackets,
+  so long as they are balanced.
+
+* Examples
+
+#+begin_example
+[[https://orgmode.org][The Org project homepage]]
+[[file:orgmanual.org]]
+[[Regular links]]
+#+end_example
 
 * Fields
+
 #+begin_src julia
 path::LinkPath
-description::Union{AbstractString, Nothing}
+description::Union{Vector{OrgObject}, Nothing}
 #+end_src
-""" Link
+""" RegularLink
 
 @doc org"""
 *Org Syntax Reference*: \S4.11 \\
