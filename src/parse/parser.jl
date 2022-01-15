@@ -144,7 +144,7 @@ function forwardsbalenced(content::AbstractString, point::Integer=1, limit::Inte
     currentquote = nothing
     depth = 1
     while point < limit
-        point += 1
+        point = nextind(content, point)
         # escaped chars
         if content[point] in escapechars &&
             point < limit
