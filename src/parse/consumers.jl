@@ -400,8 +400,13 @@ function consume(::Type{TextMarkup}, text::AbstractString)
         if !isnothing(markupmatch)
             char, content, _ = markupmatch.captures
             formatting = TextMarkupFormatting[char[1]]
+            parsedcontent = if formatting in (:verbatim, :code)
+                content
+            else
+                parseobjects(TextMarkup, content)
+            end
             (2 + ncodeunits(content),
-             TextMarkup(formatting, content))
+             TextMarkup(formatting, parsedcontent))
         end
     end
 end
