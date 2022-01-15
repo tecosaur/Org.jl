@@ -300,12 +300,12 @@ function consume(::Type{RegularLink}, text::AbstractString)
         linkpath = parse(LinkPath, path.captures[1])
         matchoffset = 1+ncodeunits(path.match)
         if text[matchoffset] == ']'
-            (1+matchoffset,
+            (1 + matchoffset,
              RegularLink(linkpath, nothing))
         else
             descriptionend = forwardsbalenced(text, matchoffset, bracketpairs=Dict('[' => ']'))
             if !isnothing(descriptionend)
-                (descriptionend,
+                (1 + descriptionend,
                 RegularLink(linkpath,
                             parseobjects(RegularLink,
                                          @inbounds @view text[1+matchoffset:descriptionend-1])))
