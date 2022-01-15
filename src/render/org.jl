@@ -367,7 +367,7 @@ end
 org(io::IO, ::LineBreak) = print(io, "\\\\\n")
 
 function org(io::IO, link::RadioLink)
-    for obj in link.radio
+    for obj in link.radio.contents
         org(io, obj)
     end
 end

@@ -5,6 +5,7 @@ export Org, @org_str,                 # types/org.jl, here
     parsetree                         # analysis/parsetree.jl
 
 include("types/org.jl")
+include("cache/cache.jl")
 
 include("parse/interpret.jl")
 
@@ -14,8 +15,6 @@ end
 
 include("types/documentation.jl")
 include("parse/documentation.jl")
-
-include("cache/cache.jl")
 
 include("render/utils.jl")
 include("render/formatting.jl")
