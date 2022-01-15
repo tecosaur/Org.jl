@@ -295,7 +295,7 @@ function consume(::Type{PlainLink}, text::AbstractString)
 end
 
 function consume(::Type{RegularLink}, text::AbstractString)
-    path = match(r"\[\[((?:[^\]\[\\]+|\\(?:\\\\)*[\[\]]|\\+[^\]\[])+)\]", text)
+    path = match(r"^\[\[((?:[^\]\[\\]+|\\(?:\\\\)*[\[\]]|\\+[^\]\[])+)\]", text)
     if !isnothing(path) && ncodeunits(path.match) < ncodeunits(text)
         linkpath = parse(LinkPath, path.captures[1])
         matchoffset = 1+ncodeunits(path.match)
