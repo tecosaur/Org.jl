@@ -44,7 +44,7 @@ const OrgElementFallbacks = [Paragraph, List, ParagraphForced]
 # ---------------------
 
 @inline orgmatcher(::Type{BabelCall}) = r"^[ \t]*#\+call:[ \t]*([^\n]*)(?:\n(?:[ \t\r]*\n)*|$)"i
-@inline orgmatcher(::Type{Block}) = r"^[ \t]*#\+begin_(\S+)(?: ([^\n]+?))?[ \t]*?(?:\n((?!\*+ )[^\n]*(?:\n(?!\*+ )[^\n]*)*))?\n[ \t]*#\+end_\1(?:\n(?:[ \t\r]*\n)*|$)"i
+@inline orgmatcher(::Type{Block}) = r"^[ \t]*#\+begin_(\S+)(?: ([^\n]+?))?[ \t]*?(?:\n((?!\*+ )[^\n]*(?:\n(?!\*+ )[^\n]*)*?))?\n[ \t]*#\+end_\1(?:\n(?:[ \t\r]*\n)*|$)"i
 @inline orgmatcher(::Type{Clock}) = r"^[ \t]*clock: \[(\d{4}-\d\d-\d\d)(?: [A-Za-z]+)?(?: (\d?\d:\d\d)(?:-(\d?\d:\d\d))?)?(?: ((?:\+|\+\+|\.\+|-|--))([\d.]+)([hdwmy]))? *\](?(3)|(?:|-\[(\d{4}-\d\d-\d\d)(?: [A-Za-z]+)?(?: (\d?\d:\d\d))?(?: ((?:\+|\+\+|\.\+|-|--))([\d.]+)([hdwmy]))? *\]))(?:\n(?:[ \t\r]*\n)*|$)"i
 # Planning has a custom consumer
 @inline orgmatcher(::Type{Comment}) = r"^([ \t]*#(?:| [^\n]*)(?:\n[ \t]*#(?:\n| [^\n]*))*)(?:\n(?:[ \t\r]*\n)*|$)"
