@@ -53,10 +53,6 @@ struct LineBreak <: OrgObject end
 
 abstract type Link <: OrgObject end
 
-mutable struct RadioLink <: Link
-    radio::Vector{OrgObject}
-end
-
 struct LinkPath <: OrgObject
     protocol::Union{Symbol, AbstractString}
     path::AbstractString
@@ -82,6 +78,10 @@ end
 
 mutable struct RadioTarget <: OrgObject
     contents::Vector{OrgObject}
+end
+
+mutable struct RadioLink <: Link
+    radio::RadioTarget
 end
 
 mutable struct Target <: OrgObject
