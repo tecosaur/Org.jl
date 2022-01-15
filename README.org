@@ -46,6 +46,8 @@ parse(Org, string(dochead)) == dochead  # round-trip equality
 | Heading             | X    | X     | X   | X    | X    |
 | Section             | X    | X     | X   | X    | X    |
 |---------------------+------+-------+-----+------+------|
+| Affiliated Keywords |      |       |     |      |      |
+|---------------------+------+-------+-----+------+------|
 | GreaterBlock        | X    |       |     |      |      |
 | Drawer              | X    | X     | X   | X    |      |
 | DynamicBlock        | X    |       |     |      |      |
@@ -55,8 +57,6 @@ parse(Org, string(dochead)) == dochead  # round-trip equality
 | List                | X    | X     | X   | X    | X    |
 | PropertyDrawer      | X    | X     | X   | X    |      |
 | Table               | X    | X     | X   | X    |      |
-|---------------------+------+-------+-----+------+------|
-| Affiliated Keywords |      |       |     |      |      |
 |---------------------+------+-------+-----+------+------|
 | BabelCall           | X    | X     | X   | X    |      |
 | Block               | X    | X     | X   | X    |      |
