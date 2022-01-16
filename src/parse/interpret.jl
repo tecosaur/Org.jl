@@ -215,6 +215,9 @@ function Keyword(components::Vector{Union{Nothing, SubString{String}}})
     if haskey(org_keyword_translations, key)
         key = org_keyword_translations[key]
     end
+    if key in org_parsed_keywords
+        value = parseobjects(Keyword, value)
+    end
     Keyword(key, value)
 end
 

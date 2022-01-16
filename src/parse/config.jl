@@ -22,7 +22,7 @@ const org_affiliable_elements =
 
 const org_dual_keywords = ("caption", "results")
 const org_multiple_keywords = ("caption", "header")
-const org_parsed_keywords = ("caption")
+const org_parsed_keywords = ("caption",)
 
 const org_secondary_values =
     Dict(Citation => (:globalprefix, :globalsuffix),

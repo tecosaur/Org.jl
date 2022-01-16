@@ -46,7 +46,72 @@ end
 # Elements
 # ---------------------
 
-const OrgFootnoteElementMatchers =
+function consume(::Type{AffiliatedKeyword}, text::AbstractString)
+    function finalise(key, optval, val)
+        if haskey(org_keyword_translations, key)
+            key = org_keyword_translations[key]
+        end
+        if key in org_parsed_keywords
+            !isnothing(optval) && (optval = parseobjects(Keyword, optval))
+            val = parseobjects(Keyword, val)
+        end
+        key, optval, val
+    end
+    keymatch = match(r"^[ \t]*#\+([^\s\[\]]+)([:\[])", text)
+    if !isnothing(keymatch)
+        key, kendchar = keymatch.captures
+        if kendchar[1] == '[' && key in org_dual_keywords #+key[optval]: val
+            optvalend = forwardsbalenced(text, ncodeunits(keymatch.match),
+                                         bracketpairs=Dict('[' => ']'))
+            if !isnothing(optvalend)
+                optval = @inbounds @view text[1+ncodeunits(keymatch.match):prevind(text, optvalend)]
+                valmatch = match(r"^:[ \t]+([^\n]*)\n", @inbounds @view text[1+optvalend:end])
+                if !occursin('\n', optval) && !isnothing(valmatch)
+                    val = valmatch.captures[1]
+                    key, optval, val = finalise(key, optval, val)
+                    (optvalend + ncodeunits(valmatch.match),
+                     AffiliatedKeyword(key, optval, val))
+                end
+            end
+        else #+key: val
+            keyval = match(r"^[ \t]*#\+(\S+?):[ \t]+?([^\n]*)\n", text)
+            if !isnothing(keyval)
+                key, val = keyval.captures
+                key, _, val = finalise(key, nothing, val)
+                (ncodeunits(keyval.match),
+                 AffiliatedKeyword(key, nothing, val))
+            end
+        end
+    end
+end
+
+function consume(::Type{AffiliatedKeywordsWrapper}, text::AbstractString)
+    affiliatedkeywords = AffiliatedKeyword[]
+    point = 1
+    textend = lastindex(text)
+    nextkw = consume(AffiliatedKeyword, @inbounds @view text[point:textend])
+    while !isnothing(nextkw) &&
+        (nextkw[2].key in org_affilated_keywords ||
+         startswith(nextkw[2].key, "attr_"))
+        if occursin(r"^[ \t\r]*\n", @inbounds @view text[point+nextkw[1]:textend])
+            return nothing
+        end
+        push!(affiliatedkeywords, nextkw[2])
+        point += nextkw[1]
+        nextkw = consume(AffiliatedKeyword, @inbounds @view text[point:textend])
+    end
+    if length(affiliatedkeywords) > 0
+        element = parseorg((@inbounds @view text[point:textend]),
+                           org_element_matchers, org_element_fallbacks[1:end-1],
+                           partial = true, maxobj = 1)
+        if !isnothing(element) && any(isa.(Ref(element[2][1]), org_affiliable_elements))
+            (point - 1 + element[1],
+                AffiliatedKeywordsWrapper(element[2][1], affiliatedkeywords))
+        end
+    end
+end
+
+const org_footnote_element_matchers =
     filter(p -> !isempty(p.second),
            Dict{Char, Vector{<:Type}}(key => filter(v -> v != FootnoteDefinition, value)
                                       for (key, value) in org_element_matchers))

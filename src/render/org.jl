@@ -63,6 +63,14 @@ function org(io::IO, section::Section, indent::Integer=0)
     end
 end
 
+function org(io::IO, afkw::AffiliatedKeywordsWrapper, indent::Integer=0)
+    for afk in afkw.keywords
+        org(io, afk, indent)
+        print(io, '\n')
+    end
+    org(io, afkw.element, indent)
+end
+
 # ---------------------
 # Greater Elements
 # ---------------------
@@ -250,7 +258,38 @@ end
 
 org(io::IO, ::HorizontalRule) = print(io, "-----")
 
-org(io::IO, keyword::Keyword) = print(io, "#+", keyword.key, ": ", keyword.value)
+org(io::IO, keyword::Keyword{<:AbstractString}) =
+    print(io, "#+", keyword.key, ": ", keyword.value)
+
+function org(io::IO, keyword::Keyword{Vector{Object}})
+    print(io, "#+", keyword.key, ": ")
+    for obj in keyword.value
+        org(io, obj)
+    end
+end
+
+function org(io::IO, afk::AffiliatedKeyword{<:AbstractString})
+    print(io, "#+", afk.key)
+    if !isnothing(afk.optval)
+        print(io, '[', afk.optval, ']')
+    end
+    print(io, ": ", afk.value)
+end
+
+function org(io::IO, afk::AffiliatedKeyword{Vector{Object}})
+    print(io, "#+", afk.key)
+    if !isnothing(afk.optval)
+        print(io, '[')
+        for obj in afk.optval
+            org(io, obj)
+        end
+        print(io, ']')
+    end
+    print(io, ": ")
+    for obj in afk.value
+        org(io, obj)
+    end
+end
 
 function org(io::IO, env::LaTeXEnvironment, indent::Integer=0)
     print(io, ' '^indent, "\\begin{", env.name, '}', env.contents[1], '\n')

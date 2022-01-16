@@ -46,7 +46,7 @@ parse(Org, string(dochead)) == dochead  # round-trip equality
 | Heading             | X    | X     | X   | X    | X    |
 | Section             | X    | X     | X   | X    | X    |
 |---------------------+------+-------+-----+------+------|
-| Affiliated Keywords |      |       |     |      |      |
+| Affiliated Keywords | X    | X     | X   | X    |      |
 |---------------------+------+-------+-----+------+------|
 | GreaterBlock        | X    |       |     |      |      |
 | Drawer              | X    | X     | X   | X    |      |

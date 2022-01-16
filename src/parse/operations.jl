@@ -141,6 +141,13 @@ iterate(s::Section, index::Integer) =
         (s.contents[index], index + 1)
     end
 
+length(a::AffiliatedKeywordsWrapper) = 1 + length(a.keywords)
+iterate(a::AffiliatedKeywordsWrapper) = (a.element, 1)
+iterate(a::AffiliatedKeywordsWrapper, index::Integer) =
+    if index <= length(a.keywords)
+        (a.keywords[index], index + 1)
+    end
+
 # Greater Element
 
 length(d::Drawer) = length(d.contents)

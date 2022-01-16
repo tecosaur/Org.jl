@@ -97,6 +97,88 @@ contain a *property drawer*, optionally preceded by *comments*.  It cannot
 however, contain *planning*.
 """ Section
 
+@doc org"""
+*Org Syntax Reference*: \S3.2 \\
+*Org Component Type*: Element
+
+With the exception of *comments*, *clocks*, *headings*, *inlinetasks*,
+*items*, *node properties*, *planning*, *property drawers*, *sections*, and
+*table rows*, every other element type can be assigned attributes.
+
+This is done by adding specific *keywords*, named /affiliated/ keywords,
+immediately above the element considered (a blank line cannot lie
+between the affiliated keyword and element). Structurally, affiliated
+keyword are not considered an element in their own right but a
+property of the element they apply to.
+
+* Form
+
+#+begin_example
+,#+KEY: VALUE
+,#+KEY[OPTVAL]: VALUE
+,#+attr_BACKEND: VALUE
+#+end_example
+
++ KEY :: A string which is a member of
+  ~org-element-affiliated-keywords~[fn:oeakw:By default,
+  ~org-element-affiliated-keywords~ contains =CAPTION=, =DATA=, =HEADERS=,
+  =LABEL=, =NAME=, =PLOT=, =RESNAME=, =RESULT=, =RESULTS=, =SOURCE=, =SRCNAME=, and
+  =TBLNAME=.].
++ BACKEND :: A string consisting of alphanumeric characters, hyphens,
+  or underscores (=-_=).
++ OPTVAL (optional) :: A string consisting of any characters but a
+  newline.  Opening and closing square brackets must be balanced.
+  This term is only valid when KEY is a member of
+  ~org-element-dual-keywords~[fn:oedkw:By default,
+  ~org-element-dual-keywords~ contains =CAPTION= and =RESULTS=.].
++ VALUE :: A string consisting of any characters but a newline, except
+  in the case where KEY is member of
+  ~org-element-parsed-keywords~[fn:oepkw:By default,
+  ~org-element-parsed-keywords~ contains =CAPTION=.] in which case VALUE
+  is a series of objects from the standard set, excluding footnote
+  references.
+
+Repeating an affiliated keyword before an element will usually result
+in the prior VALUEs being overwritten by the last instance of KEY.
+There are two situations under which the VALUEs will be concatenated:
+1. If KEY is a member of ~org-element-dual-keywords~[fn:oedkw].
+2. If the affiliated keyword is an instance of the patten
+   =#+attr_BACKEND: VALUE=.
+
+* Example
+
+The following example contains three affiliated keywords:
+
+#+begin_example
+,#+name: image-name
+,#+caption: This is a caption for
+,#+caption: the image linked below
+[[file:some/image.png]]
+#+end_example
+
+* Fields
+
+#+begin_src julia
+key::AbstractString
+optval::Union{Union{<:AbstractString, Vector{Object}}, Nothing}
+value::Union{<:AbstractString, Vector{Object}}
+#+end_src
+""" AffiliatedKeyword
+
+@doc org"""
+A wrapper for a collection of *affiliated keywords* and an *element*.
+
+See the docstring for ~AffiliatedKeyword~ for more
+information of affiliated keywords.
+
+* Fields
+
+#+begin_src julia
+element::Element
+keywords::Vector{AffiliatedKeyword}
+#+end_src
+""" AffiliatedKeywordsWrapper
+
 # ---------------------
 # Greater Elements
 # ---------------------

@@ -133,6 +133,16 @@ function termfootnotes(io::IO, o::Org, indent::Integer=0)
     end
 end
 
+function term(io::IO, o::Org, afkw::AffiliatedKeywordsWrapper, indent::Integer=0)
+    for afk in afkw.keywords
+        if !startswith(afk.key, "attr_")
+            term(io, o, Keyword(afk.key, afk.value), indent)
+            print(io, '\n')
+        end
+    end
+    term(io, o, afkw.element, indent)
+end
+
 # ---------------------
 # Greater Elements
 # ---------------------
@@ -191,8 +201,12 @@ function term(io::IO, o::Org, item::Item, unordered::Bool=true, indent::Integer=
         offset += 4
     end
     if !isnothing(item.tag)
-        printstyled(io, ' ', item.tag, " ::", color=:blue)
-        offset += length(item.tag) + 3
+        print(io, ' ', termstyle("34"))
+        for obj in item.tag
+            term(io, o, obj, ["34"])
+        end
+        print(io, " ::", termstyle())
+        offset += length(string(item.tag)) + 3 # TODO rough guess, make accurate
     end
     if length(item.contents) > 0
         print(io, ' ')
@@ -342,13 +356,18 @@ term(io::IO, ::HorizontalRule) =
 
 const DocumentInfoKeywords = ["title", "subtitle", "author"]
 
-function term(io::IO, keyword::Keyword)
-    if keyword.key in DocumentInfoKeywords
-        printstyled(io, "#+", keyword.key, ": ", color=:light_black)
-        printstyled(io, keyword.value, color=:magenta)
+function term(io::IO, o::Org, keyword::Keyword{V}) where {V}
+    printstyled(io, "#+", keyword.key, ": ", color = :light_black)
+    valuecolor = if keyword.key in DocumentInfoKeywords; ["35"] else ["90"] end
+    print(io, termstyle(valuecolor))
+    if V == Vector{Object}
+        for obj in keyword.value
+            term(io, o, obj, valuecolor)
+        end
     else
-        printstyled(io, "#+", keyword.key, ": ", keyword.value, color=:light_black)
+        print(io, keyword.value)
     end
+    print(io, termstyle())
 end
 
 function term(io::IO, ::Org, env::LaTeXEnvironment, indent::Integer=0)
