@@ -160,8 +160,8 @@ The following example contains three affiliated keywords:
 
 #+begin_src julia
 key::AbstractString
-optval::Union{Union{<:AbstractString, Vector{Object}}, Nothing}
-value::Union{<:AbstractString, Vector{Object}}
+optval::Union{<:AbstractString, Vector{Object}, Nothing}
+value::Union{<:AbstractString, Vector{Object}, Nothing}
 #+end_src
 """ AffiliatedKeyword
 
@@ -774,7 +774,7 @@ not an affiliated keyword.
 
 #+begin_src julia
 key::AbstractString
-value::AbstractString
+value::Union{<:AbstractString, Vector{Object}, Nothing}
 #+end_src
 """ Keyword
 

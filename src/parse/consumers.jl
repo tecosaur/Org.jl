@@ -22,7 +22,7 @@ function consume(component::Type{<:OrgComponent}, text::AbstractString)
     end
 end
 
-# A handy utility function
+# Some utility functions
 
 """
     startofline(::Union{String, SubString})::Bool
@@ -39,6 +39,14 @@ function startofline(s::SubString)
     s.string[i] == '\n'
 end
 
+function ensurelowercase(s::AbstractString)
+    if any(c -> c in 'A':'Z', s)
+        lowercase(s)
+    else
+        s
+    end
+end
+
 # Some more complicated elements can not simply be matched, and so need
 # specific consumers.
 
@@ -48,33 +56,36 @@ end
 
 function consume(::Type{AffiliatedKeyword}, text::AbstractString)
     function finalise(key, optval, val)
+        key = ensurelowercase(key)
         if haskey(org_keyword_translations, key)
             key = org_keyword_translations[key]
         end
         if key in org_parsed_keywords
             !isnothing(optval) && (optval = parseobjects(Keyword, optval))
-            val = parseobjects(Keyword, val)
+            !isnothing(val) && (val = parseobjects(Keyword, val))
         end
         key, optval, val
     end
     keymatch = match(r"^[ \t]*#\+([^\s\[\]]+)([:\[])", text)
     if !isnothing(keymatch)
         key, kendchar = keymatch.captures
-        if kendchar[1] == '[' && key in org_dual_keywords #+key[optval]: val
+        if kendchar[1] == '[' && ensurelowercase(key) in org_dual_keywords #+key[optval]: val
             optvalend = forwardsbalenced(text, ncodeunits(keymatch.match),
                                          bracketpairs=Dict('[' => ']'))
             if !isnothing(optvalend)
                 optval = @inbounds @view text[1+ncodeunits(keymatch.match):prevind(text, optvalend)]
-                valmatch = match(r"^:[ \t]+([^\n]*)\n", @inbounds @view text[1+optvalend:end])
+                valmatch = match(r"^:(?:[ \t]+([^\n]*))?\n", @inbounds @view text[1+optvalend:end])
                 if !occursin('\n', optval) && !isnothing(valmatch)
-                    val = valmatch.captures[1]
+                    val = if !isnothing(valmatch.captures[1])
+                        valmatch.captures[1]
+                    end
                     key, optval, val = finalise(key, optval, val)
                     (optvalend + ncodeunits(valmatch.match),
                      AffiliatedKeyword(key, optval, val))
                 end
             end
         else #+key: val
-            keyval = match(r"^[ \t]*#\+(\S+?):[ \t]+?([^\n]*)\n", text)
+            keyval = match(r"^[ \t]*#\+(\S+?):(?:[ \t]+?([^\n]*))?\n", text)
             if !isnothing(keyval)
                 key, val = keyval.captures
                 key, _, val = finalise(key, nothing, val)

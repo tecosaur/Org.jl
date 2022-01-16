@@ -356,8 +356,12 @@ term(io::IO, ::HorizontalRule) =
 
 const DocumentInfoKeywords = ["title", "subtitle", "author"]
 
+term(io::IO, ::Org, keyword::Keyword{Nothing}) =
+    printstyled(io, "#+", keyword.key, ':', color = :light_black)
+
 function term(io::IO, o::Org, keyword::Keyword{V}) where {V}
-    printstyled(io, "#+", keyword.key, ": ", color = :light_black)
+    printstyled(io, "#+", keyword.key, ':', color = :light_black)
+    print(io, ' ')
     valuecolor = if keyword.key in DocumentInfoKeywords; ["35"] else ["90"] end
     print(io, termstyle(valuecolor))
     if V == Vector{Object}

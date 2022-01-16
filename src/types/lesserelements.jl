@@ -50,14 +50,14 @@ end
 
 struct HorizontalRule <: LesserElement end
 
-mutable struct Keyword{V <: Union{<:AbstractString, Vector{Object}}} <: LesserElement
+mutable struct Keyword{V <: Union{<:AbstractString, Vector{Object}, Nothing}} <: LesserElement
     key::AbstractString
     value::V
 end
 
-mutable struct AffiliatedKeyword{V <: Union{<:AbstractString, Vector{Object}}} <: LesserElement
+mutable struct AffiliatedKeyword{V <: Union{<:AbstractString, Vector{Object}, Nothing}} <: LesserElement
     key::AbstractString
-    optval::Union{V, Nothing}
+    optval::Union{<:AbstractString, Vector{Object}, Nothing}
     value::V
 end
 

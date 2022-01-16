@@ -273,7 +273,10 @@ function org(io::IO, afk::AffiliatedKeyword{<:AbstractString})
     if !isnothing(afk.optval)
         print(io, '[', afk.optval, ']')
     end
-    print(io, ": ", afk.value)
+    print(io, ':', afk.value)
+    if !isnothing(afk.value)
+        print(io, ' ', afk.value)
+    end
 end
 
 function org(io::IO, afk::AffiliatedKeyword{Vector{Object}})
@@ -285,9 +288,12 @@ function org(io::IO, afk::AffiliatedKeyword{Vector{Object}})
         end
         print(io, ']')
     end
-    print(io, ": ")
-    for obj in afk.value
-        org(io, obj)
+    print(io, ':')
+    if !isnothing(afk.optval)
+        print(io, ' ')
+        for obj in afk.value
+            org(io, obj)
+        end
     end
 end
 

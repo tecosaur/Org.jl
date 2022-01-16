@@ -212,10 +212,11 @@ HorizontalRule(_::Vector{Union{Nothing, SubString{String}}}) = HorizontalRule()
 
 function Keyword(components::Vector{Union{Nothing, SubString{String}}})
     key, value = components
+    key = ensurelowercase(key)
     if haskey(org_keyword_translations, key)
         key = org_keyword_translations[key]
     end
-    if key in org_parsed_keywords
+    if key in org_parsed_keywords && !isnothing(value)
         value = parseobjects(Keyword, value)
     end
     Keyword(key, value)
