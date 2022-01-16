@@ -413,12 +413,6 @@ end
 
 # Terminal styling
 
-termstyle(code::String) = if !get(stdout, :color, false)
-    ""
-else
-    "\e[$(code)m"
-end
-
 termstyle(codes::Vector{String}) = if !get(stdout, :color, false)
     ""
 else
@@ -429,10 +423,18 @@ else
     end
 end
 
-term(io::IO, o::Org, obj::OrgObject, _::Vector{String}) =
-    term(io::IO, o::Org, obj::OrgObject)
-term(io::IO, obj::OrgObject, _::Vector{String}) =
-    term(io::IO, obj::OrgObject)
+termstyle(code::String) = if !get(stdout, :color, false)
+    ""
+else
+    "\e[$(code)m"
+end
+
+termstyle() = termstyle(String[])
+
+term(io::IO, o::Org, obj::Object, _::Vector{String}) =
+    term(io::IO, o::Org, obj::Object)
+term(io::IO, obj::Object, _::Vector{String}) =
+    term(io::IO, obj::Object)
 
 # Now onto the objects
 
@@ -461,7 +463,7 @@ const FootnoteUnicodeSuperscripts =
          '9' => '⁹',
          '0' => '⁰')
 
-function term(io::IO, o::Org, fn::FootnoteReference)
+function term(io::IO, o::Org, fn::FootnoteReference, stylecodes::Vector{String}=String[])
     if haskey(o.footnotes, something(fn.label, fn))
         index = o.footnotes[something(fn.label, fn)][1]
         printstyled(io, join([FootnoteUnicodeSuperscripts[c] for c in string(index)]);
@@ -469,6 +471,7 @@ function term(io::IO, o::Org, fn::FootnoteReference)
     else
         printstyled(io, "[#undefined#]", color=:yellow)
     end
+    print(io, termstyle(stylecodes))
 end
 
 function term(io::IO, o::Org, keycite::CitationReference)
@@ -477,7 +480,7 @@ function term(io::IO, o::Org, keycite::CitationReference)
     term(io, o, keycite.suffix)
 end
 
-function term(io::IO, o::Org, cite::Citation)
+function term(io::IO, o::Org, cite::Citation, stylecodes::Vector{String}=String[])
     printstyled(io, "[", color=:magenta)
     # if !isnothing(cite.style[1])
     #     printstyled(io, '/', cite.style[1], color=:blue)
@@ -499,6 +502,7 @@ function term(io::IO, o::Org, cite::Citation)
         term(io, o, cite.globalsuffix)
     end
     printstyled(io, ']', color=:magenta)
+    print(io, termstyle(stylecodes))
 end
 
 term(::IO, ::InlineBabelCall) = nothing
@@ -648,14 +652,14 @@ const markup_term_codes =
          :verbatim => "32", # green
          :code => "36") # cyan
 
-function term(io::IO, markup::TextMarkup, stylecodes::Vector{String}=String[])
+function term(io::IO, o::Org, markup::TextMarkup, stylecodes::Vector{String}=String[])
     markuptermcode = markup_term_codes[markup.formatting]
     print(io, termstyle(markuptermcode))
     if markup.contents isa AbstractString
         print(io, markup.contents)
     else
         for obj in markup.contents
-            term(io, obj, [stylecodes; markuptermcode])
+            term(io, o, obj, [stylecodes; markuptermcode])
         end
     end
     print(io, termstyle(stylecodes))
