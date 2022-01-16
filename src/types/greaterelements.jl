@@ -28,7 +28,7 @@ mutable struct Item <: OrgGreaterElement
     bullet::AbstractString
     counterset::Union{AbstractString, Nothing}
     checkbox::Union{Char, Nothing}
-    tag::Union{AbstractString, Nothing}
+    tag::Union{Vector{OrgComponent}, Nothing}
     contents::Vector{OrgComponent}
 end
 

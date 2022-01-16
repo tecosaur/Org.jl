@@ -112,7 +112,7 @@ function consume(::Type{Item}, text::AbstractString)
         end
         (contentlen + ncodeunits(itemstart.match) + ncodeunits(itemextras.match) - 1,
          Item(bullet, counterset, if !isnothing(checkbox) checkbox[1] end,
-              tag, contentobjs))
+              if !isnothing(tag) parseobjects(Item, tag) end, contentobjs))
     end
 end
 
@@ -308,7 +308,7 @@ function consume(::Type{RegularLink}, text::AbstractString)
                 (1 + descriptionend,
                 RegularLink(linkpath,
                             parseobjects(RegularLink,
-                                         @inbounds @view text[1+matchoffset:descriptionend-1])))
+                                         @inbounds @view text[1+matchoffset:prevind(text, descriptionend)])))
             end
         end
     end
