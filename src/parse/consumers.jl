@@ -90,7 +90,7 @@ function consume(::Type{Item}, text::AbstractString)
         if bullet == "*"
             indent *= " "
         end
-        itemextras = match(r"^(?:[ \t]+\[\@([A-Za-z]|[0-9]+)\])?(?:[ \t]+\[([ \-X])\])?(?:[ \t]+([^\n]+)[ \t]::)?[ \t]+",
+        itemextras = match(r"^(?:[ \t]+\[\@([A-Za-z]|[0-9]+)\])?(?:[ \t]+\[([ \-X])\])?(?:[ \t]+([^\n]+?)[ \t]::)?[ \t]+",
                            @inbounds @view text[ncodeunits(itemstart.match):end])
         counterset, checkbox, tag = itemextras.captures
         # collect contents
