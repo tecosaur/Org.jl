@@ -32,7 +32,7 @@ end
 term(o::Org) = term(stdout, o, 2)
 term(c::OrgComponent) = term(stdout, Org(), c, 2)
 term(p::Paragraph) = (term(stdout, p, 2); print('\n'))
-term(o::OrgObject) = (term(stdout, Org(), o, 2); print('\n'))
+term(o::Object) = (term(stdout, Org(), o, 2); print('\n'))
 
 # ---------------------
 # Sections
@@ -69,7 +69,7 @@ function termheadingonly(io::IO, heading::Heading)
     for obj in heading.title
         term(io, obj, ["34"])
     end
-    print(io, termstyle(String[]))
+    print(io, termstyle())
     if length(heading.tags) > 0
         printstyled(io, " :", join(heading.tags, ":"), ":", color=:light_black)
     end
@@ -369,7 +369,7 @@ end
 term(io::IO, node::NodeProperty) =
     print(io, ':', node.name, if node.additive "+:" else ":" end, node.value)
 
-function term(io::IO, o::Org, objs::Vector{OrgObject})
+function term(io::IO, o::Org, objs::Vector{Object})
     for obj in objs
         term(io, o, obj)
     end
@@ -539,7 +539,7 @@ function term(io::IO, o::Org, mac::Macro)
     if isnothing(expanded)
         printstyled(io, "{{{", mac.name, '(', join(mac.arguments, ","), ")}}}", color=:light_black)
     else
-        term.(Ref(io), parseorg(expanded, OrgObjectMatchers, OrgObjectFallbacks))
+        term.(Ref(io), parseorg(expanded, ObjectMatchers, ObjectFallbacks))
     end
 end
 

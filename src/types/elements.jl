@@ -1,4 +1,4 @@
-abstract type OrgElement <: OrgComponent end
+abstract type Element <: OrgComponent end
 
 include("lesserelements.jl")
 include("greaterelements.jl")

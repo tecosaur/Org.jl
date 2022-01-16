@@ -1,7 +1,7 @@
 mutable struct OrgCache
     doc
     headings::Union{Nothing, Vector{Heading}}
-    elements::Union{Nothing, Vector{Union{Heading, Section, OrgGreaterElement, OrgElement}}}
+    elements::Union{Nothing, Vector{Element}}
     components::Union{Nothing, Vector{OrgComponent}}
     keywords::Union{Nothing, Dict{AbstractString, Vector{AbstractString}}}
     macros::Union{Nothing, Dict{AbstractString, Function}}

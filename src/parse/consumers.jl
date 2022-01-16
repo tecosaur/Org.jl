@@ -49,23 +49,23 @@ end
 const OrgFootnoteElementMatchers =
     filter(p -> !isempty(p.second),
            Dict{Char, Vector{<:Type}}(key => filter(v -> v != FootnoteDefinition, value)
-                                      for (key, value) in OrgElementMatchers))
+                                      for (key, value) in org_element_matchers))
 
 function consume(::Type{FootnoteDefinition}, text::AbstractString)
     labelfn = match(r"^\[fn:([A-Za-z0-9\-_]+)\][ \t]*\n?", text)
     if !isnothing(labelfn)
         fnend, contents = parseorg((@inbounds @view text[1+ncodeunits(labelfn.match):end]),
-                                   OrgFootnoteElementMatchers, OrgElementFallbacks;
+                                   org_footnote_element_matchers, org_element_fallbacks;
                                    partial=true)
         (ncodeunits(labelfn.match) + fnend,
          FootnoteDefinition(labelfn.captures[1], contents))
     end
 end
 
-const OrgItemElementMatchers =
+const org_item_element_matchers =
     filter(p -> !isempty(p.second),
            Dict{Char, Vector{<:Type}}(key => filter(v -> v !== List, value)
-                                      for (key, value) in OrgElementMatchers))
+                                      for (key, value) in org_element_matchers))
 
 function consume(::Type{Item}, text::AbstractString)
     function itemconsume(text, indent)
@@ -78,7 +78,7 @@ function consume(::Type{Item}, text::AbstractString)
             @inbounds @view text[1:prevind(text, lastindentedpos+1)]
         end
         something(consume(Paragraph, indentedlines), # paragraphs must be entirely indented
-                  parseorg(text, OrgItemElementMatchers, [List],
+                  parseorg(text, org_item_element_matchers, [List],
                            partial=true, maxobj=1) |>
                                o -> if !isempty(o[2])
                                    (o[1], o[2][1])
@@ -226,12 +226,12 @@ function consume(::Type{Citation}, text::AbstractString)
                     else
                         prefixstr, key, suffixstr = keymatch.captures
                         prefix = if isnothing(prefixstr)
-                            OrgObject[]
+                            Object[]
                         else
                             parseobjects(CitationReference, prefixstr)
                         end
                         suffix = if isnothing(suffixstr)
-                            OrgObject[]
+                            Object[]
                         else
                             parseobjects(CitationReference, suffixstr)
                         end
@@ -241,12 +241,12 @@ function consume(::Type{Citation}, text::AbstractString)
                 globalprefix = if !isa(citerefs[1], CitationReference)
                     parseobjects(CitationReference, popfirst!(citerefs))
                 else
-                    OrgObject[]
+                    Object[]
                 end
                 globalsuffix = if !isa(citerefs[end], CitationReference)
                     parseobjects(CitationReference, pop!(citerefs))
                 else
-                    OrgObject[]
+                    Object[]
                 end
                 (citeend,
                  Citation((style, substyle), globalprefix, citerefs, globalsuffix))
@@ -379,14 +379,6 @@ function consume(T::Type{<:Timestamp}, text::AbstractString)
     end
 end
 
-const TextMarkupFormatting =
-    Dict('*' => :bold,
-         '/' => :italic,
-         '+' => :strikethrough,
-         '_' => :underline,
-         '=' => :verbatim,
-         '~' => :code)
-
 function consume(::Type{TextMarkup}, text::AbstractString)
     if text[1] in ('*', '/', '_', '=', '~', '+') &&
         if text isa SubString
@@ -399,7 +391,7 @@ function consume(::Type{TextMarkup}, text::AbstractString)
         markupmatch = match(r"^([*\/_=~+])(\S[^\n]*?(?:\n[^\n]+?(?:\n[^\n]+?)?)?(?<=\S))\1([ \t\n\-.,;:!?'\")\[}]|$)", text)
         if !isnothing(markupmatch)
             char, content, _ = markupmatch.captures
-            formatting = TextMarkupFormatting[char[1]]
+            formatting = org_markup_formatting[char[1]]
             parsedcontent = if formatting in (:verbatim, :code)
                 content
             else

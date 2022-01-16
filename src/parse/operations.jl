@@ -14,7 +14,7 @@ import Base: (*), (==)
 *(a::Section, b::Section) = Section(vcat(a.contents, b.contents))
 function *(s::Section, o::OrgComponent)
     sc = deepcopy(s)
-    if o isa OrgObject
+    if o isa Object
         if sc.section.contents[end] isa Paragraph
             sc.section.contents[end].contents =
                 vcat(sc.section.contents[end].contents, o)
@@ -43,7 +43,7 @@ end
 
 # Greater Element
 
-*(components::Vector{Union{OrgGreaterElement, OrgElement}}...) =
+*(components::Vector{Element}...) =
     Section([components])
 
 # Element
@@ -57,7 +57,7 @@ end
 
 # Object
 
-*(objects::OrgObject...) = Paragraph(objects)
+*(objects::Object...) = Paragraph(objects)
 *(cells::TableCell...) = TableRow(cells)
 
 function *(a::TextPlain{SubString}, b::TextPlain{SubString})
@@ -94,18 +94,18 @@ end
 # Terminality
 # ---------------------
 
-terminal(::OrgElement) = false
-terminal(::OrgLesserElement) = true
+terminal(::Element) = false
+terminal(::LesserElement) = true
 terminal(::Paragraph) = false
 terminal(::TableRow) = false
 
-terminal(::OrgObject) = true
+terminal(::Object) = true
 terminal(::Citation) = false
 terminal(::CitationReference) = false
 # terminal(::Link) = false
 # terminal(::RadioTarget) = false
 terminal(::TableCell) = false
-terminal(::TextMarkup{Vector{OrgObject}}) = false
+terminal(::TextMarkup{Vector{Object}}) = false
 
 # ---------------------
 # Iteration
@@ -236,10 +236,10 @@ iterate(c::Citation, index::Integer) =
         (c.globalsuffix[index-length(c.globalprefix)-length(c.citerefs)], index + 1)
     end
 
-length(f::FootnoteReference{<:Any, Vector{OrgObject}}) = length(f.definition)
-iterate(f::FootnoteReference{<:Any, Vector{OrgObject}}) =
+length(f::FootnoteReference{<:Any, Vector{Object}}) = length(f.definition)
+iterate(f::FootnoteReference{<:Any, Vector{Object}}) =
     if length(f) > 0 (f.definition[1], 2) end
-iterate(f::FootnoteReference{<:Any, Vector{OrgObject}}, index::Integer) =
+iterate(f::FootnoteReference{<:Any, Vector{Object}}, index::Integer) =
     if index <= length(f.definition)
         (f.definition[index], index + 1)
     end
@@ -251,10 +251,10 @@ iterate(c::TableCell, index::Integer) =
         (c.contents[index], index + 1)
     end
 
-length(t::TextMarkup{Vector{OrgObject}}) = length(t.contents)
-iterate(t::TextMarkup{Vector{OrgObject}}) =
+length(t::TextMarkup{Vector{Object}}) = length(t.contents)
+iterate(t::TextMarkup{Vector{Object}}) =
     if length(t) > 0 (t.contents[1], 2) end
-iterate(t::TextMarkup{Vector{OrgObject}}, index::Integer) =
+iterate(t::TextMarkup{Vector{Object}}, index::Integer) =
     if index <= length(t.contents)
         (t.contents[index], index + 1)
     end
@@ -308,7 +308,7 @@ iterate(it::OrgElementIterator, stack::Vector) =
         else
             iterate(stack[end][1], stack[end][2])
         end
-        if isnothing(next) || next[1] isa OrgObject
+        if isnothing(next) || next[1] isa Object
             pop!(stack)
             iterate(it, stack)
         else

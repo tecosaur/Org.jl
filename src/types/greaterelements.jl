@@ -1,30 +1,30 @@
-abstract type OrgGreaterElement <: OrgElement end # Org Syntax §3
+abstract type GreaterElement <: Element end
 
-mutable struct GreaterBlock <: OrgGreaterElement
+mutable struct GreaterBlock <: GreaterElement
 end
 
-mutable struct Drawer <: OrgGreaterElement
+mutable struct Drawer <: GreaterElement
     name::AbstractString
-    contents::Vector{OrgElement}
+    contents::Vector{Element}
 end
 
-mutable struct DynamicBlock <: OrgGreaterElement
+mutable struct DynamicBlock <: GreaterElement
     name::AbstractString
     parameters::Union{AbstractString, Nothing}
-    contents::Vector{OrgElement}
+    contents::Vector{Element}
 end
 
-mutable struct FootnoteDefinition <: OrgGreaterElement
+mutable struct FootnoteDefinition <: GreaterElement
     label::AbstractString
-    definition::Vector{OrgElement}
+    definition::Vector{Element}
 end
 
-mutable struct InlineTask <: OrgGreaterElement
+mutable struct InlineTask <: GreaterElement
 end
 
-abstract type List <: OrgGreaterElement end
+abstract type List <: GreaterElement end
 
-mutable struct Item <: OrgGreaterElement
+mutable struct Item <: GreaterElement
     bullet::AbstractString
     counterset::Union{AbstractString, Nothing}
     checkbox::Union{Char, Nothing}
@@ -39,11 +39,11 @@ mutable struct OrderedList <: List
     items::Vector{Item}
 end
 
-mutable struct PropertyDrawer <: OrgGreaterElement
+mutable struct PropertyDrawer <: GreaterElement
     contents::Vector{NodeProperty}
 end
 
-mutable struct Table <: OrgGreaterElement
+mutable struct Table <: GreaterElement
     rows::Vector{Union{TableRow, TableHrule}}
     formulas::Vector{AbstractString}
 end

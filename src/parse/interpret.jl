@@ -30,6 +30,7 @@ macro parseassert(elem, expr::Expr, msg)
     end
 end
 
+include("config.jl")
 include("matchers.jl")
 include("operations.jl")
 include("parser.jl")
@@ -98,7 +99,7 @@ end
 
 function Section(components::Vector{Union{Nothing, SubString{String}}})
     content = rstrip(components[1])
-    Section(parseorg(content, OrgElementMatchers, OrgElementFallbacks))
+    Section(parseorg(content, org_element_matchers, org_element_fallbacks))
 end
 
 # ---------------------
@@ -108,11 +109,12 @@ end
 # Greater Block
 
 function Drawer(components::Vector{Union{Nothing,SubString{String}}})
+    # When a draw by the same name is inside, it should be treated as a paragraph
     name, content = components
     Drawer(name, if !isnothing(content)
                parse(Section, content).contents
            else
-               OrgElement[]
+               Element[]
            end)
 end
 
@@ -210,6 +212,9 @@ HorizontalRule(_::Vector{Union{Nothing, SubString{String}}}) = HorizontalRule()
 
 function Keyword(components::Vector{Union{Nothing, SubString{String}}})
     key, value = components
+    if haskey(org_keyword_translations, key)
+        key = org_keyword_translations[key]
+    end
     Keyword(key, value)
 end
 

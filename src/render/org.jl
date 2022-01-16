@@ -263,7 +263,7 @@ end
 org(io::IO, node::NodeProperty) =
     print(io, ':', node.name, if node.additive "+:" else ":" end, if !isnothing(node.value) node.value else "" end)
 
-function org(io::IO, objs::Vector{OrgObject})
+function org(io::IO, objs::Vector{Object})
     for obj in objs
         org(io, obj)
     end
@@ -431,14 +431,15 @@ org(io::IO, script::Subscript) = print(io, script.char, '_', script.script)
 
 org(io::IO, cell::TableCell) = print(io, "| ", cell.contents, " |")
 
-const timestamp_repeaterordelay_marks =
+const org_timestamp_repeaterordelay_marks =
     Dict(:cumulative => "+",
          :catchup => "++",
          :restart => ".+",
          :warningall => "-",
          :warningfirst => "--")
+
 org(io::IO, tsrod::TimestampRepeaterOrDelay) =
-    print(io, timestamp_repeaterordelay_marks[tsrod.type], tsrod.value, tsrod.unit)
+    print(io, org_timestamp_repeaterordelay_marks[tsrod.type], tsrod.value, tsrod.unit)
 
 org(io::IO, tsd::TimestampDiary) = print(io, "<%%", tsd.sexp, '>')
 

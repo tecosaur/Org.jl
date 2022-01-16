@@ -26,7 +26,7 @@ function Base.getproperty(c::OrgCache, name::Symbol)
 end
 
 function gencache(c::OrgCache, ::Val{:elements})
-    Vector{Union{Heading, Section, OrgGreaterElement, OrgElement}}(
+    Vector{Union{Heading, Section, GreaterElement, Element}}(
         OrgElementIterator(c.doc) |> collect)
 end
 

@@ -109,26 +109,24 @@ end
 
 # Parsing objects, with restrictions
 
-include("../data/objectrestrictions.jl")
-
-filtermatcher(allowed::Vector{<:Type}, matchers=OrgObjectMatchers) =
+filtermatcher(allowed::Vector{<:Type}, matchers=org_object_matchers) =
     filter(p -> !isempty(p.second),
            Dict{Char, Vector{<:Type}}(key => filter(v -> v ∈ allowed, value)
                                       for (key, value) in matchers))
 
-const OrgObjectRestictedMatchers =
-    Dict(o => filtermatcher(OrgObjectRestrictions[o])
-         for o in keys(OrgObjectRestrictions))
+const org_object_resticted_matchers =
+    Dict(o => filtermatcher(org_object_restrictions[o])
+         for o in keys(org_object_restrictions))
 
-const OrgObjectRestictedFallbacks =
-    Dict(o => [OrgObjectFallbacks ∩ OrgObjectRestrictions[o]; TextPlainForced]
-         for o in keys(OrgObjectRestrictions))
+const org_object_resticted_fallbacks =
+    Dict(o => [org_object_fallbacks ∩ org_object_restrictions[o]; TextPlainForced]
+         for o in keys(org_object_restrictions))
 
 function parseobjects(context::Type, content::AbstractString; debug=false, partial=false)
-    @assert context in keys(OrgObjectRestrictions)
-    Vector{OrgObject}(
-        parseorg(content, OrgObjectRestictedMatchers[context],
-                 OrgObjectRestictedFallbacks[context]; debug, partial))
+    @assert context in keys(org_object_restrictions)
+    Vector{Object}(
+        parseorg(content, org_object_resticted_matchers[context],
+                 org_object_resticted_fallbacks[context]; debug, partial))
 end
 
 # parsing utilities

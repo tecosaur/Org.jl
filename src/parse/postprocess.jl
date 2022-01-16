@@ -3,8 +3,8 @@ function postprocess!(doc::Org)
     radios = filter(c -> c isa RadioTarget, doc.components)
     if length(radios) > 0
         paragraphs = filter(c -> c isa Paragraph, doc.components)
-        footnoterefs = filter(c -> c isa FootnoteReference{<:Any, Vector{OrgObject}}, doc.components)
-        markups = filter(c -> c isa TextMarkup{Vector{OrgObject}}, doc.components)
+        footnoterefs = filter(c -> c isa FootnoteReference{<:Any, Vector{Object}}, doc.components)
+        markups = filter(c -> c isa TextMarkup{Vector{Object}}, doc.components)
         for radio in radios
             for heading in doc.headings
                 heading.title = radio_replace(heading.title, radio)
@@ -22,7 +22,7 @@ function postprocess!(doc::Org)
     end
 end
 
-function radio_replace(objs::Vector{OrgObject}, radio::RadioTarget)
+function radio_replace(objs::Vector{Object}, radio::RadioTarget)
     if length(radio.contents) == 1 && radio.contents[1] isa TextPlain
         radio_replace_singular(objs, radio)
     else
@@ -36,7 +36,7 @@ function radio_replace(objs::Vector{OrgObject}, radio::RadioTarget)
                  (objs[i+length(needles)-1] isa TextPlain && needles[end] isa TextPlain &&
                   startswith(objs[i+length(needles)-1].text, needles[end].text))) # end start with radio[end]
         end
-        newobjs = OrgObject[]
+        newobjs = Object[]
         i = 1
         while i <= length(objs)
             if radioat(i)
@@ -64,7 +64,7 @@ function radio_replace_singular(objs::Vector, radio::RadioTarget)
     @assert length(radio.contents) == 1 && radio.contents[1] isa TextPlain
     needle = radio.contents[1].text
     alphnum(c::Char) = c in 'A':'Z' || c in 'a':'z' || c in '0':'9'
-    newobjs = OrgObject[]
+    newobjs = Object[]
     for obj in objs
         if obj isa TextPlain && occursin(needle, obj.text)
             occurances = findall(needle, obj.text)

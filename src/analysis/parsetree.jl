@@ -50,9 +50,9 @@ function parsetree(io::IO, component::T, maxdepth::Integer, depth::Integer=0) wh
     contents = if applicable(iterate, component)
         collect(component)
     end
-    bold, color = if T <: OrgGreaterElement
+    bold, color = if T <: GreaterElement
         (false, :magenta)
-    elseif T <: OrgElement
+    elseif T <: Element
         (false, :blue)
     else
         (false, :default)

@@ -64,7 +64,7 @@ any number of deeper level headings.
 level::Integer
 keyword::Union{AbstractString, Nothing}
 priority::Union{AbstractString, Nothing}
-title::Vector{OrgObject}
+title::Vector{Object}
 tags::Vector{AbstractString}
 section::Union{Section, Nothing}
 planning::Union{Planning, Nothing}
@@ -85,7 +85,7 @@ considered a section), sections only occur within headings.
 * Fields
 
 #+begin_src julia
-content::Vector{Union{OrgElement}}
+content::Vector{Element}
 #+end_src
 
 * The top level section
@@ -113,7 +113,7 @@ any greater or *lesser element* except:
 + *Node properties*, which can only be found in *property drawers*.
 + *Items*, which may only occur in *plain lists*.
 + *Table rows*, which may only occur in *tables*.
-""" OrgGreaterElement
+""" GreaterElement
 
 @doc org"""
 *Org Syntax Reference*: \S3.3.1 \\
@@ -181,7 +181,7 @@ TODO?
 
 #+begin_src julia
 name::AbstractString
-contents::Vector{OrgElement}
+contents::Vector{Element}
 #+end_src
 """ Drawer
 
@@ -214,7 +214,7 @@ TODO?
 #+begin_src julia
 name::AbstractString
 parameters::Union{AbstractString, Nothing}
-contents::Vector{OrgElement}
+contents::Vector{Element}
 #+end_src
 """ DynamicBlock
 
@@ -251,7 +251,7 @@ It even contains a single blank line.
 * Fields
 #+begin_src julia
 label::AbstractString
-definition::Vector{OrgElement}
+definition::Vector{Element}
 #+end_src
 """ FootnoteDefinition
 
@@ -778,7 +778,7 @@ Hey look, it's just some text.
 
 * Fields
 #+begin_src julia
-objects::Vector{OrgObject}
+objects::Vector{Object}
 #+end_src
 """ Paragraph
 
@@ -825,7 +825,7 @@ Most objects cannot contain objects.  Those which can will be
 specified.  Furthermore, while many objects may contain newlines, a
 blank line often terminates the element that the object is a part of,
 such as a paragraph.
-""" OrgObject
+""" Object
 
 @doc org"""
 *Org Syntax Reference*: \S4.1 \\
@@ -951,7 +951,7 @@ is then a *footnote definition*.
 
 #+begin_src julia
 label::Union{AbstractString, Nothing}
-definition::Union{Vector{OrgObject}, Nothing}
+definition::Union{Vector{Object}, Nothing}
 #+end_src
 """ FootnoteReference
 
@@ -980,9 +980,9 @@ Where KEYPREFIX, @​KEY, and KEYSUFFIX are not separated by whitespace.
 * Fields
 
 #+begin_src julia
-prefix::Vector{OrgObject}
+prefix::Vector{Object}
 key::AbstractString
-suffix::Vector{OrgObject}
+suffix::Vector{Object}
 #+end_src
 """ CitationReference
 
@@ -1029,9 +1029,9 @@ whitespace is significant.
 #+begin_src julia
 style::Tuple{Union{AbstractString, Nothing},
               Union{AbstractString, Nothing}}
-globalprefix::Vector{OrgObject}
+globalprefix::Vector{Object}
 citerefs::Vector{CitationReference}
-globalsuffix::Vector{OrgObject}
+globalsuffix::Vector{Object}
 #+end_src
 """ Citation
 
@@ -1282,7 +1282,7 @@ FUZZY                  ("fuzzy" type)
 
 #+begin_src julia
 path::LinkPath
-description::Union{Vector{OrgObject}, Nothing}
+description::Union{Vector{Object}, Nothing}
 #+end_src
 """ RegularLink
 
@@ -1337,7 +1337,7 @@ arguments::Vector{AbstractString}
 * Fields
 
 #+begin_src julia
-contents::Vector{OrgObject}
+contents::Vector{Object}
 #+end_src
 """ RadioTarget
 
@@ -1458,7 +1458,7 @@ The final vertical bar (=|=) may be omitted in the last cell of a row.
 * Fields
 
 #+begin_src julia
-contents::Vector{OrgObject}
+contents::Vector{Object}
 #+end_src
 """ TableCell
 
@@ -1559,8 +1559,8 @@ BORDER BODY BORDER
 
 * Fields
 #+begin_src julia
-formatting::Symbolcontents::Vector{OrgObject}
-contents::Union{Vector{OrgObject}, <:AbstractString}
+formatting::Symbolcontents::Vector{Object}
+contents::Union{Vector{Object}, <:AbstractString}
 #+end_src
 """ TextMarkup
 

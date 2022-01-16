@@ -1,12 +1,12 @@
-mutable struct Section <: OrgElement
-    contents::Vector{Union{OrgElement}}
+mutable struct Section <: Element
+    contents::Vector{Element}
 end
 
-mutable struct Heading <: OrgElement
+mutable struct Heading <: Element
     level::Integer
     keyword::Union{AbstractString, Nothing}
     priority::Union{AbstractString, Nothing}
-    title::Vector{OrgObject}
+    title::Vector{Object}
     tags::Vector{AbstractString}
     section::Union{Section, Nothing}
     planning::Union{Planning, Nothing}
