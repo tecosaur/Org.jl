@@ -131,7 +131,7 @@ function consume(::Type{FootnoteDefinition}, text::AbstractString)
     labelfn = match(r"^\[fn:([A-Za-z0-9\-_]+)\][ \t]*\n?", text)
     if !isnothing(labelfn)
         fnend, contents = parseorg((@inbounds @view text[1+ncodeunits(labelfn.match):end]),
-                                   org_footnote_element_matchers, org_element_fallbacks;
+                                   org_footnote_element_matchers, org_element_fallbacks[1:end-1];
                                    partial=true)
         (ncodeunits(labelfn.match) + fnend,
          FootnoteDefinition(labelfn.captures[1], contents))
