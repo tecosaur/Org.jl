@@ -54,6 +54,8 @@ end
 # Elements
 # ---------------------
 
+# Greater Elements
+
 function consume(::Type{AffiliatedKeyword}, text::AbstractString)
     function finalise(key, optval, val)
         key = ensurelowercase(key)
@@ -208,6 +210,31 @@ function consume(::Type{List}, text::AbstractString)
             point-1, UnorderedList(items)
         else
             point-1, OrderedList(items)
+        end
+    end
+end
+
+# Leser Elements
+
+function consume(::Type{Clock}, text::AbstractString)
+    clockmatch = match(r"^[ \t]*clock:[ \t]+(\[[^\n]*?)[ \t\r]*(?:\n(?:[ \t\r]*\n)*|$)"i, text)
+    if !isnothing(clockmatch)
+        rest = clockmatch.captures[1]
+        timestamp = consume(Timestamp, rest)
+        if !isnothing(timestamp)
+            tslen, ts = timestamp
+            if ts isa TimestampInactive && tslen == ncodeunits(rest)
+                (ncodeunits(clockmatch.match),
+                    Clock(ts, nothing))
+            elseif ts isa TimestampInactiveRange
+                durationmatch = match(r"^[ \t]+=>[ \t]+(\d+):(\d\d)$",
+                                      @inbounds @view rest[1+tslen:end])
+                if !isnothing(durationmatch)
+                    hours, mins = durationmatch.captures
+                    (ncodeunits(clockmatch.match),
+                     Clock(ts, (parse(Int, hours), parse(Int, mins))))
+                end
+            end
         end
     end
 end

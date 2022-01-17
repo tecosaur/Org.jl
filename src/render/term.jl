@@ -366,9 +366,20 @@ function term(io::IO, ::Org, srcblock::SourceBlock, indent::Integer=0)
     printstyled(io, '\n', ' '^indent,"╰", color=:light_black)
 end
 
-# Clock
+function term(io::IO, clock::Clock{TimestampInactive})
+    printstyled(io, "clock: ", color=:light_black)
+    term(io, clock.timestamp)
+end
 
-# DiarySexp
+function term(io::IO, clock::Clock{TimestampInactiveRange})
+    printstyled(io, "clock: ", color=:light_black)
+    term(io, clock.timestamp)
+    printstyled(io, " for ",
+                clock.duration[1], "h ", clock.duration[2], 'm',
+                color=:yellow)
+end
+
+term(::IO, ::DiarySexp) = nothing
 
 function term(io::IO, ::Org, planning::Planning)
     values = [(type, getproperty(planning, type))

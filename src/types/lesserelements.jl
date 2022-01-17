@@ -25,9 +25,14 @@ mutable struct VerseBlock <: Block
     contents::Vector{LesserElement}
 end
 
-mutable struct Clock <: LesserElement end
+mutable struct Clock{T <: Union{TimestampInactive, TimestampInactiveRange}} <: LesserElement
+    timestamp::T
+    duration::Union{Nothing, Tuple{Integer, Integer}}
+end
 
-mutable struct DiarySexp <: LesserElement end
+mutable struct DiarySexp <: LesserElement
+    sexp::AbstractString
+end
 
 mutable struct Planning <: LesserElement
     deadline::Union{Timestamp, Nothing}

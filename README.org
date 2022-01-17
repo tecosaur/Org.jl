@@ -60,8 +60,8 @@ parse(Org, string(dochead)) == dochead  # round-trip equality
 |---------------------+------+-------+-----+------+------|
 | BabelCall           | X    | X     | X   | X    |      |
 | Block               | X    | X     | X   | X    |      |
-| Clock               |      |       |     |      |      |
-| DiarySexp           |      |       |     |      |      |
+| Clock               | X    | X     | X   | X    |      |
+| DiarySexp           | X    | X     | X   | X    |      |
 | Planning            | X    | X     | X   | X    |      |
 | Comment             | X    | X     | X   | X    |      |
 | FixedWidth          | X    | X     | X   | X    |      |

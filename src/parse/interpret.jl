@@ -201,9 +201,11 @@ function Block(components::Vector{Union{Nothing, SubString{String}}})
     end
 end
 
-# Clock
+# Clock has a custom consumer
 
-# DiarySexp
+function DiarySexp(components::Vector{Union{Nothing, SubString{String}}})
+    DiarySexp(components[1])
+end
 
 # Planning has a custom consumer
 

@@ -253,9 +253,19 @@ function org(io::IO, block::Block, indent::Integer=0)
     print(io, ' '^indent, "#+end_", name)
 end
 
-# Clock
+function org(io::IO, clock::Clock{TimestampInactive})
+    print(io, "clock: ")
+    org(io, clock.timestamp)
+end
 
-# DiarySexp
+function org(io::IO, clock::Clock{TimestampInactiveRange})
+    print(io, "clock: ")
+    org(io, clock.timestamp)
+    print(io, " => ", clock.duration[1], ':',
+          lpad(string(clock.duration[2]), 2, '0'))
+end
+
+org(io::IO, diarysexp::DiarySexp) = print(io, "%%", diarysexp.sexp)
 
 function org(io::IO, planning::Planning)
     values = [(type, getproperty(planning, type))

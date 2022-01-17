@@ -96,6 +96,7 @@ end
 
 terminal(::Element) = false
 terminal(::LesserElement) = true
+terminal(::Clock) = false
 terminal(::Paragraph) = false
 terminal(::TableRow) = false
 
@@ -208,6 +209,10 @@ iterate(t::Table, index::Integer) =
     end
 
 # Lesser Element
+
+length(c::Clock) = 1
+iterate(c::Clock) = (c.timestamp, 0)
+iterate(::Clock, ::Integer) = nothing
 
 length(p::Paragraph) = length(p.contents)
 iterate(p::Paragraph) = if length(p) > 0 (p.contents[1], 2) end
