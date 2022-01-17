@@ -150,9 +150,23 @@ iterate(a::AffiliatedKeywordsWrapper, index::Integer) =
 
 # Greater Element
 
+length(g::GreaterBlock) = length(g.contents)
+iterate(g::GreaterBlock) = if length(g) > 0 (g.contents[1], 2) end
+iterate(g::GreaterBlock, index::Integer) =
+    if index <= length(g.contents)
+        (g.contents[index], index + 1)
+    end
+
 length(d::Drawer) = length(d.contents)
 iterate(d::Drawer) = if length(d) > 0 (d.contents[1], 2) end
 iterate(d::Drawer, index::Integer) =
+    if index <= length(d.contents)
+        (d.contents[index], index + 1)
+    end
+
+length(d::DynamicBlock) = length(d.contents)
+iterate(d::DynamicBlock) = if length(d) > 0 (d.contents[1], 2) end
+iterate(d::DynamicBlock, index::Integer) =
     if index <= length(d.contents)
         (d.contents[index], index + 1)
     end

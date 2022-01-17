@@ -106,7 +106,18 @@ end
 # Greater Elements
 # ---------------------
 
-# Greater Block
+function GreaterBlock(components::Vector{Union{Nothing, SubString{String}}})
+    name, parameters, contents = components
+    name = ensurelowercase(name)
+    containedelem = parseorg(contents, org_element_matchers, org_element_fallbacks)
+    if name == "center"
+        CenterBlock(parameters, containedelem)
+    elseif name == "quote"
+        QuoteBlock(parameters, containedelem)
+    else
+        SpecialBlock(name, parameters, containedelem)
+    end
+end
 
 function Drawer(components::Vector{Union{Nothing,SubString{String}}})
     # When a draw by the same name is inside, it should be treated as a paragraph
@@ -118,8 +129,14 @@ function Drawer(components::Vector{Union{Nothing,SubString{String}}})
            end)
 end
 
-# Dynamic Block
-# FootnoteDefinition
+function DynamicBlock(components::Vector{Union{Nothing, SubString{String}}})
+    name, parameters, contents = components
+    containedelem = parseorg(contents, org_element_matchers, org_element_fallbacks)
+    DynamicBlock(name, parameters, containedelem)
+end
+
+# FootnoteDefinition has a custom consumer
+
 # InlineTask
 
 # Item has a custom consumer
@@ -181,8 +198,6 @@ function Block(components::Vector{Union{Nothing, SubString{String}}})
         SourceBlock(lang, arguments, lines)
     elseif name == "example"
         ExampleBlock(lines)
-    else
-        CustomBlock(name, data, lines)
     end
 end
 

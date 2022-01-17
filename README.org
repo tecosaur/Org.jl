@@ -48,9 +48,9 @@ parse(Org, string(dochead)) == dochead  # round-trip equality
 |---------------------+------+-------+-----+------+------|
 | Affiliated Keywords | X    | X     | X   | X    |      |
 |---------------------+------+-------+-----+------+------|
-| GreaterBlock        | X    |       |     |      |      |
+| GreaterBlock        | X    | X     | X   | X    |      |
 | Drawer              | X    | X     | X   | X    |      |
-| DynamicBlock        | X    |       |     |      |      |
+| DynamicBlock        | X    | X     | X   | X    |      |
 | FootnoteDefinition  | X    | X     | X   | X    |      |
 | InlineTask          | X    |       |     |      |      |
 | Item                | X    | X     | X   | X    | X    |

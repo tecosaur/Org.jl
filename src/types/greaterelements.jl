@@ -1,6 +1,19 @@
 abstract type GreaterElement <: Element end
 
-mutable struct GreaterBlock <: GreaterElement
+abstract type GreaterBlock <: GreaterElement end
+
+mutable struct CenterBlock <: GreaterBlock
+    parameters::Union{AbstractString, Nothing}
+    contents::Vector{Element}
+end
+mutable struct QuoteBlock <: GreaterBlock
+    parameters::Union{AbstractString, Nothing}
+    contents::Vector{Element}
+end
+mutable struct SpecialBlock <: GreaterBlock
+    name::AbstractString
+    parameters::Union{AbstractString, Nothing}
+    contents::Vector{Element}
 end
 
 mutable struct Drawer <: GreaterElement

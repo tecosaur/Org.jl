@@ -1,4 +1,4 @@
-# Matchers for OrgComponents
+# Matchers for OrgComponents  -*- mode: julia; -*-
 
 orgmatcher(::Type{<:OrgComponent}) = nothing
 
@@ -17,7 +17,7 @@ abstract type ParagraphForced end
 
 const org_element_matchers =
     Dict{Char, Vector{<:Type}}(
-        '#' => [BabelCall, AffiliatedKeywordsWrapper, Keyword, Block, Comment],
+        '#' => [BabelCall, AffiliatedKeywordsWrapper, DynamicBlock, Keyword, Block, GreaterBlock, Comment],
         '-' => [HorizontalRule, List],
         '|' => [Table],
         ':' => [Drawer, FixedWidth],
@@ -29,8 +29,9 @@ const org_element_matchers =
 const org_element_fallbacks = [Paragraph, List, ParagraphForced]
 
 # Greater Block
+@inline orgmatcher(::Type{GreaterBlock}) = r"^[ \t]*#\+begin_(\S+)(?: ([^\n]+?))?[ \t]*?(?:\n((?!\*+ )[^\n]*(?:\n(?!\*+ )[^\n]*)*?))?\n[ \t]*#\+end_\1(?:\n(?:[ \t\r]*\n)*|$)"i
 @inline orgmatcher(::Type{Drawer}) = r"^[ \t]*:([\w\-_]+):\n([\s\S]+?)?\n?:END:(?:\n(?:[ \t\r]*\n)*|$)"i
-# Dynamic Block
+@inline orgmatcher(::Type{DynamicBlock}) = r"^[ \t]*#\+begin:[ \t]+(\S+)(?: ([^\n]+?))?[ \t]*?(?:\n((?!\*+ )[^\n]*(?:\n(?!\*+ )[^\n]*)*?))?\n[ \t]*#\+end:(?:\n(?:[ \t\r]*\n)*|$)"i
 # FootnoteDefinition has a dedicated consumer
 # InlineTask
 @inline orgmatcher(::Type{PropertyDrawer}) = r"^[ \t]*:PROPERTIES:\n((?:[ \t]*:[^\+\n]+\+?:(?:[ \t]+[^\n]*|[ \t]*)?\n??)*)\n?[ \t]*:END:(?:[\n \t]*\n|$)"i
@@ -44,7 +45,7 @@ const org_element_fallbacks = [Paragraph, List, ParagraphForced]
 # ---------------------
 
 @inline orgmatcher(::Type{BabelCall}) = r"^[ \t]*#\+call:[ \t]*([^\n]*)(?:\n(?:[ \t\r]*\n)*|$)"i
-@inline orgmatcher(::Type{Block}) = r"^[ \t]*#\+begin_(\S+)(?: ([^\n]+?))?[ \t]*?(?:\n((?!\*+ )[^\n]*(?:\n(?!\*+ )[^\n]*)*?))?\n[ \t]*#\+end_\1(?:\n(?:[ \t\r]*\n)*|$)"i
+@inline orgmatcher(::Type{Block}) = r"^[ \t]*#\+begin_(comment|example|export|src|verse)(?: ([^\n]+?))?[ \t]*?(?:\n((?!\*+ )[^\n]*(?:\n(?!\*+ )[^\n]*)*?))?\n[ \t]*#\+end_\1(?:\n(?:[ \t\r]*\n)*|$)"i
 @inline orgmatcher(::Type{Clock}) = r"^[ \t]*clock: \[(\d{4}-\d\d-\d\d)(?: [A-Za-z]+)?(?: (\d?\d:\d\d)(?:-(\d?\d:\d\d))?)?(?: ((?:\+|\+\+|\.\+|-|--))([\d.]+)([hdwmy]))? *\](?(3)|(?:|-\[(\d{4}-\d\d-\d\d)(?: [A-Za-z]+)?(?: (\d?\d:\d\d))?(?: ((?:\+|\+\+|\.\+|-|--))([\d.]+)([hdwmy]))? *\]))(?:\n(?:[ \t\r]*\n)*|$)"i
 # Planning has a custom consumer
 @inline orgmatcher(::Type{Comment}) = r"^([ \t]*#(?:| [^\n]*)(?:\n[ \t]*#(?:\n| [^\n]*))*)(?:\n(?:[ \t\r]*\n)*|$)"

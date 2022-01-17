@@ -75,7 +75,25 @@ end
 # Greater Elements
 # ---------------------
 
-# Greater Block
+function org(io::IO, specialblock::SpecialBlock, indent::Integer=0)
+    print(io, ' '^indent, "#+begin_", specialblock.name)
+    if !isnothing(specialblock.parameters)
+        print(io, ' ', specialblock.parameters)
+    end
+    print(io, '\n')
+    for el in specialblock.contents
+        org(io, el, indent)
+    end
+    print(io, ' '^indent, "#+end_", specialblock.name)
+end
+
+function org(io::IO, centerb::CenterBlock, indent::Integer=0)
+    org(io, SpecialBlock("center", centerb.parameters, centerb.contents), indent)
+end
+
+function org(io::IO, quoteb::QuoteBlock, indent::Integer=0)
+    org(io, SpecialBlock("quote", quoteb.parameters, quoteb.contents), indent)
+end
 
 function org(io::IO, drawer::Drawer, indent::Integer=0)
     print(io, ' '^indent, ':', drawer.name, ":\n")
@@ -86,7 +104,16 @@ function org(io::IO, drawer::Drawer, indent::Integer=0)
     print(io, ' '^indent, ":END:")
 end
 
-# Dynamic Block
+function org(io::IO, o::Org, dynblock::DynamicBlock, indent::Integer=0)
+    print(io, ' '^indent, "#+begin: ", dynblock.name)
+    if !isnothing(dynblock.parameters)
+        print(io, ' ', dynblock.parameters)
+    end
+    for el in dynblock.contents
+        org(io, o, el, indent)
+    end
+    print(io, ' '^indent, "#+end: ")
+end
 
 function org(io::IO, fn::FootnoteDefinition, indent::Integer=0)
     print(io, ' '^indent, "[fn:", fn.label, "] ")
@@ -191,7 +218,7 @@ org(io::IO, table::Table, indent::Integer=0) =
 
 org(io::IO, bcall::BabelCall) = print(io, "#+call: ", bcall.name)
 
-function org(io::IO, block::Block)
+function org(io::IO, block::Block, indent::Integer=0)
     name, data = if block isa CommentBlock
         ("comment", nothing)
     elseif block isa VerseBlock
@@ -199,17 +226,15 @@ function org(io::IO, block::Block)
     elseif block isa ExampleBlock
         ("example", nothing)
     elseif block isa ExportBlock
-    ("example", block.backend)
+        ("example", block.backend)
     elseif block isa SourceBlock
         ("src", if isnothing(block.arguments)
              block.lang
          else
              string(block.lang, " ", block.arguments)
          end)
-    elseif block isa CustomBlock
-        (block.name, block.data)
     end
-    print(io, "#+begin_", name)
+    print(io, ' '^indent, "#+begin_", name)
     if !isnothing(data)
         print(io, ' ', data)
     end
@@ -218,13 +243,14 @@ function org(io::IO, block::Block)
         print(io, "Oh noes! A verse block...\n")
     else
         for line in block.contents
+            print(io, ' '^indent)
             if startswith(line, '*')
                 print(io, ',')
             end
             print(io, line, '\n')
         end
     end
-    print(io, "#+end_", name)
+    print(io, ' '^indent, "#+end_", name)
 end
 
 # Clock

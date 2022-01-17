@@ -24,11 +24,6 @@ end
 mutable struct VerseBlock <: Block
     contents::Vector{LesserElement}
 end
-mutable struct CustomBlock <: Block
-    name::AbstractString
-    data::Union{AbstractString, Nothing}
-    contents::Vector{AbstractString}
-end
 
 mutable struct Clock <: LesserElement end
 

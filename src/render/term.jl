@@ -147,7 +147,39 @@ end
 # Greater Elements
 # ---------------------
 
-# Greater Block
+function term(io::IO, o::Org, specialblock::SpecialBlock, indent::Integer=0)
+    printstyled(io, ' '^indent, "#+begin_", specialblock.name, '\n', color=:light_black)
+    for el in specialblock.contents
+        term(io, o, el, indent)
+    end
+    printstyled(io, ' '^indent, "#+end_", specialblock.name, color=:light_black)
+end
+
+function term(io::IO, o::Org, centerblock::CenterBlock, indent::Integer=0)
+    width = displaysize(io)[2] - indent
+    contentbuf = IOContext(IOBuffer(), :color => get(io, :color, false),
+                           :displaysize => (displaysize(io)[1], width))
+    for el in centerblock.contents
+        term(contentbuf, o, el, indent)
+    end
+    for line in split(String(take!(contentbuf.io)), '\n')
+        print(io, ' '^(indent + (width - textwidth(line))÷2), line)
+    end
+end
+
+function term(io::IO, o::Org, quoteblock::QuoteBlock, indent::Integer=0)
+    contentbuf = IOContext(IOBuffer(), :color => get(io, :color, false),
+                           :displaysize => (displaysize(io)[1],
+                                            displaysize(io)[2] - indent - 2))
+    for el in quoteblock.contents
+        term(contentbuf, o, el, 0)
+    end
+    for line in split(String(take!(contentbuf.io)), '\n')
+        print(io, ' '^indent)
+        printstyled(io, "┃ ", color=:light_black)
+        print(io, line)
+    end
+end
 
 function term(io::IO, o::Org, drawer::Drawer, indent::Integer=0)
     for component in drawer.contents
@@ -157,7 +189,11 @@ function term(io::IO, o::Org, drawer::Drawer, indent::Integer=0)
     end
 end
 
-# Dynamic Block
+function term(io::IO, o::Org, dynblock::DynamicBlock, indent::Integer=0)
+    for el in dynblock.contents
+        term(io, o, el, indent)
+    end
+end
 
 function term(io::IO, o::Org, fn::FootnoteDefinition, indent::Integer=0)
     printstyled(io, ' '^indent, "[", fn.label, "] ", color=:yellow)
@@ -291,15 +327,13 @@ end
 
 term(::IO, ::CommentBlock) = nothing
 
-function term(io::IO, block::Block)
+function term(io::IO, block::Block, indent::Integer=0)
     name, data = if block isa VerseBlock
         ("verse", nothing)
     elseif block isa ExportBlock
-    ("export", block.backend)
-    elseif block isa CustomBlock
-        (block.name, block.data)
+        ("example", block.backend)
     end
-    printstyled(io, "#+begin_", name, color=:light_grey)
+    printstyled(io, ' '^indent, "#+begin_", name, color=:light_black)
     if !isnothing(data)
         print(io, ' ', data)
     end
@@ -308,13 +342,14 @@ function term(io::IO, block::Block)
         print(io, "Oh noes! A verse block...\n")
     else
         for line in block.contents
+            print(io, ' '^indent)
             if startswith(line, '*')
                 print(io, ',')
             end
             print(io, line, '\n')
         end
     end
-    printstyled(io, "#+end_", name, color=:light_grey)
+    printstyled(io, ' '^indent, "#+end_", name, color=:light_black)
 end
 
 term(io::IO, ::Org, block::ExampleBlock, indent::Integer=0) =
@@ -566,7 +601,7 @@ function term(io::IO, o::Org, mac::Macro)
     if isnothing(expanded)
         printstyled(io, "{{{", mac.name, '(', join(mac.arguments, ","), ")}}}", color=:light_black)
     else
-        term.(Ref(io), parseorg(expanded, ObjectMatchers, ObjectFallbacks))
+        term.(Ref(io), parseterm(expanded, ObjectMatchers, ObjectFallbacks))
     end
 end
 
