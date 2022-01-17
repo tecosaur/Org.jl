@@ -69,9 +69,12 @@ structuredesc(k::CitationReference) = string('@', k.key)
 structuredesc(c::Citation) =
     string(something(c.style[1], "⋅"), " ", something(c.style[2], "⋅"))
 structuredesc(f::FootnoteDefinition) = f.label
+structuredesc(k::Keyword) = k.key
+structuredesc(a::AffiliatedKeyword) = a.key
 structuredesc(f::FootnoteReference) = something(f.label, "")
 structuredesc(n::NodeProperty) = string(n.name, if n.additive "+" else "" end)
 structuredesc(s::SourceBlock) = s.lang
+structuredesc(b::CustomBlock) = b.name
 structuredesc(l::Link) = l.path.protocol
 structuredesc(m::Macro) = m.name
 structurename(t::TextMarkup) = "Text" * uppercasefirst(string(t.formatting))
