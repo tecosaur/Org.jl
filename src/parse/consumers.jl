@@ -140,6 +140,20 @@ function consume(::Type{FootnoteDefinition}, text::AbstractString)
     end
 end
 
+function consume(::Type{InlineTask}, text::AbstractString)
+    inlinetaskmatch = match(r"^\*{15,} [^\n]*\n(?:(?!\*+ )[^\n]+\n*)+(\*{15,} +END(?:[ \t\r]*\n|$))?", text)
+    if !isnothing(inlinetaskmatch)
+        endtask = inlinetaskmatch.captures[1]
+        heading = consume(Heading,
+                          @inbounds @view text[1:(ncodeunits(inlinetaskmatch.match) -
+                              if !isnothing(endtask); ncodeunits(endtask) else 0 end)])
+        if !isnothing(heading)
+            (ncodeunits(inlinetaskmatch.match),
+             InlineTask(heading[2]))
+        end
+    end
+end
+
 const org_item_element_matchers =
     filter(p -> !isempty(p.second),
            Dict{Char, Vector{<:Type}}(key => filter(v -> v !== List, value)
@@ -394,9 +408,6 @@ function consume(::Type{InlineSourceBlock}, text::AbstractString)
     end
 end
 
-function consume(::Type{PlainLink}, text::AbstractString)
-end
-
 function consume(::Type{RegularLink}, text::AbstractString)
     path = match(r"^\[\[((?:[^\]\[\\]+|\\(?:\\\\)*[\[\]]|\\+[^\]\[])+)\]", text)
     if !isnothing(path) && ncodeunits(path.match) < ncodeunits(text)
@@ -549,7 +560,10 @@ function consume(::Type{TextPlain}, content::AbstractString)
             else # subscript
                 return if cc > 2 textobjupto(prevind(content, li)) end
             end
-        elseif c == '[' && (nc == '[' || nc == 'f' || nc in '0':'9') # links, footnotes & inactive timestamps & statistics cookies
+        elseif c == ':' && lc ∉ (' ', '\t') # plain link
+            return if i > 1 textobjupto(something(findprev(c -> !(alphnum(c) || c in ('_', '-', '/', '+', '\'', '"')),
+                                                           content, li), li)) end
+        elseif c == '[' && (nc == '[' || nc == 'f' || nc in '0':'9') # regular link, footnotes & inactive timestamps & statistics cookies
             return if i > 1 textobjupto(li) end
         elseif c == '{' && nc == '{' && i+1 < clen && content[nextind(content, ni)] == '{' # macro
             return if i > 1 textobjupto(li) end
@@ -559,7 +573,7 @@ function consume(::Type{TextPlain}, content::AbstractString)
             return if cc > 2 textobjupto(li) end
         elseif c == '\\' && !spc(nc) # entities & latex & line break
             return if i > 1 textobjupto(li) end
-        elseif c == '<' && (nc == '<' || nc in '0':'9') # targets & active timestamps
+        elseif c == '<' # angle links, targets, active timestamps
             return if i > 1 textobjupto(li) end
         end
         li, i, ni = i, ni, nextind(content, ni)

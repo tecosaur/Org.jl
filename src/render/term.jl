@@ -587,10 +587,10 @@ function term(io::IO, path::LinkPath)
     end
 end
 
-function term(io::IO, link::AngleLink, stylecodes::Vector{String}=String[])
+function term(io::IO, link::Union{PlainLink, AngleLink}, stylecodes::Vector{String}=String[])
     print(io, termstyle(term_stylecodes_link))
     pathlink = term(io, link.path)
-    print(io, '<', string(link.path), '>')
+    print(io, string(link.path))
     print(io, pathlink, termstyle(stylecodes))
 end
 

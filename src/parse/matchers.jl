@@ -89,10 +89,7 @@ const org_object_matchers =
     )
 
 const org_object_fallbacks =
-    [TextPlain,
-     TextMarkup,
-     Script,
-     TextPlainForced] # we *must* move forwards by some ammount, c.f. §4.10
+    [PlainLink, TextPlain, TextMarkup, Script, TextPlainForced]
 
 # Entity has a custom consumer
 
@@ -102,6 +99,7 @@ const org_object_fallbacks =
 @inline orgmatcher(::Type{InlineBabelCall}) = r"^call_([^()\n]+?)(?:(\[[^]\n]+\]))?\(([^)\n]*)\)(?:(\[[^]\n]+\]))?"
 # OrgInlineSource has a custom consumer
 @inline orgmatcher(::Type{LineBreak}) = r"^\\\\[ \t]*(?:\n *|$)"
+@inline orgmatcher(::Type{PlainLink}) = r"^([^:#*<>()\[\]{}\s]+:(?:[^ \t\n\[\]<>()]|\((?:[^ \t\n\[\]<>()]|\([^ \t\n\[\]<>()]*\))*\))+(?:[^[:punct:] \t\n]|\/|\((?:[^ \t\n\[\]<>()]|\([^ \t\n\[\]<>()]*\))*\)))"
 @inline orgmatcher(::Type{AngleLink}) = r"<([^:#*<>()\[\]{}\s]+:[^>\n]*(?:\n[^>\n]*)*)>"
 @inline orgmatcher(::Type{Macro}) = r"^{{{([A-Za-z][A-Za-z0-9-_]*?)(?:\((.*?)\))?}}}"
 @inline orgmatcher(::Type{RadioTarget}) = r"^<<<(.*?)>>>"

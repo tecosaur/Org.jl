@@ -326,7 +326,10 @@ end
 
 # RadioLink is handled in a post-processing step
 
-# PlainLink has a custom consumer
+function PlainLink(components::Vector{Union{Nothing, SubString{String}}})
+    path = components[1]
+    PlainLink(parse(LinkPath, path))
+end
 
 function AngleLink(components::Vector{Union{Nothing, SubString{String}}})
     path = components[1]

@@ -32,8 +32,7 @@ mutable struct FootnoteDefinition <: GreaterElement
     definition::Vector{Element}
 end
 
-mutable struct InlineTask <: GreaterElement
-end
+# See elements.jl for InlineTask for load order reasons
 
 abstract type List <: GreaterElement end
 

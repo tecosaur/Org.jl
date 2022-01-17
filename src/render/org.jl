@@ -453,19 +453,23 @@ function org(io::IO, link::RadioLink)
     end
 end
 
-const link_protocol_prefixes =
+const org_link_protocol_prefixes =
     Dict(:coderef => p -> "($p)",
          :custom_id => p -> "#$p",
          :heading => p -> "*$p",
          :fuzzy => identity)
 
+const org_link_protocol_prefer_slashprefix =
+    ("https", "http", "ftp")
+
 function org(io::IO, path::LinkPath)
-    if path.protocol isa AbstractString
-        print(io, path.protocol, ':', path.path)
-    elseif path.protocol in keys(link_protocol_prefixes)
-        print(io, link_protocol_prefixes[path.protocol](path.path))
+    if path.protocol in keys(org_link_protocol_prefixes)
+        print(io, org_link_protocol_prefixes[path.protocol](path.path))
     else
-        print(io, path.protocol, ':', path.path)
+        print(io, path.protocol, ':',
+              if path.protocol in org_link_protocol_prefer_slashprefix
+                  "//" else "" end,
+              path.path)
     end
 end
 

@@ -81,7 +81,7 @@ parse(Org, string(dochead)) == dochead  # round-trip equality
 | InlineBabelCall     | X    | X     | X   | X    |      |
 | InlineSrcBlock      | X    | X     | X   | X    |      |
 | RadioLink           | X    | X     | X   | X    |      |
-| PlainLink           | X    |       |     |      |      |
+| PlainLink           | X    | X     | X   | X    |      |
 | AngleLink           | X    | X     | X   | X    |      |
 | RegularLink         | X    | X     | X   | X    |      |
 | LineBreak           | X    | X     | X   | X    |      |
