@@ -315,13 +315,17 @@ iterate(it::OrgElementIterator, stack::Vector) =
         else
             iterate(stack[end][1], stack[end][2])
         end
-        if isnothing(next) || next[1] isa Object
+        if isnothing(next)
             pop!(stack)
+            iterate(it, stack)
+        elseif next[1] isa Object
+            el, state = next
+            stack[end] = (stack[end][1], state)
             iterate(it, stack)
         else
             el, state = next
             stack[end] = (stack[end][1], state)
-            if applicable(iterate, el)
+            if ! terminal(el)
                 push!(stack, (el, nothing))
             end
             (el, stack)
