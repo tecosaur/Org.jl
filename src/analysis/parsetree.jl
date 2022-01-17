@@ -36,7 +36,8 @@ function printstructure(io::IO, component::AbstractString, description,
 end
 
 parsetree(io::IO, h::Heading, maxdepth::Integer, depth::Integer) =
-    printstructure(io, "Heading", '(' * string(Paragraph(h.title)) * ')',
+    printstructure(io, "Heading",
+                   '(' * '*'^h.level * ") " * string(Paragraph(h.title)),
                    filter(!isnothing, [h.planning, h.properties, h.section]),
                    maxdepth, depth, :yellow, true)
 
