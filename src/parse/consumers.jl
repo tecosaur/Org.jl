@@ -208,23 +208,31 @@ function consume(::Type{Item}, text::AbstractString)
     end
 end
 
+function itemtype(item::Item)
+        if !isnothing(item.tag)
+            DescriptiveList
+        elseif item.bullet in ("+", "-", "*")
+            UnorderedList
+        else
+            OrderedList
+        end
+end
+
 function consume(::Type{List}, text::AbstractString)
     itemstart = match(r"^([ \t]*)(\+|\-| \*|(?:[A-Za-z]|[0-9]+)[\.\)]) ", text)
     if !isnothing(itemstart)
         point = 1
         items = Item[]
         nextitem = consume(Item, text)
+        typ = itemtype(nextitem[2])
         while !isnothing(nextitem) && point < ncodeunits(text)
             len, item = nextitem
+            (itemtype(item) != typ) && break
             point += len
             push!(items, item)
             nextitem = consume(Item, @inbounds @view text[point:end])
         end
-        if items[1].bullet in ("+", "-", "*")
-            point-1, UnorderedList(items)
-        else
-            point-1, OrderedList(items)
-        end
+        point-1, typ(items)
     end
 end
 
