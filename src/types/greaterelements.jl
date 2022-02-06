@@ -50,6 +50,9 @@ end
 mutable struct OrderedList <: List
     items::Vector{Item}
 end
+mutable struct DescriptiveList <: List
+    items::Vector{Item}
+end
 
 mutable struct PropertyDrawer <: GreaterElement
     contents::Vector{NodeProperty}
