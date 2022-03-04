@@ -2,9 +2,54 @@
 
 Base.Docs.catdoc(org::Org...) = *(org...)
 
+@doc org"""
+A type representing an Org document.
+
+#+begin_src julia
+Org([settings::Dict], contents::Vector{Union{Heading, Section}})
+#+end_src
+
+There are three ways of constructing an Org document:
+1. Calling the `Org` constructor with a vector of Headings/Sections
+2. Calling ~parse(Org, content::String)~
+3. The ~org""~ macro
+
+* Org Documents
+
+Org is a plaintext format composed of simple, yet versatile, forms which
+represent formatting and structural information. It is designed to be both
+intuitive to use, and capable of representing complex documents.
+
+* Objects and Elements
+
+The components of an Org document can be divided into two classes: "objects" and
+"elements". /Elements/ are syntactic components that exist at the same or greater
+scope than a paragraph, i.e. which could not be contained by a paragraph.
+Conversely, /objects/ are syntactic components that exist with a smaller scope
+than a paragraph, and so can be contained within a paragraph.
+
+See the docs for the *Greater Element*, *Lesser Element*, and *Object* types for
+more information.
+
+* Fields
+
+#+begin_src julia
+settings::Dict
+contents::Vector{Union{Heading, Section}}
+cache::OrgCache
+#+end_src
+""" Org
+
 # ---------------------
 # Elements, Sectioning
 # ---------------------
+
+@doc org"""
+An abstract type for the various typef of elements, namely:
++ Headings and Sections
++ Greater Elements
++ Lesser Elements
+""" Element
 
 @doc org"""
 *Org Syntax Reference*: \S3.1.1 \\
@@ -47,8 +92,9 @@ significant.
 If =ARCHIVE= is one of the tags given, the heading will be considered as
 "archived".  Case is significant.
 
-A heading contains directly one *section* (optionally), followed by
-any number of deeper level headings.
+All content following a heading --- up to either the next heading, or the end of
+the document, forms a section contained by the heading. This is optional, as the
+next heading may occur immediately in which case no section is formed.
 
 * Examples
 
@@ -78,15 +124,9 @@ properties::Union{PropertyDrawer, Nothing}
 
 * Form
 
-Sections contain one or more non-*heading* elements.  With the exception
-of the text before the first heading in a document (which is
+Sections contain one or more non-*heading* elements.
+With the exception of the text before the first heading in a document (which is
 considered a section), sections only occur within headings.
-
-* Fields
-
-#+begin_src julia
-content::Vector{Element}
-#+end_src
 
 * The top level section
 
@@ -95,6 +135,12 @@ section called the /top level section/.  It may be preceded by blank
 lines.  Unlike a normal section, the top level section can immediately
 contain a *property drawer*, optionally preceded by *comments*.  It cannot
 however, contain *planning*.
+
+* Fields
+
+#+begin_src julia
+content::Vector{Element}
+#+end_src
 """ Section
 
 @doc org"""
@@ -184,7 +230,7 @@ keywords::Vector{AffiliatedKeyword}
 # ---------------------
 
 @doc org"""
-*Org Syntax Reference*: \S3.3 \\
+*Org Syntax Reference*: \S3.3
 
 Unless specified otherwise, greater elements can contain directly
 any greater or *lesser element* except:
@@ -544,11 +590,13 @@ formulas::Vector{AbstractString}
 # ---------------------
 
 @doc org"""
+*Org Syntax Reference*: \S3.4
+
 Lesser elements cannot contain any other element.
 
 Only *keywords* which are a member of ~org-element-parsed-keywords~[fn:oepkw], *verse
 blocks*, *paragraphs* or *table rows* can contain objects.
-""" OrgLesserElement
+""" LesserElement
 
 @doc org"""
 *Org Syntax Reference*: \S3.4.1 \\
