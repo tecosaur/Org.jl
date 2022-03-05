@@ -571,7 +571,7 @@ function consume(::Type{TextPlain}, content::AbstractString)
         elseif c == ':' && lc ∉ (' ', '\t') # plain link
             return if i > 1 textobjupto(something(findprev(c -> !(alphnum(c) || c in ('_', '-', '/', '+', '\'', '"')),
                                                            content, li), li)) end
-        elseif c == '[' && (nc == '[' || nc == 'f' || nc in '0':'9') # regular link, footnotes & inactive timestamps & statistics cookies
+        elseif c == '[' && (nc == '[' || nc == 'f' || nc == 'c' || nc in '0':'9') # regular link, citations, footnotes & inactive timestamps & statistics cookies
             return if i > 1 textobjupto(li) end
         elseif c == '{' && nc == '{' && i+1 < clen && content[nextind(content, ni)] == '{' # macro
             return if i > 1 textobjupto(li) end
