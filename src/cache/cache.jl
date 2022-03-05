@@ -54,10 +54,30 @@ function gencache(c::OrgCache, ::Val{:macros})
     macros = Dict{AbstractString, Function}()
     if haskey(c.keywords, "macro")
         for (name, replacement) in split.(c.keywords["macro"], r"[ \t]+", limit=2)
+            n = getproperty.(eachmatch(r"\$\d+", replacement), :match) |> unique |> length
             if startswith(replacement, "(eval ")
-                macros[name] = _ -> nothing
+                if !isnothing(Sys.which("emacs"))
+                    macros[name] = function(arguments)
+                        if length(arguments) == n
+                            elisp = replace(replacement[7:end-1], r"\$\d+" => function(i)
+                                                val = arguments[parse(Int, i[2:end])]
+                                                if !isnothing(match(r"^[\d\.]+$", val))
+                                                    val
+                                                else
+                                                    sprint(show, val)
+                                                end
+                                            end)
+                            try
+                                # TODO gate this behind some sort of unsafe switch
+                                read(`emacs --batch --eval "(princ $elisp)"`, String)
+                            catch _
+                            end
+                        end
+                    end
+                else
+                    macros[name] = _ -> nothing
+                end
             else
-                n = getproperty.(eachmatch(r"\$\d+", replacement), :match) |> unique |> length
                 macros[name] = arguments -> if length(arguments) == n
                     replace(replacement, r"\$\d+" => i -> arguments[parse(Int, i[2:end])])
                 end
