@@ -539,7 +539,7 @@ function term(io::IO, o::Org, cite::Citation, stylecodes::Vector{String}=String[
     #     printstyled(io, '/', cite.style[2], color=:light_blue)
     # end
     # printstyled(io, ':', color=:light_black)
-    if !isnothing(cite.globalprefix)
+    if !isempty(cite.globalprefix)
         term(io, o, cite.globalprefix)
         printstyled(io, ';', color=:light_magenta)
     end
@@ -547,7 +547,7 @@ function term(io::IO, o::Org, cite::Citation, stylecodes::Vector{String}=String[
         term(io, o, keycite)
         keycite === last(cite.citerefs) || printstyled(io, ';', color=:light_magenta)
     end
-    if !isnothing(cite.globalsuffix)
+    if !isempty(cite.globalsuffix)
         printstyled(io, ';', color=:light_magenta)
         term(io, o, cite.globalsuffix)
     end
