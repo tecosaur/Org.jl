@@ -226,13 +226,13 @@ end
 
 # InlineTask
 
-function term(io::IO, o::Org, item::Item, unordered::Bool=true, indent::Integer=0, depth::Integer=0)
+function term(io::IO, o::Org, item::Item, ordered::Bool=false, indent::Integer=0, depth::Integer=0)
     print(io, ' '^indent)
     offset = indent
-    if unordered
-        printstyled(io, if depth % 2 == 0 '•' else '➤' end, color=:blue)
-    else
+    if ordered
         printstyled(io, item.bullet, color=:blue)
+    else
+        printstyled(io, if depth % 2 == 0 '•' else '➤' end, color=:blue)
     end
     offset += length(item.bullet)
     if !isnothing(item.checkbox)
@@ -242,11 +242,21 @@ function term(io::IO, o::Org, item::Item, unordered::Bool=true, indent::Integer=
     end
     if !isnothing(item.tag)
         print(io, ' ', termstyle("34"))
+        tagbuf = IOContext(IOBuffer(), :color => get(io, :color, false),
+                           :displaysize => (displaysize(io)[1],
+                                            displaysize(io)[2] - indent - 2))
         for obj in item.tag
-            term(io, o, obj, ["34"])
+            term(tagbuf, o, obj, ["34"])
+        end
+        taglines = wraplines(String(take!(tagbuf.io)),
+                             displaysize(io)[2] - indent - 2, offset)
+        for line in taglines
+            print(io, line)
+            line === last(taglines) || print(io, '\n', ' '^(indent+2))
         end
         print(io, " ::", termstyle())
-        offset += length(string(item.tag)) + 3 # TODO rough guess, make accurate
+        offset += textwidth(taglines[end]) -
+            ansi_escape_textwidth_offset(taglines[end]) + 3
     end
     if length(item.contents) > 0
         print(io, ' ')
@@ -274,14 +284,14 @@ function term(io::IO, o::Org, item::Item, unordered::Bool=true, indent::Integer=
         lines = vcat(parlines, if otherlines == [""]; [] else otherlines end)
         for line in lines
             print(io, line)
-            line === last(lines) || print(io, '\n', ' '^(indent+2))
+            line === last(lines) || print(io, '\n', ' '^indent)
         end
     end
 end
 
-function term(io::IO, o::Org, list::List, indent::Integer=0, depth=0)
+function term(io::IO, o::Org, list::List, indent::Integer=0, depth::Integer=0)
     for item in list.items
-        term(io, o, item, list isa UnorderedList, indent, depth)
+        term(io, o, item, list isa OrderedList, indent, depth)
         item === last(list.items) || print(io, '\n')
     end
 end

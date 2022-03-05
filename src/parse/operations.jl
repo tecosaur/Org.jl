@@ -187,12 +187,16 @@ iterate(l::List, index::Integer) =
         (l.items[index], index + 1)
     end
 
-length(i::Item) = length(i.contents)
-iterate(i::Item) = if length(i) > 0 (i.contents[1], 2) end
-iterate(i::Item, index::Integer) =
-    if index <= length(i.contents)
-        (i.contents[index], index + 1)
+length(i::Item) = length(i.contents) + if isnothing(i.tag) 0 else length(i.tag) end
+iterate(i::Item) = if length(i) > 0 iterate(i, 1) end
+function iterate(i::Item, index::Integer)
+    taglen = if isnothing(i.tag) 0 else length(i.tag) end
+    if index <= taglen
+        (i.tag[index], index + 1)
+    elseif index - taglen <= length(i.contents)
+        (i.contents[index - taglen], index + 1)
     end
+end
 
 length(p::PropertyDrawer) = length(p.contents)
 iterate(p::PropertyDrawer) = if length(p) > 0 (p.contents[1], 2) end

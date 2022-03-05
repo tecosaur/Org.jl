@@ -150,8 +150,8 @@ end
 # InlineTask
 
 function org(io::IO, item::Item, indent::Integer=0, offset::Integer=0)
-    print(io, ' '^indent, item.bullet)
-    offset += length(item.bullet)
+    print(io, ' '^indent, item.bullet, ' ')
+    offset += length(item.bullet) + 1
     if !isnothing(item.counterset)
         print(io, " [@", item.counterset, "]")
         offset += length(item.counterset) + 4
@@ -161,8 +161,20 @@ function org(io::IO, item::Item, indent::Integer=0, offset::Integer=0)
         offset += 4
     end
     if !isnothing(item.tag)
-        print(io, item.tag, " ::")
-        offset += length(item.tag) + 3
+        tagbuf = IOContext(IOBuffer(), :color => get(io, :color, false),
+                           :displaysize => (displaysize(io)[1],
+                                            displaysize(io)[2] - indent - 2))
+        for obj in item.tag
+            org(tagbuf, obj)
+        end
+        taglines = wraplines(String(take!(tagbuf.io)),
+                             displaysize(io)[2] - indent - 2, offset)
+        for line in taglines
+            print(io, line)
+            line === last(taglines) || print(io, '\n', ' '^(indent+2))
+        end
+        print(io, " ::")
+        offset += length(taglines[end]) + 3
     end
     if length(item.contents) > 0
         print(io, ' ')

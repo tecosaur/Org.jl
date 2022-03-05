@@ -182,18 +182,19 @@ function consume(::Type{Item}, text::AbstractString)
         if bullet == "*"
             indent *= " "
         end
+        contentindent = indent * "  "
         itemextras = match(r"^(?:[ \t]+\[\@([A-Za-z]|[0-9]+)\])?(?:[ \t]+\[([ \-X])\])?(?:[ \t]+([^\n]+?)[ \t]::)?[ \t]+",
                            @inbounds @view text[ncodeunits(itemstart.match):end])
         counterset, checkbox, tag = itemextras.captures
         # collect contents
         rest = @inbounds @view text[ncodeunits(itemstart.match) + ncodeunits(itemextras.match):end]
         contentlen, contentobjs = 0, OrgComponent[]
-        len, obj = itemconsume(rest, indent)
+        len, obj = itemconsume(rest, contentindent)
         contentlen += len
         push!(contentobjs, obj)
         rest = @inbounds @view text[contentlen + ncodeunits(itemstart.match) + ncodeunits(itemextras.match):end]
-        while startswith(rest, indent * "  ") && !isnothing(obj)
-            len, obj = itemconsume(rest, indent)
+        while startswith(rest, contentindent) && !isnothing(obj)
+            len, obj = itemconsume(rest, contentindent)
             contentlen += len
             push!(contentobjs, obj)
             rest = @inbounds @view text[contentlen + ncodeunits(itemstart.match) + ncodeunits(itemextras.match):end]
@@ -222,17 +223,21 @@ function consume(::Type{List}, text::AbstractString)
     itemstart = match(r"^([ \t]*)(\+|\-| \*|(?:[A-Za-z]|[0-9]+)[\.\)]) ", text)
     if !isnothing(itemstart)
         point = 1
+        listindent = itemstart.captures[1]
         items = Item[]
         nextitem = consume(Item, text)
-        typ = itemtype(nextitem[2])
+        listtype = itemtype(nextitem[2])
         while !isnothing(nextitem) && point < ncodeunits(text)
             len, item = nextitem
-            (itemtype(item) != typ) && break
+            (itemtype(item) != listtype) && break
             point += len
             push!(items, item)
-            nextitem = consume(Item, @inbounds @view text[point:end])
+            rest = @inbounds @view text[point:end]
+            nextitem = if startswith(rest, listindent)
+                consume(Item, rest)
+            end
         end
-        point-1, typ(items)
+        point-1, listtype(items)
     end
 end
 
