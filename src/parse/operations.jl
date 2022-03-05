@@ -5,13 +5,40 @@ import Base: (*), (==)
 # ---------------------
 
 *(a::Org) = a
-*(a::Org, b::Org) = Org(vcat(a.contents, b.contents))
-*(orgs::Org...) = Org(getproperty.(orgs, :content) |> Iterators.flatten |> collect)
+function *(a::Org, b::Org)
+    if length(a.contents) == 0 || length(b.contents) == 0
+        Org(vcat(a.contents, b.contents))
+    elseif a.contents[end] isa Heading && b.contents[1] isa Heading
+        Org(vcat(a.contents, b.contents))
+    else
+        mergedsec = a.contents[end] * b.contents[1]
+        Org(vcat(a.contents[1:end-1], mergedsec, b.contents[2:end]))
+    end
+end
 
 # Section
 
 *(hs::Heading...) = Org(hs)
-*(a::Section, b::Section) = Section(vcat(a.contents, b.contents))
+function *(a::Section, b::Section)
+    ac = deepcopy(a)
+    bc = deepcopy(b)
+    mergedprops = if isnothing(a.properties) && isnothing(b.properties)
+        nothing
+    elseif isnothing(b.properties)
+        a.properties
+    elseif isnothing(a.properties)
+        b.properties
+    else
+        PropertyDrawer(vcat(a.properties.contents, b.properties.contents))
+    end
+    if length(a.contents) > 0 && length(b.contents) > 0 &&
+       a.contents[end] isa Paragraph && b.contents[1] isa Paragraph
+        ac.contents[end] *= b.contents[1]
+        Section(vcat(ac.contents, bc.contents[2:end]), ac.planning, mergedprops)
+    else
+        Section(vcat(ac.contents, bc.contents), ac.planning, mergedprops)
+    end
+end
 function *(s::Section, o::OrgComponent)
     sc = deepcopy(s)
     if o isa Object
@@ -29,7 +56,7 @@ end
 function *(h::Heading, o::OrgComponent)
     hc = copy(h)
     if isnothing(hc.section)
-        hc.section = Section([]) * o
+        hc.section = Section(Element[], nothing, nothing) * o
     else
         hc.section = h.section * o
     end
@@ -37,18 +64,18 @@ function *(h::Heading, o::OrgComponent)
 end
 function *(h::Heading, s::Section)
     hc = copy(h)
-    hc.section = vcat(hc.section.contents, s.contents)
+    hc.section = hc.section * s
     hc
 end
 
 # Greater Element
 
 *(components::Vector{Element}...) =
-    Section([components])
+    Section(components, nothing, nothing)
 
 # Element
 
-*(a::Paragraph, b::Paragraph) = Paragraph([a.contents, b.contents])
+*(a::Paragraph, b::Paragraph) = Paragraph(vcat(a.contents, b.contents))
 
 *(a::Comment, b::Comment) = Comment(vcat(a.contents, b.contents))
 *(a::FixedWidth, b::FixedWidth) = Comment(vcat(a.contents, b.contents))
