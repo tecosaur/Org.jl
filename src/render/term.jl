@@ -78,18 +78,22 @@ end
 function term(io::IO, o::Org, heading::Heading, indent::Integer=0)
     print(io, ' '^indent)
     termheadingonly(io, heading)
-    if !isnothing(heading.planning)
-        print(io, '\n')
-        term(io, o, heading.planning, indent)
-    end
-    # Don't show properties
     if !isnothing(heading.section)
-        print(io, "\n\n")
+        print(io, '\n')
+        if all(isnothing, (heading.section.planning,
+                           heading.section.properties))
+            print(io, '\n')
+        end
         term(io, o, heading.section, indent)
     end
 end
 
 function term(io::IO, o::Org, section::Section, indent::Integer=0)
+    if !isnothing(section.planning)
+        term(io, o, section.planning, indent)
+        print(io, "\n\n")
+    end
+    # Don't show properties
     for component in section.contents
         component isa FootnoteDefinition && continue
         term(io, o, component, indent)

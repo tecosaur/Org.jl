@@ -38,11 +38,13 @@ end
 parsetree(io::IO, h::Heading, maxdepth::Integer, depth::Integer) =
     printstructure(io, "Heading",
                    '(' * '*'^h.level * ") " * string(Paragraph(h.title)),
-                   filter(!isnothing, [h.planning, h.properties, h.section]),
+                   filter(!isnothing, [h.section]),
                    maxdepth, depth, :yellow, true)
 
 parsetree(io::IO, s::Section, maxdepth::Integer, depth::Integer) =
-    printstructure(io, "Section", nothing, s.contents, maxdepth, depth, :yellow, true)
+    printstructure(io, "Section", nothing,
+                   filter(!isnothing, vcat(s.planning, s.properties, s.contents)),
+                   maxdepth, depth, :yellow, true)
 
 parsetree(io::IO, l::L, maxdepth::Integer, depth::Integer) where {L <: List} =
     printstructure(io, string(L), l.items[1].bullet, l.items, maxdepth, depth, :magenta, true)

@@ -1,5 +1,7 @@
 mutable struct Section <: Element
     contents::Vector{Element}
+    planning::Union{Planning, Nothing}
+    properties::Union{PropertyDrawer, Nothing}
 end
 
 mutable struct Heading <: Element
@@ -9,6 +11,4 @@ mutable struct Heading <: Element
     title::Vector{Object}
     tags::Vector{AbstractString}
     section::Union{Section, Nothing}
-    planning::Union{Planning, Nothing}
-    properties::Union{PropertyDrawer, Nothing}
 end

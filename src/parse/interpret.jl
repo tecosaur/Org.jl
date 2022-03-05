@@ -69,37 +69,32 @@ end
 function Heading(components::Vector{Union{Nothing, SubString{String}}})
     stars, keyword, priority, title, tags, section = components
     level = length(stars)
-    tagsvec = if isnothing(tags); [] else split(tags[2:end-1], ':') end
-    planning, properties = nothing, nothing
-    if !isnothing(section)
-        plan = consume(Planning, section)
-        if !isnothing(plan)
-            section = @inbounds SubString(section.string,
-                                          section.offset + plan[1],
-                                          section.offset + lastindex(section))
-            planning = plan[2]
-        end
-        props = consume(PropertyDrawer, section)
-        if !isnothing(props)
-            section = @inbounds SubString(section.string,
-                                          section.offset + props[1] + 1,
-                                          section.offset + lastindex(section))
-            properties = props[2]
-        end
-        if ncodeunits(section) == 0
-            section = nothing
-        end
-    end
+    tagsvec = if isnothing(tags); String[] else split(tags[2:end-1], ':') end
     Heading(level, keyword, priority,
             parseobjects(Heading, title), tagsvec,
             if !isnothing(section) && isnothing(match(r"^[ \t\r\n]*$", section))
-                parse(Section, section) end,
-            planning, properties)
+                parse(Section, section) end)
 end
 
 function Section(components::Vector{Union{Nothing, SubString{String}}})
     content = rstrip(components[1])
-    Section(parseorg(content, org_element_matchers, org_element_fallbacks))
+    planning, properties = nothing, nothing
+    plan = consume(Planning, content)
+    if !isnothing(plan)
+        content = @inbounds SubString(content.string,
+                                      content.offset + plan[1],
+                                      content.offset + lastindex(content))
+        planning = plan[2]
+    end
+    props = consume(PropertyDrawer, content)
+    if !isnothing(props)
+        content = @inbounds SubString(content.string,
+                                        content.offset + props[1] + 1,
+                                        content.offset + lastindex(content))
+        properties = props[2]
+    end
+    Section(parseorg(content, org_element_matchers, org_element_fallbacks),
+            planning, properties)
 end
 
 # ---------------------

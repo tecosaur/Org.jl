@@ -42,21 +42,28 @@ function org(io::IO, heading::Heading, indent::Integer=0)
     if length(heading.tags) > 0
         print(io, " :", join(heading.tags, ':'), ":")
     end
-    if !isnothing(heading.planning)
-        print(io, '\n')
-        org(io, heading.planning, indent)
-    end
-    if !isnothing(heading.properties)
-        print(io, '\n')
-        org(io, heading.properties, indent)
-    end
     if !isnothing(heading.section)
-        print(io, "\n\n")
+        print(io, '\n')
+        if all(isnothing, (heading.section.planning,
+                           heading.section.properties))
+            print(io, '\n')
+        end
         org(io, heading.section, indent)
     end
 end
 
 function org(io::IO, section::Section, indent::Integer=0)
+    if !isnothing(section.planning)
+        org(io, section.planning, indent)
+        print(io, '\n')
+    end
+    if !isnothing(section.properties)
+        org(io, section.properties, indent)
+        print(io, '\n')
+    end
+    if any(!isnothing, (section.planning, section.properties))
+        print(io, '\n')
+    end
     for component in section.contents
         org(io, component, indent)
         component === last(section.contents) || print(io, "\n\n")
