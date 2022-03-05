@@ -612,7 +612,7 @@ function term(io::IO, o::Org, mac::Macro)
     if isnothing(expanded)
         printstyled(io, "{{{", mac.name, '(', join(mac.arguments, ","), ")}}}", color=:light_black)
     else
-        term.(Ref(io), parseterm(expanded, ObjectMatchers, ObjectFallbacks))
+        term.(Ref(io), parseorg(expanded, org_object_matchers, org_object_fallbacks))
     end
 end
 
