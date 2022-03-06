@@ -72,6 +72,9 @@ structuredesc(k::CitationReference) = string('@', k.key)
 structuredesc(c::Citation) =
     string(something(c.style[1], "⋅"), " ", something(c.style[2], "⋅"))
 structuredesc(f::FootnoteDefinition) = f.label
+structuredesc(p::Planning) =
+    join(filter(f -> !isnothing(getfield(p, f)), fieldnames(Planning)) .|>
+    string .|> uppercase, ' ')
 structuredesc(k::Keyword) = k.key
 structuredesc(a::AffiliatedKeyword) = a.key
 structuredesc(f::FootnoteReference) = something(f.label, "")
@@ -80,6 +83,7 @@ structuredesc(s::SourceBlock) = s.lang
 structuredesc(b::SpecialBlock) = b.name
 structuredesc(l::Link) = l.path.protocol
 structuredesc(m::Macro) = m.name
+structuredesc(e::Entity) = e.name * " (" * Entities[e.name].utf8 * ")"
 structurename(t::TextMarkup) = "Text" * uppercasefirst(string(t.formatting))
 structuredesc(t::TextMarkup{<:AbstractString}) =
     string(structuredesc(TextPlain(t.contents)))
