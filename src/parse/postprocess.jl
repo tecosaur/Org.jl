@@ -1,4 +1,4 @@
-function postprocess!(doc::Org)
+function postprocess!(doc::OrgDoc)
     # Radio Links
     radios = filter(c -> c isa RadioTarget, doc.components)
     if length(radios) > 0

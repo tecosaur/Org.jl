@@ -1,6 +1,6 @@
-using OrgMode
+using Org
 using Test
 
-@testset "OrgMode.jl" begin
+@testset "Org.jl" begin
     # Write your tests here.
 end

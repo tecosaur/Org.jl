@@ -56,8 +56,8 @@ end
 
 include("postprocess.jl")
 
-function parse(::Type{Org}, content::AbstractString)
-    o = Org(Vector{Union{Heading, Section}}(parseorg(content, [Heading, Section])))
+function parse(::Type{OrgDoc}, content::AbstractString)
+    o = OrgDoc(Vector{Union{Heading, Section}}(parseorg(content, [Heading, Section])))
     postprocess!(o)
     o
 end

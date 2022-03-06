@@ -1,12 +1,12 @@
 # Thanks to load order issues, we have to do the documentation seperately
 
-Base.Docs.catdoc(org::Org...) = *(org...)
+Base.Docs.catdoc(org::OrgDoc...) = *(org...)
 
 @doc org"""
 A type representing an Org document.
 
 #+begin_src julia
-Org([settings::Dict], contents::Vector{Union{Heading, Section}})
+OrgDoc([settings::Dict], contents::Vector{Union{Heading, Section}})
 #+end_src
 
 There are three ways of constructing an Org document:
@@ -38,7 +38,7 @@ settings::Dict
 contents::Vector{Union{Heading, Section}}
 cache::OrgCache
 #+end_src
-""" Org
+""" OrgDoc
 
 # ---------------------
 # Elements, Sectioning
@@ -970,7 +970,7 @@ such as a paragraph.
 Where NAME and POST are not separated by a whitespace character.
 
 + NAME :: A string with a valid association in either
-  ~OrgMode.Entities~ or ~org-entities-user~.
+  ~Org.Entities~ or ~org-entities-user~.
 + POST :: Either:
   - The end of line.
   - The string ={}=.

@@ -1,12 +1,12 @@
-Base.show(io::IO, ::MIME"text/org", org::Org) = org(io, org)
+Base.show(io::IO, ::MIME"text/org", org::OrgDoc) = org(io, org)
 
-function Base.string(component::Union{Org, OrgComponent})
+function Base.string(component::Union{OrgDoc, OrgComponent})
     b = IOBuffer()
     org(b, component)
     String(take!(b))
 end
 
-function org(io::IO, o::Org)
+function org(io::IO, o::OrgDoc)
     for component in o.contents
         (component isa Heading && component !== first(o.contents)) && print(io, '\n')
         org(io, component)
@@ -19,7 +19,7 @@ function org(io::IO, component::OrgComponent, indent::Integer)
     org(io, component)
 end
 
-org(o::Union{Org, OrgComponent}) = org(stdout, o)
+org(o::Union{OrgDoc, OrgComponent}) = org(stdout, o)
 
 function org(_::IO, component::C) where { C <: OrgComponent}
     @warn "No method for converting $C to a string representation currently exists"
@@ -111,7 +111,7 @@ function org(io::IO, drawer::Drawer, indent::Integer=0)
     print(io, ' '^indent, ":END:")
 end
 
-function org(io::IO, o::Org, dynblock::DynamicBlock, indent::Integer=0)
+function org(io::IO, o::OrgDoc, dynblock::DynamicBlock, indent::Integer=0)
     print(io, ' '^indent, "#+begin: ", dynblock.name)
     if !isnothing(dynblock.parameters)
         print(io, ' ', dynblock.parameters)

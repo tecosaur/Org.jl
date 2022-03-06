@@ -1,4 +1,4 @@
-function macroexpand(o::Org, m::Macro)
+function macroexpand(o::OrgDoc, m::Macro)
     if m.name in ("title", "author", "email") &&
         haskey(o.keywords, m.name)
         join(o.keywords[m.name], ' ')

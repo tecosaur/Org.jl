@@ -1,6 +1,6 @@
-function Base.show(io::IO, ::MIME"text/plain", org::Org)
+function Base.show(io::IO, ::MIME"text/plain", org::OrgDoc)
     if get(io, :compact, false)
-        print(io, "Org(", length(org), " children)")
+        print(io, "OrgDoc(", length(org), " children)")
     else
         termwidth = displaysize(io)[2]
         narrowedio = IOContext(io, :displaysize => (displaysize(io)[1], min(80, termwidth)))
@@ -8,20 +8,20 @@ function Base.show(io::IO, ::MIME"text/plain", org::Org)
     end
 end
 
-function term(io::IO, o::Org, indent::Integer=2)
+function term(io::IO, o::OrgDoc, indent::Integer=2)
     term(io, o, o.contents, indent)
     termfootnotes(io, o, indent)
 end
 
-function term(io::IO, o::Org, component::OrgComponent, indent::Integer)
+function term(io::IO, o::OrgDoc, component::OrgComponent, indent::Integer)
     print(io, ' '^indent)
     term(io, o, component)
 end
 
-term(io::IO, ::Org, component::OrgComponent) =
+term(io::IO, ::OrgDoc, component::OrgComponent) =
     term(io, component)
 
-function term(io::IO, o::Org, components::Vector{<:OrgComponent}, indent::Integer=2)
+function term(io::IO, o::OrgDoc, components::Vector{<:OrgComponent}, indent::Integer=2)
     for component in components
         (component isa Heading && component !== first(components)) && print(io, '\n')
         term(io, o, component, indent)
@@ -29,10 +29,10 @@ function term(io::IO, o::Org, components::Vector{<:OrgComponent}, indent::Intege
     end
 end
 
-term(o::Org) = term(stdout, o, 2)
-term(c::OrgComponent) = term(stdout, Org(), c, 2)
+term(o::OrgDoc) = term(stdout, o, 2)
+term(c::OrgComponent) = term(stdout, OrgDoc(), c, 2)
 term(p::Paragraph) = (term(stdout, p, 2); print('\n'))
-term(o::Object) = (term(stdout, Org(), o, 2); print('\n'))
+term(o::Object) = (term(stdout, OrgDoc(), o, 2); print('\n'))
 
 # ---------------------
 # Sections
@@ -75,7 +75,7 @@ function termheadingonly(io::IO, heading::Heading)
     end
 end
 
-function term(io::IO, o::Org, heading::Heading, indent::Integer=0)
+function term(io::IO, o::OrgDoc, heading::Heading, indent::Integer=0)
     print(io, ' '^indent)
     termheadingonly(io, heading)
     if !isnothing(heading.section)
@@ -88,7 +88,7 @@ function term(io::IO, o::Org, heading::Heading, indent::Integer=0)
     end
 end
 
-function term(io::IO, o::Org, section::Section, indent::Integer=0)
+function term(io::IO, o::OrgDoc, section::Section, indent::Integer=0)
     if !isnothing(section.planning)
         term(io, o, section.planning, indent)
         print(io, "\n\n")
@@ -103,7 +103,7 @@ end
 
 # Extras
 
-function tableofcontents(io::IO, org::Org, depthrange::UnitRange=1:9, indent::Integer=2)
+function tableofcontents(io::IO, org::OrgDoc, depthrange::UnitRange=1:9, indent::Integer=2)
     for h in org.headings
         if h.level in depthrange
             print(io, ' '^indent)
@@ -113,15 +113,15 @@ function tableofcontents(io::IO, org::Org, depthrange::UnitRange=1:9, indent::In
     end
 end
 
-tableofcontents(org::Org, depthrange::UnitRange=1:9, indent::Integer=2) =
+tableofcontents(org::OrgDoc, depthrange::UnitRange=1:9, indent::Integer=2) =
     tableofcontents(stdout, org, depthrange, indent)
 
-tableofcontents(io::IO, org::Org, depth::Integer, indent::Integer=2) =
+tableofcontents(io::IO, org::OrgDoc, depth::Integer, indent::Integer=2) =
     tableofcontents(io, org, depth:depth, indent)
 
-tableofcontents(org::Org, depth) = tableofcontents(stdout, org, depth)
+tableofcontents(org::OrgDoc, depth) = tableofcontents(stdout, org, depth)
 
-function termfootnotes(io::IO, o::Org, indent::Integer=0)
+function termfootnotes(io::IO, o::OrgDoc, indent::Integer=0)
     footnotes = collect(o.footnotes)
     if length(footnotes) > 0
         sort!(footnotes, by=f->f.second[1])
@@ -137,7 +137,7 @@ function termfootnotes(io::IO, o::Org, indent::Integer=0)
     end
 end
 
-function term(io::IO, o::Org, afkw::AffiliatedKeywordsWrapper, indent::Integer=0)
+function term(io::IO, o::OrgDoc, afkw::AffiliatedKeywordsWrapper, indent::Integer=0)
     for afk in afkw.keywords
         if !startswith(afk.key, "attr_")
             term(io, o, Keyword(afk.key, afk.value), indent)
@@ -151,7 +151,7 @@ end
 # Greater Elements
 # ---------------------
 
-function term(io::IO, o::Org, specialblock::SpecialBlock, indent::Integer=0)
+function term(io::IO, o::OrgDoc, specialblock::SpecialBlock, indent::Integer=0)
     printstyled(io, ' '^indent, "#+begin_", specialblock.name, '\n', color=:light_black)
     for el in specialblock.contents
         term(io, o, el, indent)
@@ -159,7 +159,7 @@ function term(io::IO, o::Org, specialblock::SpecialBlock, indent::Integer=0)
     printstyled(io, ' '^indent, "#+end_", specialblock.name, color=:light_black)
 end
 
-function term(io::IO, o::Org, centerblock::CenterBlock, indent::Integer=0)
+function term(io::IO, o::OrgDoc, centerblock::CenterBlock, indent::Integer=0)
     width = displaysize(io)[2] - indent
     contentbuf = IOContext(IOBuffer(), :color => get(io, :color, false),
                            :displaysize => (displaysize(io)[1], width))
@@ -171,7 +171,7 @@ function term(io::IO, o::Org, centerblock::CenterBlock, indent::Integer=0)
     end
 end
 
-function term(io::IO, o::Org, quoteblock::QuoteBlock, indent::Integer=0)
+function term(io::IO, o::OrgDoc, quoteblock::QuoteBlock, indent::Integer=0)
     contentbuf = IOContext(IOBuffer(), :color => get(io, :color, false),
                            :displaysize => (displaysize(io)[1],
                                             displaysize(io)[2] - indent - 2))
@@ -185,7 +185,7 @@ function term(io::IO, o::Org, quoteblock::QuoteBlock, indent::Integer=0)
     end
 end
 
-function term(io::IO, o::Org, drawer::Drawer, indent::Integer=0)
+function term(io::IO, o::OrgDoc, drawer::Drawer, indent::Integer=0)
     for component in drawer.contents
         component isa FootnoteDefinition && continue
         term(io, o, component, indent)
@@ -193,13 +193,13 @@ function term(io::IO, o::Org, drawer::Drawer, indent::Integer=0)
     end
 end
 
-function term(io::IO, o::Org, dynblock::DynamicBlock, indent::Integer=0)
+function term(io::IO, o::OrgDoc, dynblock::DynamicBlock, indent::Integer=0)
     for el in dynblock.contents
         term(io, o, el, indent)
     end
 end
 
-function term(io::IO, o::Org, fn::FootnoteDefinition, indent::Integer=0)
+function term(io::IO, o::OrgDoc, fn::FootnoteDefinition, indent::Integer=0)
     printstyled(io, ' '^indent, "[", fn.label, "] ", color=:yellow)
     contentbuf = IOContext(IOBuffer(), :color => get(io, :color, false),
                            :displaysize => (displaysize(io)[1],
@@ -226,7 +226,7 @@ end
 
 # InlineTask
 
-function term(io::IO, o::Org, item::Item, ordered::Bool=false, indent::Integer=0, depth::Integer=0)
+function term(io::IO, o::OrgDoc, item::Item, ordered::Bool=false, indent::Integer=0, depth::Integer=0)
     print(io, ' '^indent)
     offset = indent
     if ordered
@@ -289,7 +289,7 @@ function term(io::IO, o::Org, item::Item, ordered::Bool=false, indent::Integer=0
     end
 end
 
-function term(io::IO, o::Org, list::List, indent::Integer=0, depth::Integer=0)
+function term(io::IO, o::OrgDoc, list::List, indent::Integer=0, depth::Integer=0)
     for item in list.items
         term(io, o, item, list isa OrderedList, indent, depth)
         item === last(list.items) || print(io, '\n')
@@ -315,7 +315,7 @@ const table_charset_boxdraw_slim =
          '-' => '─',
          '+' => '─')
 
-function term(io::IO, o::Org, table::Table, indent::Integer=0)
+function term(io::IO, o::OrgDoc, table::Table, indent::Integer=0)
     printer = (io, c) -> term(io, o, c)
     layouttable(io, printer, table, table_charset_boxdraw, indent)
 end
@@ -366,10 +366,10 @@ function term(io::IO, block::Block, indent::Integer=0)
     printstyled(io, ' '^indent, "#+end_", name, color=:light_black)
 end
 
-term(io::IO, ::Org, block::ExampleBlock, indent::Integer=0) =
+term(io::IO, ::OrgDoc, block::ExampleBlock, indent::Integer=0) =
     printblockcontent(io, ' '^indent * "║ ", :light_black, block.contents, :cyan)
 
-function term(io::IO, ::Org, srcblock::SourceBlock, indent::Integer=0)
+function term(io::IO, ::OrgDoc, srcblock::SourceBlock, indent::Integer=0)
     printstyled(io, ' '^indent, "╭", color=:light_black)
     if !isnothing(srcblock.lang)
         printstyled(io, '╴', srcblock.lang, '\n', color=:light_black)
@@ -395,7 +395,7 @@ end
 
 term(::IO, ::DiarySexp) = nothing
 
-function term(io::IO, ::Org, planning::Planning)
+function term(io::IO, ::OrgDoc, planning::Planning)
     values = [(type, getproperty(planning, type))
               for type in (:deadline, :scheduled, :closed)] |>
                   vals -> filter(v -> !isnothing(v[2]), vals)
@@ -416,10 +416,10 @@ term(io::IO, ::HorizontalRule) =
 
 const DocumentInfoKeywords = ["title", "subtitle", "author"]
 
-term(io::IO, ::Org, keyword::Keyword{Nothing}) =
+term(io::IO, ::OrgDoc, keyword::Keyword{Nothing}) =
     printstyled(io, "#+", keyword.key, ':', color = :light_black)
 
-function term(io::IO, o::Org, keyword::Keyword{V}) where {V}
+function term(io::IO, o::OrgDoc, keyword::Keyword{V}) where {V}
     printstyled(io, "#+", keyword.key, ':', color = :light_black)
     print(io, ' ')
     valuecolor = if keyword.key in DocumentInfoKeywords; ["35"] else ["90"] end
@@ -434,7 +434,7 @@ function term(io::IO, o::Org, keyword::Keyword{V}) where {V}
     print(io, termstyle())
 end
 
-function term(io::IO, ::Org, env::LaTeXEnvironment, indent::Integer=0)
+function term(io::IO, ::OrgDoc, env::LaTeXEnvironment, indent::Integer=0)
     printstyled(io, ' '^indent, "\\begin", color=:light_blue)
     print(io, '{')
     printstyled(io, env.name, color=:magenta)
@@ -452,13 +452,13 @@ end
 term(io::IO, node::NodeProperty) =
     print(io, ':', node.name, if node.additive "+:" else ":" end, node.value)
 
-function term(io::IO, o::Org, objs::Vector{Object})
+function term(io::IO, o::OrgDoc, objs::Vector{Object})
     for obj in objs
         term(io, o, obj)
     end
 end
 
-function term(io::IO, o::Org, par::Paragraph, indent::Integer=0)
+function term(io::IO, o::OrgDoc, par::Paragraph, indent::Integer=0)
     contentbuf = IOContext(IOBuffer(), :color => get(io, :color, false))
     term(contentbuf, o, par.contents)
     contents = String(take!(contentbuf.io))
@@ -495,8 +495,8 @@ end
 
 termstyle() = termstyle(String[])
 
-term(io::IO, o::Org, obj::Object, _::Vector{String}) =
-    term(io::IO, o::Org, obj::Object)
+term(io::IO, o::OrgDoc, obj::Object, _::Vector{String}) =
+    term(io::IO, o::OrgDoc, obj::Object)
 term(io::IO, obj::Object, _::Vector{String}) =
     term(io::IO, obj::Object)
 
@@ -527,7 +527,7 @@ const FootnoteUnicodeSuperscripts =
          '9' => '⁹',
          '0' => '⁰')
 
-function term(io::IO, o::Org, fn::FootnoteReference, stylecodes::Vector{String}=String[])
+function term(io::IO, o::OrgDoc, fn::FootnoteReference, stylecodes::Vector{String}=String[])
     if haskey(o.footnotes, something(fn.label, fn))
         index = o.footnotes[something(fn.label, fn)][1]
         printstyled(io, join([FootnoteUnicodeSuperscripts[c] for c in string(index)]);
@@ -538,13 +538,13 @@ function term(io::IO, o::Org, fn::FootnoteReference, stylecodes::Vector{String}=
     print(io, termstyle(stylecodes))
 end
 
-function term(io::IO, o::Org, keycite::CitationReference)
+function term(io::IO, o::OrgDoc, keycite::CitationReference)
     term(io, o, keycite.prefix)
     printstyled(io, '@', keycite.key, bold=true, color=:magenta)
     term(io, o, keycite.suffix)
 end
 
-function term(io::IO, o::Org, cite::Citation, stylecodes::Vector{String}=String[])
+function term(io::IO, o::OrgDoc, cite::Citation, stylecodes::Vector{String}=String[])
     printstyled(io, "[", color=:magenta)
     # if !isnothing(cite.style[1])
     #     printstyled(io, '/', cite.style[1], color=:blue)
@@ -621,7 +621,7 @@ function term(io::IO, link::RegularLink, stylecodes::Vector{String}=String[])
     print(io, pathlink, termstyle(stylecodes))
 end
 
-function term(io::IO, o::Org, mac::Macro)
+function term(io::IO, o::OrgDoc, mac::Macro)
     expanded = macroexpand(o, mac)
     if isnothing(expanded)
         printstyled(io, "{{{", mac.name, '(', join(mac.arguments, ","), ")}}}", color=:light_black)
@@ -716,7 +716,7 @@ const markup_term_codes =
          :verbatim => "32", # green
          :code => "36") # cyan
 
-function term(io::IO, o::Org, markup::TextMarkup, stylecodes::Vector{String}=String[])
+function term(io::IO, o::OrgDoc, markup::TextMarkup, stylecodes::Vector{String}=String[])
     markuptermcode = markup_term_codes[markup.formatting]
     print(io, termstyle(markuptermcode))
     if markup.contents isa AbstractString

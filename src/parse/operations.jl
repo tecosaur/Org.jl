@@ -4,21 +4,21 @@ import Base: (*), (==)
 # Concatenation
 # ---------------------
 
-*(a::Org) = a
-function *(a::Org, b::Org)
+*(a::OrgDoc) = a
+function *(a::OrgDoc, b::OrgDoc)
     if length(a.contents) == 0 || length(b.contents) == 0
-        Org(vcat(a.contents, b.contents))
+        OrgDoc(vcat(a.contents, b.contents))
     elseif a.contents[end] isa Heading && b.contents[1] isa Heading
-        Org(vcat(a.contents, b.contents))
+        OrgDoc(vcat(a.contents, b.contents))
     else
         mergedsec = a.contents[end] * b.contents[1]
-        Org(vcat(a.contents[1:end-1], mergedsec, b.contents[2:end]))
+        OrgDoc(vcat(a.contents[1:end-1], mergedsec, b.contents[2:end]))
     end
 end
 
 # Section
 
-*(hs::Heading...) = Org(hs)
+*(hs::Heading...) = OrgDoc(hs)
 function *(a::Section, b::Section)
     ac = deepcopy(a)
     bc = deepcopy(b)
@@ -112,7 +112,7 @@ function ==(a::T, b::T) where {T <: OrgComponent}
     true
 end
 
-==(a::Org, b::Org) = a.contents == b.contents
+==(a::OrgDoc, b::OrgDoc) = a.contents == b.contents
 ==(a::TextPlain, b::TextPlain) = a.text == b.text
 
 ## conversion
@@ -141,12 +141,12 @@ terminal(::TextMarkup{Vector{Object}}) = false
 
 import Base: iterate, length
 
-length(org::Org) = length(org.contents)
-iterate(org::Org) =
+length(org::OrgDoc) = length(org.contents)
+iterate(org::OrgDoc) =
     if length(org.contents) > 0
         (org.contents[1], 2)
     end
-iterate(org::Org, index::Integer) =
+iterate(org::OrgDoc, index::Integer) =
     if index <= length(org.contents)
         (org.contents[index], index + 1)
     end
@@ -319,7 +319,7 @@ iterate(t::TextMarkup{Vector{Object}}, index::Integer) =
 # More iterating
 
 struct OrgIterator
-    o::Org
+    o::OrgDoc
 end
 
 Base.IteratorSize(::OrgIterator) = Base.SizeUnknown()
@@ -349,7 +349,7 @@ iterate(it::OrgIterator, stack::Vector) =
     end
 
 struct OrgElementIterator
-    o::Org
+    o::OrgDoc
 end
 
 Base.IteratorSize(::OrgElementIterator) = Base.SizeUnknown()
@@ -388,7 +388,7 @@ iterate(it::OrgElementIterator, stack::Vector) =
 
 import Base.getindex
 
-getindex(o::Org, i::Integer) = o.contents[i]
+getindex(o::OrgDoc, i::Integer) = o.contents[i]
 
 function getindex(props::PropertyDrawer, name::AbstractString)
     additive = if endswith(name, '+')

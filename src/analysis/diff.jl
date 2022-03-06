@@ -2,7 +2,7 @@ import Base.diff
 
 # Because diff is already documented in markdown, we should just use MD documentation
 """
-    diff(A::Org, B::Org)
+    diff(A::OrgDoc, B::OrgDoc)
     diff(A::OrgComponent, B::OrgComponent)
     diff(A::Vector{<:OrgComponent}, B::Vector{<:OrgComponent})
 Compare two different Org components or ASTs.
@@ -10,7 +10,7 @@ Compare two different Org components or ASTs.
 The diff method can detect insertions, deletions, and reshuffling of
 immediate decendents of a component.
 """
-function diff(A::Org, B::Org)
+function diff(A::OrgDoc, B::OrgDoc)
     if A == B
         print(stdout, "Identical\n")
     else

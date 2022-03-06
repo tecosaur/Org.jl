@@ -1,6 +1,6 @@
-module OrgMode
+module Org
 
-export Org, @org_str,                 # types/org.jl, here
+export OrgDoc, @org_str,              # types/org.jl, here
     org, term, tableofcontents, html, # render/*
     parsetree                         # analysis/parsetree.jl
 
@@ -10,7 +10,7 @@ include("cache/cache.jl")
 include("parse/interpret.jl")
 
 macro org_str(content::String)
-    parse(Org, content)
+    parse(OrgDoc, content)
 end
 
 include("types/documentation.jl")

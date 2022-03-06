@@ -1,5 +1,5 @@
 # Make modification to the content clear the cache
-function Base.setproperty!(o::Org, name::Symbol, value)
+function Base.setproperty!(o::OrgDoc, name::Symbol, value)
     if name == :contents
         o.cache = OrgCache(o)
         setfield!(o, name, value)
@@ -10,7 +10,7 @@ function Base.setproperty!(o::Org, name::Symbol, value)
     end
 end
 
-function Base.getproperty(o::Org, name::Symbol)
+function Base.getproperty(o::OrgDoc, name::Symbol)
     if name == :contents || name == :settings || name == :cache
         getfield(o, name)
     else

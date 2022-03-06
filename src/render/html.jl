@@ -1,4 +1,4 @@
-Base.show(io::IO, ::MIME"text/html", org::Org) = (html(io, org), nothing)
+Base.show(io::IO, ::MIME"text/html", org::OrgDoc) = (html(io, org), nothing)
 
 const html_entity_map =
     Dict('&' => "&amp;",
@@ -30,18 +30,18 @@ html_tagwrap(s, tag, attrs::Pair...) = html_tagwrap(s, tag, false, attrs...)
 # Org
 # ---------------------
 
-function html(io::IO, o::Org)
+function html(io::IO, o::OrgDoc)
     for component in o.contents
         html(io, component)
         print(io, '\n')
     end
 end
 
-html(o::Union{Org, OrgComponent}) = html(stdout, o)
 
 function html(_::IO, component::C) where { C <: OrgComponent}
     @warn "No method for converting $C to a html representation currently exists"
 end
+html(o::Union{OrgDoc, OrgComponent}) = html(stdout, o)
 
 # ---------------------
 # Sections
@@ -313,7 +313,7 @@ function html(io::IO, link::RegularLink)
     print(io, "</a>")
 end
 
-function html(io::IO, o::Org, mac::Macro)
+function html(io::IO, o::OrgDoc, mac::Macro)
     expanded = macroexpand(o, mac)
     if isnothing(expanded)
         print(io, "{{{", html_escape(mac.name),

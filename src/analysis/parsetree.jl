@@ -1,7 +1,7 @@
-parsetree(org::Org, maxdepth=-1) = parsetree(stdout, org, maxdepth)
+parsetree(org::OrgDoc, maxdepth=-1) = parsetree(stdout, org, maxdepth)
 parsetree(org::OrgComponent, maxdepth=-1) = parsetree(stdout, org, maxdepth)
 
-function parsetree(io::IO, org::Org, maxdepth=-1, depth=0)
+function parsetree(io::IO, org::OrgDoc, maxdepth=-1, depth=0)
     printstyled(io, "Org Parse Tree", color=:yellow)
     if length(org.contents) == 0
         printstyled(io, " (empty)\n", color=:light_black)
