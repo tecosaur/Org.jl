@@ -178,7 +178,7 @@ function Block(components::Vector{Union{Nothing, SubString{String}}})
         String[]
     end
     for i in 1:length(lines)
-        if startswith(lines[i], ",*")
+        if startswith(lines[i], ",*") || startswith(lines[i], ",#+")
             lines[i] = @inbounds SubString(lines[i].string, 2 + lines[i].offset,
                                            lines[i].offset + lastindex(lines[i]))
         end
