@@ -1,14 +1,14 @@
 # Methods to interpret string representations of OrgComponents
 
 struct OrgComponentParseError <: Exception
-    element::DataType
+    element::Type
     msg::AbstractString
 end
 
 function Base.showerror(io::IO, ex::OrgComponentParseError)
     print(io, "Org parse error")
-    print(io, " for component $(ex.element): ")
-    print(io, ex.msg)
+    print(io, " for component $(ex.element):\n")
+    print(io, ex.msg, '\n')
     Base.Experimental.show_error_hints(io, ex)
 end
 
@@ -41,11 +41,14 @@ import Base.parse
 function parse(component::Type{<:OrgComponent}, content::AbstractString)
     result = consume(component, content)
     if isnothing(result)
-        throw(OrgComponentParseError(component, "\"$content\" does not start with any recognised form of $(component)"))
+        msg = string("│ ", join(split(content, '\n'), "\n│ "),
+                     "\ndoes not start with any recognised form of $component.")
+        throw(OrgComponentParseError(component, msg))
     else
         len, obj = result
         @parseassert(component, len == ncodeunits(content),
-                     "\"$content\" is not just a $component")
+                     string("│ ", join(split(content, '\n'), "\n│ "),
+                            "\nis not just a $component."))
         obj
     end
 end
