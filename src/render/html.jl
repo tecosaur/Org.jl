@@ -44,9 +44,9 @@ html(o::Union{OrgDoc, OrgComponent}) = html(stdout, o)
 # ---------------------
 
 function html(io::IO, heading::Heading)
-    sopen, sclose = if isnothing(heading.section); ("", "")
+    open, close = if isnothing(heading.section); ("", "")
     else ("<div class=\"sec$(heading.level)\">", "</div>") end
-    print(io, sopen, "<h$(heading.level)>")
+    print(io, open, "<h$(min(6, heading.level+1))>")
     if !isnothing(heading.keyword)
         print(io, html_tagwrap(heading.keyword, "span", true, "class" => "hkeyword"), ' ')
     end
@@ -57,12 +57,12 @@ function html(io::IO, heading::Heading)
     if length(heading.tags) > 0
         print.(io, html_tagwrap.(heading.tags, "span", true, "class" => "htag"))
     end
-    print(io, "</h$(heading.level)>")
+    print(io, "</h$(min(6, heading.level+1))>")
     if !isnothing(heading.section)
         print(io, "\n")
         html(io, heading.section)
     end
-    print(io, sclose)
+    print(io, close)
 end
 
 function html(io::IO, section::Section)
@@ -77,7 +77,7 @@ end
 # ---------------------
 
 function html(io::IO, specialblock::SpecialBlock)
-    print(io, "<div class=\"admonition ", html_escape(specialblock.name),"\">\n")
+    print(io, "<div class=\"admonition ", html_escape(specialblock.name), "\">\n")
     for el in specialblock.contents
         html(io, el)
         el === last(specialblock.contents) || print(io, '\n')
@@ -223,9 +223,15 @@ end
 
 html(io::IO, ::HorizontalRule) = print(io, "<hr>")
 
-# Keyword
-
-html(::IO, ::Keyword) = nothing
+function html(io::IO, keyword::Keyword)
+    if keyword.key == "title"
+        print(io, html_tagwrap(keyword.value, "h1", true))
+    elseif keyword.key == "subtitle"
+        print(io, html_tagwrap(keyword.value, "h3", true, "style" => "opacity: 0.7"))
+    elseif keyword.key in ("author", "date")
+        print(io, html_tagwrap(keyword.value, "small", true, "style" => "opacity: 0.7"))
+    end
+end
 
 function html(io::IO, env::LaTeXEnvironment)
     print(io, "<span class=\"tex\">\\begin{", html_escape(env.name), "}\n",
