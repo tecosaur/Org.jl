@@ -9,8 +9,26 @@ include("cache/cache.jl")
 
 include("parse/interpret.jl")
 
-macro org_str(content::String)
-    parse(OrgDoc, content)
+const org_str_typeflags =
+    Dict("d" => OrgDoc,
+         "e" => Element,
+         "o" => Object,
+         "h" => Heading,
+         "s" => Section,
+         "p" => Paragraph,
+         "ts" => Timestamp,
+         "m" => TextMarkup,
+         "t" => TextPlain)
+
+macro org_str(content::String, type::String="d")
+    if !haskey(org_str_typeflags, type)
+        throw(ArgumentError(
+            string("Unknown Org type flag: $type",
+                   "\n\nRecognised types flags:\n",
+                   join(map(((short, type)::Pair -> " • $short, $type"),
+                            collect(org_str_typeflags)), '\n'), '\n')))
+    end
+    parse(org_str_typeflags[type], content)
 end
 
 include("types/documentation.jl")
