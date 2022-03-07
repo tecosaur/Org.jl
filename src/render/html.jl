@@ -37,10 +37,6 @@ function html(io::IO, o::OrgDoc)
     end
 end
 
-
-function html(_::IO, component::C) where { C <: OrgComponent}
-    @warn "No method for converting $C to a html representation currently exists"
-end
 html(o::Union{OrgDoc, OrgComponent}) = html(stdout, o)
 
 # ---------------------
@@ -81,10 +77,12 @@ end
 # ---------------------
 
 function html(io::IO, specialblock::SpecialBlock)
+    print(io, "<div class=\"admonition ", html_escape(specialblock.name),"\">\n")
     for el in specialblock.contents
         html(io, el)
         el === last(specialblock.contents) || print(io, '\n')
     end
+    print(io, "</div>")
 end
 
 function html(io::IO, centerb::CenterBlock)
@@ -204,9 +202,10 @@ function html(io::IO, block::ExampleBlock)
 end
 
 function html(io::IO, block::SourceBlock)
-    print(io,
+    print(io, "<pre class=\"src\">",
           html_tagwrap(join(block.contents, '\n'),
-                       "pre", true, "class" => "src"))
+                       "code", true, "class" => "language-" * block.lang),
+          "</pre>")
 end
 
 # Block
@@ -228,7 +227,12 @@ html(io::IO, ::HorizontalRule) = print(io, "<hr>")
 
 html(::IO, ::Keyword) = nothing
 
-# LaTeX Environment
+function html(io::IO, env::LaTeXEnvironment)
+    print(io, "<span class=\"tex\">\\begin{", html_escape(env.name), "}\n",
+          html_escape(join(env.contents, '\n')),
+          "\n\\end{", html_escape(env.name), "}</span>")
+end
+
 # Node Property
 
 function html(io::IO, par::Paragraph)
@@ -252,7 +256,8 @@ end
 
 html(io::IO, entity::Entity) = print(io, Entities[entity.name].html)
 
-# LaTeX Fragment
+html(io::IO, latex::LaTeXFragment) =
+    print(io, html_tagwrap("\$$(latex.contents)\$", "span", "class" => "tex"))
 
 html(io::IO, snippet::ExportSnippet) =
     if snippet.backend == "html" print(io, snippet.snippet) end
@@ -282,7 +287,8 @@ end
 html(::IO, ::InlineBabelCall) = nothing
 
 html(io::IO, src::InlineSourceBlock) =
-    print(io, html_tagwrap(src.body, "code", true))
+    print(io, html_tagwrap(src.body, "code", true,
+                           "class" => "language-" * src.lang))
 
 html(io::IO, ::LineBreak) = print(io, "<br>")
 
