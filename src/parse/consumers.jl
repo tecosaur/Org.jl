@@ -47,6 +47,24 @@ function ensurelowercase(s::AbstractString)
     end
 end
 
+# Consume a category of elements
+
+function consume(::Type{Element}, text::AbstractString)
+    el = parseorg(text, org_element_matchers, org_element_fallbacks;
+                  partial=true, maxobj=1)
+    if !isnothing(el)
+        (el[1], el[2][1])
+    end
+end
+
+function consume(::Type{Object}, text::AbstractString)
+    obj = parseorg(text, org_object_matchers, org_object_fallbacks;
+                   partial=true, maxobj=1)
+    if !isnothing(obj)
+        (obj[1], obj[2][1])
+    end
+end
+
 # Some more complicated elements can not simply be matched, and so need
 # specific consumers.
 
