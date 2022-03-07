@@ -21,6 +21,14 @@ const README, compatability =
 
 @doc org"""
 #+begin_src julia
+@org_str -> OrgDoc
+#+end_src
+
+Construct an ~OrgDoc~.
+""" :@org_str
+
+@doc org"""
+#+begin_src julia
 orgmatcher(::Type{C}) where {C <: OrgComponent}
 #+end_src
 
