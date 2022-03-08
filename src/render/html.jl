@@ -55,7 +55,7 @@ function html(io::IO, heading::Heading)
     end
     html.(Ref(io), heading.title)
     if length(heading.tags) > 0
-        print.(io, html_tagwrap.(heading.tags, "span", true, "class" => "htag"))
+        print.(Ref(io), html_tagwrap.(heading.tags, "span", true, "class" => "htag"))
     end
     print(io, "</h$(min(6, heading.level+1))>")
     if !isnothing(heading.section)
@@ -275,8 +275,12 @@ html(io::IO, snippet::ExportSnippet) =
     if snippet.backend == "html" print(io, snippet.snippet) end
 
 function html(io::IO, fn::FootnoteReference)
-    print(io, "<a href=\"#fn_", html_escape(fn.label), "\">",
-        "<sup>[", html_escape(fn.label), "]</sup></a>")
+    if !isnothing(fn.label)
+        print(io, "<a href=\"#fn_", html_escape(fn.label), "\">",
+              "<sup>[", html_escape(fn.label), "]</sup></a>")
+    else
+        print(io, "<sup>[?]</sup>")
+    end
 end
 
 function html(io::IO, keycite::CitationReference)
@@ -316,15 +320,32 @@ function html(io::IO, path::LinkPath)
     end
 end
 
+const org_html_image_extensions =
+    [".svg", ".png", ".jpg", ".jpeg", ".gif", ".webp", ".avif"]
+
+function html_image(io::IO, path::LinkPath)
+    print(io,
+          html_tagwrap(string("<img src=\"", sprint(html, path), "\">"),
+                       "figure"))
+end
+
 function html(io::IO, link::Union{PlainLink, AngleLink})
-    print(io, html_tagwrap(string(link.path), "a", true,
-                           "href" => sprint(html, link.path)))
+    if splitext(link.path.path)[end] in org_html_image_extensions
+        html_image(io, link.path)
+    else
+        print(io, html_tagwrap(string(link.path), "a", true,
+                               "href" => sprint(html, link.path)))
+    end
 end
 
 function html(io::IO, link::RegularLink)
     print(io, "<a href=\"", sprint(html, link.path),"\">")
     if isnothing(link.description) || length(link.description) == 0
-        print(io, html_escape(string(link.path)))
+        if splitext(link.path.path)[end] in org_html_image_extensions
+            html_image(io, link.path)
+        else
+            print(io, html_escape(string(link.path)))
+        end
     else
         foreach(o -> html(io, o), link.description)
     end
