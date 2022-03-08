@@ -138,6 +138,7 @@ function termfootnotes(io::IO, o::OrgDoc, indent::Integer=0)
 end
 
 function term(io::IO, o::OrgDoc, afkw::AffiliatedKeywordsWrapper, indent::Integer=0)
+    @nospecialize afkw
     for afk in afkw.keywords
         if !startswith(afk.key, "attr_")
             term(io, o, Keyword(afk.key, afk.value), indent)
@@ -290,6 +291,7 @@ function term(io::IO, o::OrgDoc, item::Item, ordered::Bool=false, indent::Intege
 end
 
 function term(io::IO, o::OrgDoc, list::List, indent::Integer=0, depth::Integer=0)
+    @nospecialize list
     for item in list.items
         term(io, o, item, list isa OrderedList, indent, depth)
         item === last(list.items) || print(io, '\n')

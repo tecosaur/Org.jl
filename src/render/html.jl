@@ -72,6 +72,11 @@ function html(io::IO, section::Section)
     end
 end
 
+function html(io::IO, afkw::AffiliatedKeywordsWrapper)
+    @nospecialize afkw
+    html(io, afkw.element)
+end
+
 # ---------------------
 # Greater Elements
 # ---------------------
@@ -158,6 +163,7 @@ function html(io::IO, item::Item)
 end
 
 function html(io::IO, list::List)
+    @nospecialize list
     open, close = html_tagpair(if list isa OrderedList; "ol" else "ul" end)
     print(io, open, '\n')
     for item in list.items

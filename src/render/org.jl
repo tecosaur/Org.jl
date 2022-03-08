@@ -71,6 +71,7 @@ function org(io::IO, section::Section, indent::Integer=0)
 end
 
 function org(io::IO, afkw::AffiliatedKeywordsWrapper, indent::Integer=0)
+    @nospecialize afkw
     for afk in afkw.keywords
         org(io, afk, indent)
         print(io, '\n')
@@ -204,6 +205,7 @@ function org(io::IO, item::Item, indent::Integer=0, offset::Integer=0)
 end
 
 function org(io::IO, list::List, indent::Integer=0)
+    @nospecialize list
     for item in list.items
         org(io, item, indent)
         item === last(list.items) || print(io, '\n')
