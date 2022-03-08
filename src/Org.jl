@@ -43,4 +43,6 @@ include("render/html.jl")
 include("analysis/parsetree.jl")
 include("analysis/diff.jl")
 
+include("precompile.jl")
+
 end
