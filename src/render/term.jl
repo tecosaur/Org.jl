@@ -326,7 +326,7 @@ end
 
 term(::IO, ::BabelCall) = nothing
 
-function printblockcontent(io, prefix::AbstractString, prefixcolor::Symbol, lines::Vector{<:AbstractString}, contentcolor::Symbol=:default)
+function printblockcontent(io, prefix::String, prefixcolor::Symbol, lines::Vector{<:SubString{String}}, contentcolor::Symbol=:default)
     printstyled(io, prefix, color=prefixcolor)
     if length(lines) > 0
         printstyled(io, lines[1], color=contentcolor)
@@ -719,7 +719,7 @@ const markup_term_codes =
 function term(io::IO, o::OrgDoc, markup::TextMarkup, stylecodes::Vector{String}=String[])
     markuptermcode = markup_term_codes[markup.formatting]
     print(io, termstyle(markuptermcode))
-    if markup.contents isa AbstractString
+    if markup.contents isa SubString{String}
         print(io, markup.contents)
     else
         for obj in markup.contents

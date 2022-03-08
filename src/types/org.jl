@@ -6,7 +6,7 @@ include("elements.jl")
 include("cache.jl")
 
 mutable struct OrgDoc
-    settings::Dict
+    settings::Dict{AbstractString, Any}
     contents::Vector{Union{Heading, Section}}
     cache::OrgCache
     function OrgDoc(settings::Dict, contents::Vector{<:Union{Heading, Section}})
@@ -16,5 +16,6 @@ mutable struct OrgDoc
     end
 end
 
-OrgDoc(contents::Vector) = OrgDoc(Dict(), contents)
+OrgDoc(contents::Vector{<:Union{Heading, Section}}) =
+    OrgDoc(Dict{AbstractString, Any}(), contents)
 OrgDoc() = OrgDoc(Union{Heading, Section}[])

@@ -4,20 +4,20 @@ abstract type Object <: OrgComponent end
 
 include("../data/entities.jl")
 struct Entity <: Object
-    name::AbstractString
+    name::SubString{String}
 end
 
 struct LaTeXFragment <: Object
-    contents::AbstractString
-    delimiters::Union{Tuple{AbstractString, AbstractString}, Nothing}
+    contents::SubString{String}
+    delimiters::Union{Tuple{SubString{String}, SubString{String}}, Nothing}
 end
 
 struct ExportSnippet <: Object
-    backend::AbstractString
-    snippet::AbstractString
+    backend::SubString{String}
+    snippet::SubString{String}
 end
 
-mutable struct FootnoteReference{L <: Union{<:AbstractString, Nothing},
+mutable struct FootnoteReference{L <: Union{SubString{String}, Nothing},
                                  D <: Union{Vector{Object}, Nothing}} <: Object
     label::L
     definition::D
@@ -25,28 +25,28 @@ end
 
 mutable struct CitationReference <: Object
     prefix::Vector{Object}
-    key::AbstractString
+    key::SubString{String}
     suffix::Vector{Object}
 end
 
 mutable struct Citation <: Object
-    style::Tuple{Union{AbstractString, Nothing},
-                 Union{AbstractString, Nothing}}
+    style::Tuple{Union{SubString{String}, Nothing},
+                 Union{SubString{String}, Nothing}}
     globalprefix::Vector{Object}
     citerefs::Vector{CitationReference}
     globalsuffix::Vector{Object}
 end
 
 struct InlineBabelCall <: Object
-    name::AbstractString
-    header::Union{AbstractString, Nothing}
-    arguments::Union{AbstractString, Nothing}
+    name::SubString{String}
+    header::Union{SubString{String}, Nothing}
+    arguments::Union{SubString{String}, Nothing}
 end
 
 struct InlineSourceBlock <: Object
-    lang::AbstractString
-    options::Union{AbstractString, Nothing}
-    body::AbstractString
+    lang::SubString{String}
+    options::Union{SubString{String}, Nothing}
+    body::SubString{String}
 end
 
 struct LineBreak <: Object end
@@ -54,8 +54,8 @@ struct LineBreak <: Object end
 abstract type Link <: Object end
 
 struct LinkPath <: Object
-    protocol::Union{Symbol, AbstractString}
-    path::AbstractString
+    protocol::Union{Symbol, SubString{String}}
+    path::SubString{String}
 end
 
 struct PlainLink <: Link
@@ -72,8 +72,8 @@ struct RegularLink <: Link
 end
 
 struct Macro <: Object
-    name::AbstractString
-    arguments::Vector{AbstractString}
+    name::SubString{String}
+    arguments::Vector{SubString{String}}
 end
 
 mutable struct RadioTarget <: Object
@@ -85,12 +85,12 @@ mutable struct RadioLink <: Link
 end
 
 mutable struct Target <: Object
-    target::AbstractString
+    target::SubString{String}
 end
 
 abstract type StatisticsCookie <: Object end
 struct StatisticsCookiePercent <: StatisticsCookie
-    percentage::AbstractString
+    percentage::SubString{String}
 end
 struct StatisticsCookieFraction <: StatisticsCookie
     complete::Union{Integer, Nothing}
@@ -100,11 +100,11 @@ end
 abstract type Script <: Object end
 struct Subscript <: Script
     char::Char
-    script::AbstractString
+    script::SubString{String}
 end
 struct Superscript <: Script
     char::Char
-    script::AbstractString
+    script::SubString{String}
 end
 
 mutable struct TableCell <: Object
@@ -118,7 +118,7 @@ mutable struct TimestampRepeaterOrDelay
     unit::Char
 end
 mutable struct TimestampDiary <: Timestamp
-    sexp::AbstractString
+    sexp::SubString{String}
 end
 abstract type TimestampInstant <: Timestamp end
 mutable struct TimestampActive <: TimestampInstant
@@ -143,11 +143,11 @@ mutable struct TimestampInactiveRange <: TimestampRange
     stop::TimestampInactive
 end
 
-mutable struct TextMarkup{C <: Union{Vector{Object}, <:AbstractString}} <: Object
+mutable struct TextMarkup{C <: Union{Vector{Object}, SubString{String}}} <: Object
     formatting::Symbol
     contents::C
 end
 
-struct TextPlain{S <: AbstractString} <: Object
+struct TextPlain{S <: Union{SubString{String}, String}} <: Object
     text::S
 end

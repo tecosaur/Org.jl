@@ -39,8 +39,8 @@ function gencache(c::OrgCache, ::Val{:headings})
 end
 
 function gencache(c::OrgCache, ::Val{:keywords})
-    kwdict = Dict{AbstractString, Vector{AbstractString}}()
-    for kw in filter(k -> k isa Keyword, c.elements)
+    kwdict = Dict{SubString{String}, Vector{SubString{String}}}()
+    for kw::Keyword in filter(k -> k isa Keyword, c.elements::Vector{Element})
         if haskey(kwdict, kw.key)
             push!(kwdict[kw.key], kw.value)
         else
@@ -51,9 +51,9 @@ function gencache(c::OrgCache, ::Val{:keywords})
 end
 
 function gencache(c::OrgCache, ::Val{:macros})
-    macros = Dict{AbstractString, Function}()
-    if haskey(c.keywords, "macro")
-        for (name, replacement) in split.(c.keywords["macro"], r"[ \t]+", limit=2)
+    macros = Dict{SubString{String}, Function}()
+    if haskey(c.keywords::Dict{SubString{String}, Vector{SubString{String}}}, "macro")
+        for (name, replacement) in split.(c.keywords["macro"], r"[ \t]+", limit=2)::Vector{Vector{SubString{String}}}
             n = getproperty.(eachmatch(r"\$\d+", replacement), :match) |> unique |> length
             if startswith(replacement, "(eval ")
                 if !isnothing(Sys.which("emacs"))
@@ -88,7 +88,7 @@ function gencache(c::OrgCache, ::Val{:macros})
 end
 
 function gencache(c::OrgCache, ::Val{:footnotes})
-    footnotes = Dict{Union{AbstractString, FootnoteReference}, Tuple{Int, Union{FootnoteReference, FootnoteDefinition}}}()
+    footnotes = Dict{Union{SubString{String}, FootnoteReference}, Tuple{Int, Union{FootnoteReference, FootnoteDefinition}}}()
     i = 1
     for f in filter(f -> f isa FootnoteDefinition || f isa FootnoteReference, c.components)
         if !isnothing(f.definition)

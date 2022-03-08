@@ -59,7 +59,7 @@ This will either be:
 
 @doc org"""
 #+begin_src julia
-consume(component::Type{<:OrgComponent}, text::AbstractString)
+consume(component::Type{<:OrgComponent}, text::SubString{String})
 #+end_src
 Try to /consume/ a ~component~ from the start of ~text~.
 

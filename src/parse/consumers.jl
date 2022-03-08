@@ -1,4 +1,4 @@
-function consume(component::Type{<:OrgComponent}, text::AbstractString)
+function consume(component::Type{<:OrgComponent}, text::SubString{String})
     matcher = orgmatcher(component)
     if isnothing(matcher)
         @warn "No matcher is defined for $(component), should it have a matcher or dedicated consumer?" maxlog=1
@@ -39,7 +39,7 @@ function startofline(s::SubString)
     s.string[i] == '\n'
 end
 
-function ensurelowercase(s::AbstractString)
+function ensurelowercase(s::SubString{String})
     if any(c -> c in 'A':'Z', s)
         lowercase(s)
     else
@@ -49,7 +49,7 @@ end
 
 # Consume a category of elements
 
-function consume(::Type{Element}, text::AbstractString)
+function consume(::Type{Element}, text::SubString{String})
     el = parseorg(text, org_element_matchers, org_element_fallbacks;
                   partial=true, maxobj=1)
     if !isnothing(el)
@@ -57,7 +57,7 @@ function consume(::Type{Element}, text::AbstractString)
     end
 end
 
-function consume(::Type{Object}, text::AbstractString)
+function consume(::Type{Object}, text::SubString{String})
     obj = parseorg(text, org_object_matchers, org_object_fallbacks;
                    partial=true, maxobj=1)
     if !isnothing(obj)
@@ -74,7 +74,7 @@ end
 
 # Greater Elements
 
-function consume(::Type{AffiliatedKeyword}, text::AbstractString)
+function consume(::Type{AffiliatedKeyword}, text::SubString{String})
     function finalise(key, optval, val)
         key = ensurelowercase(key)
         if haskey(org_keyword_translations, key)
@@ -116,7 +116,7 @@ function consume(::Type{AffiliatedKeyword}, text::AbstractString)
     end
 end
 
-function consume(::Type{AffiliatedKeywordsWrapper}, text::AbstractString)
+function consume(::Type{AffiliatedKeywordsWrapper}, text::SubString{String})
     affiliatedkeywords = AffiliatedKeyword[]
     point = 1
     textend = lastindex(text)
@@ -147,18 +147,18 @@ const org_footnote_element_matchers =
            Dict{Char, Vector{<:Type}}(key => filter(v -> v != FootnoteDefinition, value)
                                       for (key, value) in org_element_matchers))
 
-function consume(::Type{FootnoteDefinition}, text::AbstractString)
+function consume(::Type{FootnoteDefinition}, text::SubString{String})
     labelfn = match(r"^\[fn:([A-Za-z0-9\-_]+)\][ \t]*\n?", text)
     if !isnothing(labelfn)
         fnend, contents = parseorg((@inbounds @view text[1+ncodeunits(labelfn.match):end]),
                                    org_footnote_element_matchers, org_element_fallbacks[1:end-1];
                                    partial=true)
         (ncodeunits(labelfn.match) + fnend,
-         FootnoteDefinition(labelfn.captures[1], contents))
+         FootnoteDefinition(labelfn.captures[1]::SubString{String}, contents))
     end
 end
 
-function consume(::Type{InlineTask}, text::AbstractString)
+function consume(::Type{InlineTask}, text::SubString{String})
     inlinetaskmatch = match(r"^\*{15,} [^\n]*\n(?:(?!\*+ )[^\n]+\n*)+(\*{15,} +END(?:[ \t\r]*\n|$))?", text)
     if !isnothing(inlinetaskmatch)
         endtask = inlinetaskmatch.captures[1]
@@ -177,7 +177,7 @@ const org_item_element_matchers =
            Dict{Char, Vector{<:Type}}(key => filter(v -> v !== List, value)
                                       for (key, value) in org_element_matchers))
 
-function consume(::Type{Item}, text::AbstractString)
+function consume(::Type{Item}, text::SubString{String})
     function itemconsume(text, indent)
         indentedlines = let lastindentedpos = something(findfirst('\n', text), ncodeunits(text))
             rest = @inbounds @view text[lastindentedpos+1:end]
@@ -236,7 +236,7 @@ function itemtype(item::Item)
         end
 end
 
-function consume(::Type{List}, text::AbstractString)
+function consume(::Type{List}, text::SubString{String})
     itemstart = match(r"^([ \t]*)(\+|\-| \*|(?:[A-Za-z]|[0-9]+)[\.\)]) ", text)
     if !isnothing(itemstart)
         point = 1
@@ -260,7 +260,7 @@ end
 
 # Leser Elements
 
-function consume(::Type{Clock}, text::AbstractString)
+function consume(::Type{Clock}, text::SubString{String})
     clockmatch = match(r"^[ \t]*clock:[ \t]+(\[[^\n]*?)[ \t\r]*(?:\n(?:[ \t\r]*\n)*|$)"i, text)
     if !isnothing(clockmatch)
         rest = clockmatch.captures[1]
@@ -283,7 +283,7 @@ function consume(::Type{Clock}, text::AbstractString)
     end
 end
 
-function consume(::Type{Planning}, text::AbstractString)
+function consume(::Type{Planning}, text::SubString{String})
     plan = Dict{String, Union{Nothing, Timestamp}}(
         "DEADLINE" => nothing,
         "SCHEDULED" => nothing,
@@ -314,7 +314,7 @@ function consume(::Type{Planning}, text::AbstractString)
     end
 end
 
-function consume(::Type{ParagraphForced}, text::AbstractString)
+function consume(::Type{ParagraphForced}, text::SubString{String})
     line = text[1:something(findfirst('\n', text), end+1)-1]
     location = if text isa SubString
         let char=1+length(text.string[1:text.offset])
@@ -344,7 +344,7 @@ end
 # Objects
 # ---------------------
 
-function consume(::Type{Entity}, text::AbstractString)
+function consume(::Type{Entity}, text::SubString{String})
     # TODO work out how to properly handle \entitity{}
     # maybe this should be handled at the render stage?
     entitymatch = match(r"^\\([A-Za-z]+)(?:{}|[^A-Za-z]|$)", text)
@@ -356,7 +356,7 @@ function consume(::Type{Entity}, text::AbstractString)
     end
 end
 
-function consume(::Type{Citation}, text::AbstractString)
+function consume(::Type{Citation}, text::SubString{String})
     if startswith(text, "[cite") && ncodeunits(text) >= 8
         citeend = forwardsbalenced(text, 1, bracketpairs=Dict('[' => ']'))
         if !isnothing(citeend)
@@ -402,7 +402,7 @@ function consume(::Type{Citation}, text::AbstractString)
     end
 end
 
-function consume(::Type{FootnoteReference}, text::AbstractString)
+function consume(::Type{FootnoteReference}, text::SubString{String})
     if startswith(text, "[fn:") && ncodeunits(text) >= 6 && text[5] != ']'
         labelfn = match(r"^\[fn:([A-Za-z0-9\-_]+)(\]|:)", text)
         if !isnothing(labelfn) && !startofline(text) && labelfn.captures[2] == "]"
@@ -424,7 +424,7 @@ function consume(::Type{FootnoteReference}, text::AbstractString)
     end
 end
 
-function consume(::Type{InlineSourceBlock}, text::AbstractString)
+function consume(::Type{InlineSourceBlock}, text::SubString{String})
     srcmatch = match(r"^src_(\S+?)(?:\[([^\n]+)\])?{", text)
     if !isnothing(srcmatch)
         codeend = forwardsbalenced(text, ncodeunits(srcmatch.match),
@@ -438,7 +438,7 @@ function consume(::Type{InlineSourceBlock}, text::AbstractString)
     end
 end
 
-function consume(::Type{RegularLink}, text::AbstractString)
+function consume(::Type{RegularLink}, text::SubString{String})
     path = match(r"^\[\[((?:[^\]\[\\]+|\\(?:\\\\)*[\[\]]|\\+[^\]\[])+)\]", text)
     if !isnothing(path) && ncodeunits(path.match) < ncodeunits(text)
         linkpath = parse(LinkPath, path.captures[1])
@@ -458,13 +458,13 @@ function consume(::Type{RegularLink}, text::AbstractString)
     end
 end
 
-function consume(::Type{Timestamp}, text::AbstractString)
+function consume(::Type{Timestamp}, text::SubString{String})
     rodtypes = Dict("+" => :cumulative,
                     "++" => :catchup,
                     ".+" => :restart,
                     "-" => :warningall,
                     "--" => :warningfirst)
-    function parsenum(s)
+    function parsenum(s::SubString{String})
         n = tryparse(Int, s)
         if !isnothing(n); n else parse(Float64, n) end
     end
@@ -515,7 +515,7 @@ function consume(::Type{Timestamp}, text::AbstractString)
     end
 end
 
-function consume(T::Type{<:Timestamp}, text::AbstractString)
+function consume(T::Type{<:Timestamp}, text::SubString{String})
     ts = consume(Timestamp, text)
     if !isnothing(ts)
         @parseassert(T, ts isa T, "\"$text\" is a $(typeof(ts))")
@@ -523,7 +523,7 @@ function consume(T::Type{<:Timestamp}, text::AbstractString)
     end
 end
 
-function consume(::Type{TextMarkup}, text::AbstractString)
+function consume(::Type{TextMarkup}, text::SubString{String})
     if text[1] in ('*', '/', '_', '=', '~', '+') &&
         if text isa SubString
             text.offset == 0 ||
@@ -547,7 +547,7 @@ function consume(::Type{TextMarkup}, text::AbstractString)
     end
 end
 
-function consume(::Type{TextPlain}, content::AbstractString)
+function consume(::Type{TextPlain}, content::SubString{String})
     alph(c) = c in 'a':'z' || c in 'A':'Z'
     alphnum(c) = alph(c) || c in '0':'9'
     spc(c) = c in (' ', '\t', '\n')
@@ -621,7 +621,7 @@ function setforcematchwarn(b::Bool)
     global forcematchwarn = b
 end
 
-function consume(::Type{TextPlainForced}, s::AbstractString)
+function consume(::Type{TextPlainForced}, s::SubString{String})
     c = SubString(s, 1, 1)
     if forcematchwarn
         printstyled(stderr, "Warning:", bold=true, color=:yellow)

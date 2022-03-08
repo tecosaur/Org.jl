@@ -108,10 +108,10 @@ next heading may occur immediately in which case no section is formed.
 
 #+begin_src julia
 level::Integer
-keyword::Union{AbstractString, Nothing}
-priority::Union{AbstractString, Nothing}
+keyword::Union{SubString{String}, Nothing}
+priority::Union{SubString{String}, Nothing}
 title::Vector{Object}
-tags::Vector{AbstractString}
+tags::Vector{SubString{String}}
 section::Union{Section, Nothing}
 planning::Union{Planning, Nothing}
 properties::Union{PropertyDrawer, Nothing}
@@ -205,9 +205,9 @@ The following example contains three affiliated keywords:
 * Fields
 
 #+begin_src julia
-key::AbstractString
-optval::Union{<:AbstractString, Vector{Object}, Nothing}
-value::Union{<:AbstractString, Vector{Object}, Nothing}
+key::SubString{String}
+optval::Union{SubString{String}, Vector{Object}, Nothing}
+value::Union{SubString{String}, Vector{Object}, Nothing}
 #+end_src
 """ AffiliatedKeyword
 
@@ -308,7 +308,7 @@ TODO?
 * Fields
 
 #+begin_src julia
-name::AbstractString
+name::SubString{String}
 contents::Vector{Element}
 #+end_src
 """ Drawer
@@ -340,8 +340,8 @@ TODO?
 * Fields
 
 #+begin_src julia
-name::AbstractString
-parameters::Union{AbstractString, Nothing}
+name::SubString{String}
+parameters::Union{SubString{String}, Nothing}
 contents::Vector{Element}
 #+end_src
 """ DynamicBlock
@@ -378,7 +378,7 @@ It even contains a single blank line.
 
 * Fields
 #+begin_src julia
-label::AbstractString
+label::SubString{String}
 definition::Vector{Element}
 #+end_src
 """ FootnoteDefinition
@@ -458,10 +458,10 @@ BULLET COUNTER-SET CHECK-BOX TAG CONTENTS
 
 * Fields
 #+begin_src julia
-bullet::AbstractString
-counterset::Union{AbstractString, Nothing}
+bullet::SubString{String}
+counterset::Union{SubString{String}, Nothing}
 checkbox::Union{Char, Nothing}
-tag::Union{AbstractString, Nothing}
+tag::Union{SubString{String}, Nothing}
 contents::Vector{OrgComponent}
 #+end_src
 """ Item
@@ -581,7 +581,7 @@ table.el style tables are currently not supported.
 * Fields
 #+begin_src julia
 rows::Vector{Union{TableRow, TableHrule}}
-formulas::Vector{AbstractString}
+formulas::Vector{SubString{String}}
 #+end_src
 """ Table
 
@@ -625,7 +625,7 @@ Only NAME is currently implemented.
 * Fields
 
 #+begin_src julia
-name::AbstractString
+name::SubString{String}
 #+end_src
 """ BabelCall
 
@@ -688,9 +688,9 @@ CONTENTS
 * Fields
 
 #+begin_src julia
-name::AbstractString
-data::Union{AbstractString, Nothing}
-contents::AbstractString
+name::SubString{String}
+data::Union{SubString{String}, Nothing}
+contents::SubString{String}
 #+end_src
 """ Block
 
@@ -749,7 +749,7 @@ Comments consist of one or more consecutive comment lines.
 * Fields
 
 #+begin_src julia
-contents::AbstractString
+contents::SubString{String}
 #+end_src
 """ Comment
 
@@ -774,7 +774,7 @@ Fixed-width areas consist of one or more consecutive fixed-width lines.
 * Fields
 
 #+begin_src julia
-contents::AbstractString
+contents::SubString{String}
 #+end_src
 """ FixedWidth
 
@@ -821,8 +821,8 @@ not an affiliated keyword.
 * Fields
 
 #+begin_src julia
-key::AbstractString
-value::Union{<:AbstractString, Vector{Object}, Nothing}
+key::SubString{String}
+value::Union{SubString{String}, Vector{Object}, Nothing}
 #+end_src
 """ Keyword
 
@@ -854,8 +854,8 @@ CONTENTS
 * Fields
 
 #+begin_src julia
-name::AbstractString
-contents::AbstractString
+name::SubString{String}
+contents::SubString{String}
 #+end_src
 """ LaTeXEnvironment
 
@@ -882,9 +882,9 @@ TODO?
 
 * Fields
 #+begin_src julia
-name::AbstractString
+name::SubString{String}
 additive::Bool
-value::AbstractString
+value::SubString{String}
 #+end_src
 """ NodeProperty
 
@@ -984,7 +984,7 @@ Where NAME and POST are not separated by a whitespace character.
 * Fields
 
 #+begin_src julia
-name::AbstractString
+name::SubString{String}
 #+end_src
 """ Entity
 
@@ -1027,8 +1027,8 @@ Org also supports TeX-style inline LaTeX fragments, but I don't like them.
 * Fields
 
 #+begin_src julia
-contents::AbstractString
-delimiters::Union{Tuple{AbstractString, AbstractString}, Nothing}
+contents::SubString{String}
+delimiters::Union{Tuple{SubString{String}, SubString{String}}, Nothing}
 #+end_src
 """ LaTeXFragment
 
@@ -1047,8 +1047,8 @@ delimiters::Union{Tuple{AbstractString, AbstractString}, Nothing}
 
 * Fields
 #+begin_src julia
-backend::AbstractString
-snippet::AbstractString
+backend::SubString{String}
+snippet::SubString{String}
 #+end_src
 """ ExportSnippet
 
@@ -1080,7 +1080,7 @@ is then a *footnote definition*.
 * Fields
 
 #+begin_src julia
-label::Union{AbstractString, Nothing}
+label::Union{SubString{String}, Nothing}
 definition::Union{Vector{Object}, Nothing}
 #+end_src
 """ FootnoteReference
@@ -1111,7 +1111,7 @@ Where KEYPREFIX, @​KEY, and KEYSUFFIX are not separated by whitespace.
 
 #+begin_src julia
 prefix::Vector{Object}
-key::AbstractString
+key::SubString{String}
 suffix::Vector{Object}
 #+end_src
 """ CitationReference
@@ -1157,8 +1157,8 @@ whitespace is significant.
 * Fields
 
 #+begin_src julia
-style::Tuple{Union{AbstractString, Nothing},
-              Union{AbstractString, Nothing}}
+style::Tuple{Union{SubString{String}, Nothing},
+              Union{SubString{String}, Nothing}}
 globalprefix::Vector{Object}
 citerefs::Vector{CitationReference}
 globalsuffix::Vector{Object}
@@ -1186,9 +1186,9 @@ call_NAME[HEADER1](ARGUMENTS)[HEADER2]
 
 * Fields
 #+begin_src julia
-name::AbstractString
-header::Union{AbstractString, Nothing}
-arguments::Union{AbstractString, Nothing}
+name::SubString{String}
+header::Union{SubString{String}, Nothing}
+arguments::Union{SubString{String}, Nothing}
 #+end_src
 """ InlineBabelCall
 
@@ -1211,9 +1211,9 @@ src_LANG[HEADERS]{BODY}
 * Fields
 
 #+begin_src julia
-lang::AbstractString
-options::Union{AbstractString, Nothing}
-body::AbstractString
+lang::SubString{String}
+options::Union{SubString{String}, Nothing}
+body::SubString{String}
 #+end_src
 """ InlineSourceBlock
 
@@ -1297,8 +1297,8 @@ FUZZY
 
 * Fields
 #+begin_src julia
-protocol::Union{Symbol, AbstractString}
-path::AbstractString
+protocol::Union{Symbol, SubString{String}}
+path::SubString{String}
 #+end_src
 """ LinkPath
 
@@ -1445,8 +1445,8 @@ description::Union{Vector{Object}, Nothing}
 * Fields
 
 #+begin_src julia
-name::AbstractString
-arguments::Vector{AbstractString}
+name::SubString{String}
+arguments::Vector{SubString{String}}
 #+end_src
 """ Macro
 
@@ -1487,7 +1487,7 @@ contents::Vector{Object}
 * Fields
 
 #+begin_src julia
-contents::AbstractString
+contents::SubString{String}
 #+end_src
 """ Target
 
@@ -1510,7 +1510,7 @@ contents::AbstractString
 
 The subtype =StatisticsCookiePercent= has the following structure:
 #+begin_src julia
-percentage::AbstractString
+percentage::SubString{String}
 #+end_src
 
 The subtype =StatisticsCookieFraction= has the following structure:
@@ -1562,7 +1562,7 @@ SIGN CHARS FINAL
 Each of the subtypes, =Subscript= and =Superscript= are of the form:
 #+begin_src
 char::Char
-script::AbstractString
+script::SubString{String}
 #+end_src
 """ Script
 
@@ -1681,7 +1681,7 @@ BORDER BODY BORDER
   #+end_example
   Where BORDER and BODY are not separated by whitespace.
   - BORDER :: Any non-whitespace character.
-  - BODY ::  Either a string (when MARKER represents code or verbatim)
+  - BODY :: Either a string (when MARKER represents code or verbatim)
     or a series of objects from the standard set, not spanning more
     than three lines.
 + POST :: Either a whitespace character, =-=, =.=, =,=, =;=, =:=, =!=, =?=, ='=, =)=, =}=,
@@ -1690,7 +1690,7 @@ BORDER BODY BORDER
 * Fields
 #+begin_src julia
 formatting::Symbolcontents::Vector{Object}
-contents::Union{Vector{Object}, <:AbstractString}
+contents::Union{Vector{Object}, SubString{String}}
 #+end_src
 """ TextMarkup
 
@@ -1706,6 +1706,6 @@ space. For instance, =hello\n there= is equivalent to =hello there=.
 * Fields
 
 #+begin_src julia
-text::AbstractString
+text::SubString{String}
 #+end_src
 """ TextPlain

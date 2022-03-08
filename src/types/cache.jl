@@ -3,9 +3,9 @@ mutable struct OrgCache
     headings::Union{Nothing, Vector{Heading}}
     elements::Union{Nothing, Vector{Element}}
     components::Union{Nothing, Vector{OrgComponent}}
-    keywords::Union{Nothing, Dict{AbstractString, Vector{AbstractString}}}
-    macros::Union{Nothing, Dict{AbstractString, Function}}
-    footnotes::Union{Nothing, Dict{Union{AbstractString, FootnoteReference},
+    keywords::Union{Nothing, Dict{SubString{String}, Vector{SubString{String}}}}
+    macros::Union{Nothing, Dict{SubString{String}, Function}}
+    footnotes::Union{Nothing, Dict{Union{SubString{String}, FootnoteReference},
                                    Tuple{Int, Union{FootnoteDefinition, FootnoteReference}}}}
 end
 

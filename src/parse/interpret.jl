@@ -2,7 +2,7 @@
 
 struct OrgComponentParseError <: Exception
     element::Type
-    msg::AbstractString
+    msg::SubString{String}
 end
 
 function Base.showerror(io::IO, ex::OrgComponentParseError)
@@ -38,7 +38,7 @@ include("consumers.jl")
 
 import Base.parse
 
-function parse(component::Type{<:OrgComponent}, content::AbstractString)
+function parse(component::Type{<:OrgComponent}, content::SubString{String})
     result = consume(component, content)
     if isnothing(result)
         msg = string("│ ", join(split(content, '\n'), "\n│ "),
@@ -70,7 +70,7 @@ end
 # ---------------------
 
 function Heading(components::Vector{Union{Nothing, SubString{String}}})
-    stars, keyword, priority, title, tags, section = components
+    stars::SubString{String}, keyword, priority, title::SubString{String}, tags, section = components
     level = length(stars)
     tagsvec = if isnothing(tags); String[] else split(tags[2:end-1], ':') end
     Heading(level, keyword, priority,
@@ -80,7 +80,7 @@ function Heading(components::Vector{Union{Nothing, SubString{String}}})
 end
 
 function Section(components::Vector{Union{Nothing, SubString{String}}})
-    content = rstrip(components[1])
+    content = rstrip(components[1]::SubString{String})
     planning, properties = nothing, nothing
     plan = consume(Planning, content)
     if !isnothing(plan)
@@ -300,7 +300,7 @@ function LineBreak(::Vector{Union{Nothing, SubString{String}}})
     LineBreak()
 end
 
-function parse(::Type{LinkPath}, content::AbstractString, verify::Bool=true)
+function parse(::Type{LinkPath}, content::SubString{String}, verify::Bool=true)
     protocolmatch = match(r"^([^:#*<>()\[\]{}\s]+):(?://)?(.*)$", content)
     if isnothing(protocolmatch)
         verify && @parseassert(LinkPath, !occursin(r"\\[\[\]]", content),

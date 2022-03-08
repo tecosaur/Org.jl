@@ -1,25 +1,25 @@
 abstract type LesserElement <: Element end
 
 mutable struct BabelCall <: LesserElement
-    name::AbstractString
+    name::SubString{String}
 end
 
 abstract type Block <: LesserElement end
 
 mutable struct CommentBlock <: Block
-    contents::Vector{AbstractString}
+    contents::Vector{SubString{String}}
 end
 mutable struct ExampleBlock <: Block
-    contents::Vector{AbstractString}
+    contents::Vector{SubString{String}}
 end
 mutable struct ExportBlock <: Block
-    backend::AbstractString
-    contents::Vector{AbstractString}
+    backend::SubString{String}
+    contents::Vector{SubString{String}}
 end
 mutable struct SourceBlock <: Block
-    lang::Union{AbstractString, Nothing}
-    arguments::Union{AbstractString, Nothing}
-    contents::Vector{AbstractString}
+    lang::Union{SubString{String}, Nothing}
+    arguments::Union{SubString{String}, Nothing}
+    contents::Vector{SubString{String}}
 end
 mutable struct VerseBlock <: Block
     contents::Vector{LesserElement}
@@ -31,7 +31,7 @@ mutable struct Clock{T <: Union{TimestampInactive, TimestampInactiveRange}} <: L
 end
 
 mutable struct DiarySexp <: LesserElement
-    sexp::AbstractString
+    sexp::SubString{String}
 end
 
 mutable struct Planning <: LesserElement
@@ -40,36 +40,36 @@ mutable struct Planning <: LesserElement
     closed::Union{Timestamp, Nothing}
 end
 
-mutable struct Comment{S <: AbstractString} <: LesserElement
-    contents::Vector{S}
+mutable struct Comment <: LesserElement
+    contents::Vector{SubString{String}}
 end
 
-mutable struct FixedWidth{S <: AbstractString} <: LesserElement
-    contents::Vector{S}
+mutable struct FixedWidth <: LesserElement
+    contents::Vector{SubString{String}}
 end
 
 struct HorizontalRule <: LesserElement end
 
-mutable struct Keyword{V <: Union{<:AbstractString, Vector{Object}, Nothing}} <: LesserElement
-    key::AbstractString
+mutable struct Keyword{V <: Union{SubString{String}, Vector{Object}, Nothing}} <: LesserElement
+    key::SubString{String}
     value::V
 end
 
-mutable struct AffiliatedKeyword{V <: Union{<:AbstractString, Vector{Object}, Nothing}} <: LesserElement
-    key::AbstractString
-    optval::Union{<:AbstractString, Vector{Object}, Nothing}
+mutable struct AffiliatedKeyword{V <: Union{SubString{String}, Vector{Object}, Nothing}} <: LesserElement
+    key::SubString{String}
+    optval::Union{SubString{String}, Vector{Object}, Nothing}
     value::V
 end
 
 mutable struct LaTeXEnvironment <: LesserElement
-    name::AbstractString
-    contents::Vector{AbstractString}
+    name::SubString{String}
+    contents::Vector{SubString{String}}
 end
 
 mutable struct NodeProperty <: LesserElement
-    name::AbstractString
+    name::SubString{String}
     additive::Bool
-    value::AbstractString
+    value::SubString{String}
 end
 
 mutable struct Paragraph <: LesserElement

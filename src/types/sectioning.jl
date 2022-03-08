@@ -6,9 +6,9 @@ end
 
 mutable struct Heading <: Element
     level::Integer
-    keyword::Union{AbstractString, Nothing}
-    priority::Union{AbstractString, Nothing}
+    keyword::Union{SubString{String}, Nothing}
+    priority::Union{SubString{String}, Nothing}
     title::Vector{Object}
-    tags::Vector{AbstractString}
+    tags::Vector{SubString{String}}
     section::Union{Section, Nothing}
 end

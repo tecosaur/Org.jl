@@ -3,32 +3,32 @@ abstract type GreaterElement <: Element end
 abstract type GreaterBlock <: GreaterElement end
 
 mutable struct CenterBlock <: GreaterBlock
-    parameters::Union{AbstractString, Nothing}
+    parameters::Union{SubString{String}, Nothing}
     contents::Vector{Element}
 end
 mutable struct QuoteBlock <: GreaterBlock
-    parameters::Union{AbstractString, Nothing}
+    parameters::Union{SubString{String}, Nothing}
     contents::Vector{Element}
 end
 mutable struct SpecialBlock <: GreaterBlock
-    name::AbstractString
-    parameters::Union{AbstractString, Nothing}
+    name::SubString{String}
+    parameters::Union{SubString{String}, Nothing}
     contents::Vector{Element}
 end
 
 mutable struct Drawer <: GreaterElement
-    name::AbstractString
+    name::SubString{String}
     contents::Vector{Element}
 end
 
 mutable struct DynamicBlock <: GreaterElement
-    name::AbstractString
-    parameters::Union{AbstractString, Nothing}
+    name::SubString{String}
+    parameters::Union{SubString{String}, Nothing}
     contents::Vector{Element}
 end
 
 mutable struct FootnoteDefinition <: GreaterElement
-    label::AbstractString
+    label::SubString{String}
     definition::Vector{Element}
 end
 
@@ -37,8 +37,8 @@ end
 abstract type List <: GreaterElement end
 
 mutable struct Item <: GreaterElement
-    bullet::AbstractString
-    counterset::Union{AbstractString, Nothing}
+    bullet::SubString{String}
+    counterset::Union{SubString{String}, Nothing}
     checkbox::Union{Char, Nothing}
     tag::Union{Vector{OrgComponent}, Nothing}
     contents::Vector{OrgComponent}
@@ -60,5 +60,5 @@ end
 
 mutable struct Table <: GreaterElement
     rows::Vector{Union{TableRow, TableHrule}}
-    formulas::Vector{AbstractString}
+    formulas::Vector{SubString{String}}
 end

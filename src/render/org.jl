@@ -21,7 +21,7 @@ end
 
 org(o::Union{OrgDoc, OrgComponent}) = org(stdout, o)
 
-function org(_::IO, component::C) where { C <: OrgComponent}
+function org(::IO, component::C) where { C <: OrgComponent}
     @warn "No method for converting $C to a string representation currently exists"
 end
 
@@ -313,7 +313,7 @@ end
 
 org(io::IO, ::HorizontalRule) = print(io, "-----")
 
-org(io::IO, keyword::Keyword{<:AbstractString}) =
+org(io::IO, keyword::Keyword{SubString{String}}) =
     print(io, "#+", keyword.key, ": ", keyword.value)
 
 function org(io::IO, keyword::Keyword{Vector{Object}})
@@ -323,7 +323,7 @@ function org(io::IO, keyword::Keyword{Vector{Object}})
     end
 end
 
-function org(io::IO, afk::AffiliatedKeyword{<:AbstractString})
+function org(io::IO, afk::AffiliatedKeyword{SubString{String}})
     print(io, "#+", afk.key)
     if !isnothing(afk.optval)
         print(io, '[', afk.optval, ']')
@@ -601,7 +601,7 @@ const TextMarkupMarkers =
 
 function org(io::IO, markup::TextMarkup)
     print(io, TextMarkupMarkers[markup.formatting])
-    if markup.contents isa AbstractString
+    if markup.contents isa SubString{String}
         print(io, markup.contents)
     else
         org.(Ref(io), markup.contents)

@@ -10,8 +10,8 @@ const html_entity_map =
          '`' => "&#x60;",
          '=' => "&#x3D;")
 
-html_escape(s) = replace(s, r"[&<>\"'`=\/]" =>
-    e -> html_entity_map[e[1]])
+html_escape(s::AbstractString) =
+    replace(s, r"[&<>\"'`=\/]" => e -> html_entity_map[e[1]])
 
 function html_tagpair(tag, attrs::Pair...)
     attrstr = if length(attrs) > 0
@@ -20,11 +20,11 @@ function html_tagpair(tag, attrs::Pair...)
     (string('<', tag, attrstr, '>'), string("</", tag, '>'))
 end
 
-function html_tagwrap(s, tag, escape=false, attrs::Pair...)
+function html_tagwrap(s::AbstractString, tag::String, escape::Bool=false, attrs::Pair...)
     open, close = html_tagpair(tag, attrs...)
     string(open, if escape html_escape(s) else s end, close)
 end
-html_tagwrap(s, tag, attrs::Pair...) = html_tagwrap(s, tag, false, attrs...)
+html_tagwrap(s::AbstractString, tag::String, attrs::Pair...) = html_tagwrap(s, tag, false, attrs...)
 
 # ---------------------
 # Org
@@ -417,7 +417,7 @@ const html_markup_codes =
 function html(io::IO, markup::TextMarkup)
     tagopen, tagclose = html_markup_codes[markup.formatting]
     print(io, tagopen)
-    if markup.contents isa AbstractString
+    if markup.contents isa SubString{String}
         print(io, html_escape(markup.contents))
     else
         html.(Ref(io), markup.contents)

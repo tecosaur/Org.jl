@@ -85,7 +85,7 @@ structuredesc(l::Link) = l.path.protocol
 structuredesc(m::Macro) = m.name
 structuredesc(e::Entity) = e.name * " (" * Entities[e.name].utf8 * ")"
 structurename(t::TextMarkup) = "Text" * uppercasefirst(string(t.formatting))
-structuredesc(t::TextMarkup{<:AbstractString}) =
+structuredesc(t::TextMarkup{SubString{String}}) =
     string(structuredesc(TextPlain(t.contents)))
 structuredesc(t::TextPlain) = if length(t.text) <= 40
     sprint(show, t.text)

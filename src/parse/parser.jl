@@ -19,8 +19,8 @@ function Base.showerror(io::IO, ex::OrgParseError)
     Base.Experimental.show_error_hints(io, ex)
 end
 
-function parseorg(content::AbstractString, typematchers::Dict{Char, <:AbstractVector{<:Type}},
-                  typefallbacks::AbstractVector{<:Type};
+function parseorg(content::SubString{String}, typematchers::Dict{Char, <:Vector{<:Type}},
+                  typefallbacks::Vector{<:Type};
                   debug::Bool=false, partial::Bool=false, maxobj::Integer=0)
     point, objects = 1, OrgComponent[]
     points = [point]
@@ -30,7 +30,7 @@ function parseorg(content::AbstractString, typematchers::Dict{Char, <:AbstractVe
         obj::Union{OrgComponent, Nothing} = nothing
         types = DataType[]
         # use the next non-whitespace char to guide type matchers
-        char = if content[point] == ' ' || content[point] == '\t'
+        char::Char = if content[point] == ' ' || content[point] == '\t'
             nextnonspace = findfirst(c -> c != ' ' && c != '\t',
                                      @inbounds @view content[point:clen])
             if !isnothing(nextnonspace)
@@ -101,7 +101,7 @@ function parseorg(content::AbstractString, typematchers::Dict{Char, <:AbstractVe
     end
 end
 
-function parseorg(content::AbstractString, typefallbacks::AbstractVector{<:Type};
+function parseorg(content::SubString{String}, typefallbacks::Vector{<:Type};
                   debug=false, partial=false)
     parseorg(content, Dict{Char, Vector{DataType}}(),
              typefallbacks; debug, partial)
@@ -122,7 +122,7 @@ const org_object_resticted_fallbacks =
     Dict(o => [org_object_fallbacks ∩ org_object_restrictions[o]; TextPlainForced]
          for o in keys(org_object_restrictions))
 
-function parseobjects(context::Type, content::AbstractString; debug=false, partial=false)
+function parseobjects(context::Type, content::SubString{String}; debug=false, partial=false)
     @assert context in keys(org_object_restrictions)
     Vector{Object}(
         parseorg(content, org_object_resticted_matchers[context],
@@ -131,7 +131,7 @@ end
 
 # parsing utilities
 
-function forwardsbalenced(content::AbstractString, point::Integer=1, limit::Integer=lastindex(content);
+function forwardsbalenced(content::SubString{String}, point::Integer=1, limit::Integer=lastindex(content);
                           bracketpairs::Dict{Char, Char}=Dict{Char, Char}(), escapechars::Vector{Char}=Char[],
                           quotes::Vector{Char}=Char[], spacedquotes::Vector{Char}=Char[])
     open = content[point]
