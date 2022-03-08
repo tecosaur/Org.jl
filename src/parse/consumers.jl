@@ -200,19 +200,18 @@ function consume(::Type{Item}, text::AbstractString)
         if bullet == "*"
             indent *= " "
         end
-        contentindent = indent * "  "
         itemextras = match(r"^(?:[ \t]+\[\@([A-Za-z]|[0-9]+)\])?(?:[ \t]+\[([ \-X])\])?(?:[ \t]+([^\n]+?)[ \t]::)?[ \t]+",
                            @inbounds @view text[ncodeunits(itemstart.match):end])
         counterset, checkbox, tag = itemextras.captures
         # collect contents
         rest = @inbounds @view text[ncodeunits(itemstart.match) + ncodeunits(itemextras.match):end]
         contentlen, contentobjs = 0, OrgComponent[]
-        len, obj = itemconsume(rest, contentindent)
+        len, obj = itemconsume(rest, indent)
         contentlen += len
         push!(contentobjs, obj)
         rest = @inbounds @view text[contentlen + ncodeunits(itemstart.match) + ncodeunits(itemextras.match):end]
-        while startswith(rest, contentindent) && !isnothing(obj)
-            len, obj = itemconsume(rest, contentindent)
+        while startswith(rest, indent * "  ") && !isnothing(obj)
+            len, obj = itemconsume(rest, indent)
             contentlen += len
             push!(contentobjs, obj)
             rest = @inbounds @view text[contentlen + ncodeunits(itemstart.match) + ncodeunits(itemextras.match):end]
