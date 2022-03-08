@@ -14,7 +14,7 @@ end
 
 macro parseassert(elem, expr::Expr, msg)
     function matchp(e::Expr)
-        if e.head == :call && e.args[1] == :match
+        if e.head == :call && e.args[1] isa Symbol && e.args[1]::Symbol == :match
             e = :(!(isnothing($e)))
         else
             e.args = map(matchp, e.args)
@@ -52,6 +52,9 @@ function parse(component::Type{<:OrgComponent}, content::SubString{String})
         obj
     end
 end
+
+parse(component::Type{<:OrgComponent}, content::String) =
+    parse(component, convert(SubString{String}, content))
 
 # ---------------------
 # Org
@@ -96,7 +99,7 @@ function Section(components::Vector{Union{Nothing, SubString{String}}})
                                         content.offset + lastindex(content))
         properties = props[2]
     end
-    Section(parseorg(content, org_element_matchers, org_element_fallbacks),
+    Section(parseorg(content, org_element_matchers, org_element_fallbacks) |> Vector{Element},
             planning, properties)
 end
 
@@ -105,7 +108,7 @@ end
 # ---------------------
 
 function GreaterBlock(components::Vector{Union{Nothing, SubString{String}}})
-    name, parameters, contents = components
+    name::SubString{String}, parameters, contents::SubString{String} = components
     name = ensurelowercase(name)
     containedelem = parseorg(contents, org_element_matchers, org_element_fallbacks)
     if name == "center"
@@ -117,9 +120,9 @@ function GreaterBlock(components::Vector{Union{Nothing, SubString{String}}})
     end
 end
 
-function Drawer(components::Vector{Union{Nothing,SubString{String}}})
+function Drawer(components::Vector{Union{Nothing, SubString{String}}})
     # When a draw by the same name is inside, it should be treated as a paragraph
-    name, content = components
+    name::SubString{String}, content = components
     Drawer(name, if !isnothing(content)
                parse(Section, content).contents
            else
@@ -128,7 +131,7 @@ function Drawer(components::Vector{Union{Nothing,SubString{String}}})
 end
 
 function DynamicBlock(components::Vector{Union{Nothing, SubString{String}}})
-    name, parameters, contents = components
+    name::SubString{String}, parameters, contents::SubString{String} = components
     containedelem = parseorg(contents, org_element_matchers, org_element_fallbacks)
     DynamicBlock(name, parameters, containedelem)
 end
@@ -141,13 +144,13 @@ end
 # List has a custom consumer
 
 function PropertyDrawer(components::Vector{Union{Nothing, SubString{String}}})
-    nodetext = components[1]
+    nodetext::SubString{String} = components[1]
     nodes = parseorg(nodetext, [NodeProperty])
     PropertyDrawer(Vector{NodeProperty}(nodes))
 end
 
 function Table(components::Vector{Union{Nothing, SubString{String}}})
-    table, tblfms = components
+    table::SubString{String}, tblfms = components
     rows = map(row -> if !isnothing(match(r"^[ \t]*\|[\-\+]+\|*$", row))
                    TableHrule() else parse(TableRow, row) end,
                split(table, '\n'))
@@ -170,15 +173,15 @@ end
 # ---------------------
 
 function BabelCall(components::Vector{Union{Nothing, SubString{String}}})
-    BabelCall(components[1])
+    BabelCall(components[1]::SubString{String})
 end
 
 function Block(components::Vector{Union{Nothing, SubString{String}}})
-    name, data, contents = components
+    name::SubString{String}, data, contents = components
     lines = if !isnothing(contents)
         split(contents, '\n')
     else
-        String[]
+        SubString{String}[]
     end
     for i in 1:length(lines)
         if startswith(lines[i], ",*") || startswith(lines[i], ",#+")
@@ -194,6 +197,8 @@ function Block(components::Vector{Union{Nothing, SubString{String}}})
             lang, arguments = match(r"^(\S+)( [^\n]+)?$", data).captures
         end
         SourceBlock(lang, arguments, lines)
+    elseif name == "export"
+        ExportBlock(data, lines)
     elseif name == "example"
         ExampleBlock(lines)
     end
@@ -202,13 +207,13 @@ end
 # Clock has a custom consumer
 
 function DiarySexp(components::Vector{Union{Nothing, SubString{String}}})
-    DiarySexp(components[1])
+    DiarySexp(components[1]::SubString{String})
 end
 
 # Planning has a custom consumer
 
 function Comment(components::Vector{Union{Nothing, SubString{String}}})
-    content = components[1]
+    content::SubString{String} = components[1]
     lines = split(content, '\n') .|> l ->
         @inbounds SubString(l.string, 1 + l.offset + ncodeunits(match(r"^[ \t]*# ?", l).match),
                             l.offset + lastindex(l))
@@ -216,7 +221,7 @@ function Comment(components::Vector{Union{Nothing, SubString{String}}})
 end
 
 function FixedWidth(components::Vector{Union{Nothing, SubString{String}}})
-    content = components[1]
+    content::SubString{String} = components[1]
     lines = split(content, '\n') .|> l ->
         @inbounds SubString(l.string, 1 + l.offset + ncodeunits(match(r"^[ \t]*: ?", l).match),
                             l.offset + lastindex(l))
@@ -226,7 +231,7 @@ end
 HorizontalRule(_::Vector{Union{Nothing, SubString{String}}}) = HorizontalRule()
 
 function Keyword(components::Vector{Union{Nothing, SubString{String}}})
-    key, value = components
+    key::SubString{String}, value = components
     key = ensurelowercase(key)
     if haskey(org_keyword_translations, key)
         key = org_keyword_translations[key]
@@ -238,7 +243,7 @@ function Keyword(components::Vector{Union{Nothing, SubString{String}}})
 end
 
 function LaTeXEnvironment(components::Vector{Union{Nothing, SubString{String}}})
-    indent, name, content = components
+    indent::SubString{String}, name::SubString{String}, content::SubString{String} = components
     lines = map(split(content, '\n')) do line
         if startswith(line, indent)
             @inbounds @view line[1+ncodeunits(indent):end]
@@ -250,16 +255,16 @@ function LaTeXEnvironment(components::Vector{Union{Nothing, SubString{String}}})
 end
 
 function NodeProperty(components::Vector{Union{Nothing, SubString{String}}})
-    name, additive, value = components
+    name::SubString{String}, additive, value::SubString{String} = components
     NodeProperty(name, !isnothing(additive), strip(value))
 end
 
 function Paragraph(components::Vector{Union{Nothing, SubString{String}}})
-    Paragraph(parseobjects(Paragraph, components[1]))
+    Paragraph(parseobjects(Paragraph, components[1]::SubString{String}))
 end
 
 function TableRow(components::Vector{Union{Nothing, SubString{String}}})
-    TableRow(split(strip(components[1], '|'), '|') .|> strip .|>
+    TableRow(split(strip(components[1]::SubString{String}, '|'), '|') .|> strip .|>
         c -> TableCell(parseobjects(TableCell, c)))
 end
 
@@ -272,7 +277,7 @@ end
 function LaTeXFragment(components::Vector{Union{Nothing, SubString{String}}})
     command, delimitedform = components
     if isnothing(delimitedform)
-        LaTeXFragment(command, nothing)
+        LaTeXFragment(command::SubString{String}, nothing)
     else
         LaTeXFragment(delimitedform[3:end-2],
                       (delimitedform[1:2], delimitedform[end-1:end]))
@@ -280,7 +285,7 @@ function LaTeXFragment(components::Vector{Union{Nothing, SubString{String}}})
 end
 
 function ExportSnippet(components::Vector{Union{Nothing, SubString{String}}})
-    backend, snippet = components
+    backend::SubString{String}, snippet::SubString{String} = components
     ExportSnippet(backend, snippet)
 end
 
@@ -290,7 +295,7 @@ function FootnoteReference(components::Vector{Union{Nothing, SubString{String}}}
 end
 
 function InlineBabelCall(components::Vector{Union{Nothing, SubString{String}}})
-    name, header1, arguments, header2 = components
+    name::SubString{String}, header1, arguments, header2 = components
     InlineBabelCall(name, if isnothing(header1) header2 else header1 end, arguments)
 end
 
@@ -325,25 +330,25 @@ end
 # RadioLink is handled in a post-processing step
 
 function PlainLink(components::Vector{Union{Nothing, SubString{String}}})
-    path = components[1]
+    path::SubString{String} = components[1]
     PlainLink(parse(LinkPath, path))
 end
 
 function AngleLink(components::Vector{Union{Nothing, SubString{String}}})
-    path = components[1]
+    path::SubString{String} = components[1]
     AngleLink(parse(LinkPath, path))
 end
 
 # RegularLink has a custom consumer
 
 function Macro(components::Vector{Union{Nothing, SubString{String}}})
-    name, arguments = components
+    name::SubString{String}, arguments = components
     Macro(name, if isnothing(arguments) || length(arguments) == 0; []
           else split(arguments, r"(?<!\\), ?") end)
 end
 
 function RadioTarget(components::Vector{Union{Nothing, SubString{String}}})
-    target = components[1]
+    target::SubString{String} = components[1]
     @parseassert(RadioTarget, match(r"^[^<>\n]*$", target),
                  "\"$target\" cannot contain <, >, or \\n")
     @parseassert(RadioTarget, !match(r"^\s|\s$", target),
@@ -352,7 +357,7 @@ function RadioTarget(components::Vector{Union{Nothing, SubString{String}}})
 end
 
 function Target(components::Vector{Union{Nothing, SubString{String}}})
-    target = components[1]
+    target::SubString{String} = components[1]
     @parseassert(Target, match(r"^[^<>\n]*$", target),
                  "\"$target\" cannot contain <, >, or \\n")
     @parseassert(Target, !match(r"^\s|\s$", target),
@@ -371,7 +376,7 @@ function StatisticsCookie(components::Vector{Union{Nothing, SubString{String}}})
 end
 
 function Script(components::Vector{Union{Nothing, SubString{String}}})
-    char, type, script = components
+    char::SubString{String}, type::SubString{String}, script::SubString{String} = components
     if type == "^"
         Superscript(char[1], script)
     else
@@ -380,7 +385,7 @@ function Script(components::Vector{Union{Nothing, SubString{String}}})
 end
 
 function TableCell(components::Vector{Union{Nothing, SubString{String}}})
-    content = components[1]
+    content::SubString{String} = components[1]
     @parseassert(TableCell, !occursin("|", content),
                  "\"$content\" cannot contain \"|\"")
     TableCell(parseobjects(TableCell, strip(content)))

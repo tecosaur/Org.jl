@@ -1,6 +1,6 @@
 function postprocess!(doc::OrgDoc)
     # Radio Links
-    doc.components::Vector{Element}
+    doc.components::Vector{OrgComponent}
     radios = filter(c -> c isa RadioTarget, doc.components)
     if length(radios) > 0
         paragraphs = filter(c -> c isa Paragraph, doc.components)

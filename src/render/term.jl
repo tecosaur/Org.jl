@@ -168,7 +168,7 @@ function term(io::IO, o::OrgDoc, centerblock::CenterBlock, indent::Integer=0)
         term(contentbuf, o, el, indent)
     end
     for line in split(String(take!(contentbuf.io)), '\n')
-        print(io, ' '^(indent + (width - textwidth(line))÷2), line)
+        print(io, ' '^(indent + max(0, (width - textwidth(line))÷2)), line)
     end
 end
 
@@ -179,10 +179,12 @@ function term(io::IO, o::OrgDoc, quoteblock::QuoteBlock, indent::Integer=0)
     for el in quoteblock.contents
         term(contentbuf, o, el, 0)
     end
-    for line in split(String(take!(contentbuf.io)), '\n')
+    lines = split(String(take!(contentbuf.io)), '\n')
+    for line in lines
         print(io, ' '^indent)
         printstyled(io, "┃ ", color=:light_black)
         print(io, line)
+        line === last(lines) || print(io, '\n')
     end
 end
 
@@ -370,6 +372,8 @@ end
 
 term(io::IO, ::OrgDoc, block::ExampleBlock, indent::Integer=0) =
     printblockcontent(io, ' '^indent * "║ ", :light_black, block.contents, :cyan)
+
+term(::IO, ::OrgDoc, ::ExportBlock) = nothing
 
 function term(io::IO, ::OrgDoc, srcblock::SourceBlock, indent::Integer=0)
     printstyled(io, ' '^indent, "╭", color=:light_black)

@@ -413,9 +413,11 @@ function html(io::IO, ts::TimestampInstant)
                            "time", "datetime" => Dates.format(ts.date, ISODateFormat)))
     else
         print(io,
-              html_tagwrap(Dates.format(ts.date, dateformat"H:M e d u Y"),
-                           "time", "datetime" => Dates.format(DateTime(ts.date, ts.time),
-                                                              ISODateTimeFormat)))
+              html_tagwrap(Dates.format(DateTime(ts.date, ts.time),
+                                        dateformat"H:M e d u Y"),
+                           "time",
+                           "datetime" => Dates.format(DateTime(ts.date, ts.time),
+                                                      ISODateTimeFormat)))
     end
     if !isnothing(ts.repeater)
         print(io, " and ")

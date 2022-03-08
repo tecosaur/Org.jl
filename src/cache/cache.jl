@@ -27,15 +27,15 @@ end
 
 function gencache(c::OrgCache, ::Val{:elements})
     Vector{Union{Heading, Section, GreaterElement, Element}}(
-        OrgElementIterator(c.doc) |> collect)
+        OrgElementIterator(c.doc::OrgDoc) |> collect)
 end
 
 function gencache(c::OrgCache, ::Val{:components})
-    Vector{OrgComponent}(OrgIterator(c.doc) |> collect)
+    Vector{OrgComponent}(OrgIterator(c.doc::OrgDoc) |> collect)
 end
 
 function gencache(c::OrgCache, ::Val{:headings})
-    Vector{Heading}(filter(h -> h isa Heading, c.elements))
+    Vector{Heading}(filter(h -> h isa Heading, c.elements::Vector{Element}))
 end
 
 function gencache(c::OrgCache, ::Val{:keywords})
@@ -90,7 +90,7 @@ end
 function gencache(c::OrgCache, ::Val{:footnotes})
     footnotes = Dict{Union{SubString{String}, FootnoteReference}, Tuple{Int, Union{FootnoteReference, FootnoteDefinition}}}()
     i = 1
-    for f in filter(f -> f isa FootnoteDefinition || f isa FootnoteReference, c.components)
+    for f in filter(f -> f isa FootnoteDefinition || f isa FootnoteReference, c.components) |> Vector{Union{FootnoteDefinition, FootnoteReference}}
         if !isnothing(f.definition)
             footnotes[something(f.label, f)] = (i, f)
             i += 1

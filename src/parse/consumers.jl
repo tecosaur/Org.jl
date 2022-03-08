@@ -88,7 +88,7 @@ function consume(::Type{AffiliatedKeyword}, text::SubString{String})
     end
     keymatch = match(r"^[ \t]*#\+([^\s\[\]]+)([:\[])", text)
     if !isnothing(keymatch)
-        key, kendchar = keymatch.captures
+        key::SubString{String}, kendchar::SubString{String} = keymatch.captures
         if kendchar[1] == '[' && ensurelowercase(key) in org_dual_keywords #+key[optval]: val
             optvalend = forwardsbalenced(text, ncodeunits(keymatch.match),
                                          bracketpairs=Dict('[' => ']'))
@@ -124,6 +124,7 @@ function consume(::Type{AffiliatedKeywordsWrapper}, text::SubString{String})
     while !isnothing(nextkw) &&
         (nextkw[2].key in org_affilated_keywords ||
          startswith(nextkw[2].key, "attr_"))
+        nextkw::Tuple{Int64, AffiliatedKeyword}
         if occursin(r"^[ \t\r]*\n", @inbounds @view text[point+nextkw[1]:textend])
             return nothing
         end
@@ -161,11 +162,12 @@ end
 function consume(::Type{InlineTask}, text::SubString{String})
     inlinetaskmatch = match(r"^\*{15,} [^\n]*\n(?:(?!\*+ )[^\n]+\n*)+(\*{15,} +END(?:[ \t\r]*\n|$))?", text)
     if !isnothing(inlinetaskmatch)
-        endtask = inlinetaskmatch.captures[1]
+        endtask::SubString{String} = inlinetaskmatch.captures[1]
         heading = consume(Heading,
                           @inbounds @view text[1:(ncodeunits(inlinetaskmatch.match) -
                               if !isnothing(endtask); ncodeunits(endtask) else 0 end)])
         if !isnothing(heading)
+            heading::Tuple{Int64, Heading}
             (ncodeunits(inlinetaskmatch.match),
              InlineTask(heading[2]))
         end
@@ -196,7 +198,7 @@ function consume(::Type{Item}, text::SubString{String})
     end
     itemstart = match(r"^([ \t]*)(\+|\-| \*|(?:[A-Za-z]|[0-9]+)[\.\)]) ", text)
     if !isnothing(itemstart)
-        indent, bullet = itemstart.captures
+        indent::SubString{String}, bullet::SubString{String} = itemstart.captures
         if bullet == "*"
             indent *= " "
         end
@@ -239,22 +241,25 @@ end
 function consume(::Type{List}, text::SubString{String})
     itemstart = match(r"^([ \t]*)(\+|\-| \*|(?:[A-Za-z]|[0-9]+)[\.\)]) ", text)
     if !isnothing(itemstart)
-        point = 1
-        listindent = itemstart.captures[1]
-        items = Item[]
         nextitem = consume(Item, text)
-        listtype = itemtype(nextitem[2])
-        while !isnothing(nextitem) && point < ncodeunits(text)
-            len, item = nextitem
-            (itemtype(item) != listtype) && break
-            point += len
-            push!(items, item)
-            rest = @inbounds @view text[point:end]
-            nextitem = if startswith(rest, listindent)
-                consume(Item, rest)
+        if !isnothing(nextitem)
+            nextitem::Tuple{Int64, Item}
+            listindent::SubString{String} = itemstart.captures[1]
+            point = 1
+            items = Item[]
+            listtype = itemtype(nextitem[2])
+            while !isnothing(nextitem) && point < ncodeunits(text)
+                len, item = nextitem
+                (itemtype(item) != listtype) && break
+                point += len
+                push!(items, item)
+                rest = @inbounds @view text[point:end]
+                nextitem = if startswith(rest, listindent)
+                    consume(Item, rest)
+                end
             end
-        end
         point-1, listtype(items)
+        end
     end
 end
 
@@ -263,10 +268,10 @@ end
 function consume(::Type{Clock}, text::SubString{String})
     clockmatch = match(r"^[ \t]*clock:[ \t]+(\[[^\n]*?)[ \t\r]*(?:\n(?:[ \t\r]*\n)*|$)"i, text)
     if !isnothing(clockmatch)
-        rest = clockmatch.captures[1]
+        rest::SubString{String} = clockmatch.captures[1]
         timestamp = consume(Timestamp, rest)
         if !isnothing(timestamp)
-            tslen, ts = timestamp
+            tslen::Int64, ts::Timestamp = timestamp
             if ts isa TimestampInactive && tslen == ncodeunits(rest)
                 (ncodeunits(clockmatch.match),
                     Clock(ts, nothing))
@@ -274,7 +279,7 @@ function consume(::Type{Clock}, text::SubString{String})
                 durationmatch = match(r"^[ \t]+=>[ \t]+(\d+):(\d\d)$",
                                       @inbounds @view rest[1+tslen:end])
                 if !isnothing(durationmatch)
-                    hours, mins = durationmatch.captures
+                    hours::SubString{String}, mins::SubString{String} = durationmatch.captures
                     (ncodeunits(clockmatch.match),
                      Clock(ts, (parse(Int, hours), parse(Int, mins))))
                 end
@@ -349,7 +354,7 @@ function consume(::Type{Entity}, text::SubString{String})
     # maybe this should be handled at the render stage?
     entitymatch = match(r"^\\([A-Za-z]+)(?:{}|[^A-Za-z]|$)", text)
     if !isnothing(entitymatch)
-        name = entitymatch.captures[1]
+        name::SubString{String} = entitymatch.captures[1]
         if name in keys(Entities)
             1+ncodeunits(name), Entity(name)
         end
@@ -431,7 +436,7 @@ function consume(::Type{InlineSourceBlock}, text::SubString{String})
                                    bracketpairs=Dict('{' => '}'),
                                    escapechars=['\\'], quotes=['"'])
         if !isnothing(codeend)
-            lang, options = srcmatch.captures
+            lang::SubString{String}, options = srcmatch.captures
             code = @inbounds @view text[1+ncodeunits(srcmatch.match):codeend-1]
             codeend, InlineSourceBlock(lang, options, code)
         end
@@ -441,7 +446,7 @@ end
 function consume(::Type{RegularLink}, text::SubString{String})
     path = match(r"^\[\[((?:[^\]\[\\]+|\\(?:\\\\)*[\[\]]|\\+[^\]\[])+)\]", text)
     if !isnothing(path) && ncodeunits(path.match) < ncodeunits(text)
-        linkpath = parse(LinkPath, path.captures[1])
+        linkpath = parse(LinkPath, path.captures[1]::SubString{String})
         matchoffset = 1+ncodeunits(path.match)
         if text[matchoffset] == ']'
             (1 + matchoffset,
@@ -479,7 +484,7 @@ function consume(::Type{Timestamp}, text::SubString{String})
     fullts = r"^(?:(<)|\[)(\d{4}-\d\d-\d\d)(?: +[A-Za-z]+)?(?: +(\d?\d:\d\d)(?:-(\d?\d:\d\d))?)?(?: +((?:\+|\+\+|\.\+))(\d[\d.]*)([hdwmy]))?(?: +(-|--)(\d[\d.]*)([hdwmy]))? *(?(1)>|\])"
     tsmatch = match(fullts, text)
     if !isnothing(tsmatch)
-        active, date, timea, timeb, mark, value, unit, warnmark, warnvalue, warnunit = tsmatch.captures
+        active, date::SubString{String}, timea, timeb, mark, value, unit, warnmark, warnvalue, warnunit = tsmatch.captures
         range, type = if isnothing(active)
             (TimestampInactiveRange, TimestampInactive)
         else
@@ -500,7 +505,7 @@ function consume(::Type{Timestamp}, text::SubString{String})
                        DateTimeRD(type, date, timeb, mark, value, unit, warnmark, warnvalue, warnunit)))
             end
         else
-            _, date2, time2a, _, mark2, value2, unit2, warnmark2, warnvalue2, warnunit2 = tsmatch2.captures
+            _, date2::SubString{String}, time2a, _, mark2, value2, unit2, warnmark2, warnvalue2, warnunit2 = tsmatch2.captures
             (tsmatch.match.ncodeunits + 1 + tsmatch2.match.ncodeunits,
              range(DateTimeRD(type, date, timea, mark, value, unit, warnmark, warnvalue, warnunit),
                    DateTimeRD(type, date2, time2a, mark2, value2, unit2, warnmark2, warnvalue2, warnunit2)))
@@ -534,7 +539,7 @@ function consume(::Type{TextMarkup}, text::SubString{String})
         end
         markupmatch = match(r"^([*\/_=~+])(\S[^\n]*?(?:\n[^\n]+?(?:\n[^\n]+?)?)?(?<=\S))\1([ \t\n\-.,;:!?'\")\[}]|$)", text)
         if !isnothing(markupmatch)
-            char, content, _ = markupmatch.captures
+            char::SubString{String}, content::SubString{String}, _ = markupmatch.captures
             formatting = org_markup_formatting[char[1]]
             parsedcontent = if formatting in (:verbatim, :code)
                 content

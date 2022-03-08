@@ -12,24 +12,23 @@ function *(a::OrgDoc, b::OrgDoc)
         OrgDoc(vcat(a.contents, b.contents))
     else
         mergedsec = a.contents[end] * b.contents[1]
-        OrgDoc(vcat(a.contents[1:end-1], mergedsec, b.contents[2:end]))
+        OrgDoc(vcat(a.contents[1:end-1], mergedsec, b.contents[2:end]) |> Vector{Union{Org.Heading, Org.Section}})
     end
 end
 
 # Section
 
-*(hs::Heading...) = OrgDoc(hs)
+*(hs::Heading...) = OrgDoc(collect(hs))
 function *(a::Section, b::Section)
     ac = deepcopy(a)
     bc = deepcopy(b)
-    mergedprops = if isnothing(a.properties) && isnothing(b.properties)
-        nothing
+    mergedprops = if !isnothing(a.properties) && !isnothing(b.properties)
+        PropertyDrawer(vcat((a.properties::PropertyDrawer).contents,
+                            (b.properties::PropertyDrawer).contents))
     elseif isnothing(b.properties)
         a.properties
     elseif isnothing(a.properties)
         b.properties
-    else
-        PropertyDrawer(vcat(a.properties.contents, b.properties.contents))
     end
     if length(a.contents) > 0 && length(b.contents) > 0 &&
        a.contents[end] isa Paragraph && b.contents[1] isa Paragraph
@@ -42,14 +41,14 @@ end
 function *(s::Section, o::OrgComponent)
     sc = deepcopy(s)
     if o isa Object
-        if sc.section.contents[end] isa Paragraph
-            sc.section.contents[end].contents =
-                vcat(sc.section.contents[end].contents, o)
+        if sc.contents[end] isa Paragraph
+            sc.contents[end].contents =
+                vcat(sc.contents[end].contents, o)
         else
-            sc.section.contents = vcat(sc.section.contents, Paragraph(o))
+            sc.contents = vcat(sc.contents, Paragraph(o))
         end
     else
-        sc.section.contents = vcat(sc.section.contents, o)
+        sc.contents = vcat(sc.contents, o)
     end
     sc
 end
@@ -63,8 +62,12 @@ function *(h::Heading, o::OrgComponent)
     hc
 end
 function *(h::Heading, s::Section)
-    hc = copy(h)
-    hc.section = hc.section * s
+    hc = deepcopy(h)
+    if !isnothing(hc.section)
+        hc.section = hc.section::Section * s
+    else
+        hc.section = s
+    end
     hc
 end
 
@@ -77,8 +80,8 @@ end
 
 *(a::Paragraph, b::Paragraph) = Paragraph(vcat(a.contents, b.contents))
 
-*(a::Comment, b::Comment) = Comment(vcat(a.contents, b.contents))
-*(a::FixedWidth, b::FixedWidth) = Comment(vcat(a.contents, b.contents))
+*(a::Comment, b::Comment) = Comment(vcat(a.contents, b.contents)::Vector{AbstractString})
+*(a::FixedWidth, b::FixedWidth) = FixedWidth(vcat(a.contents, b.contents)::Vector{AbstractString})
 
 *(rows::TableRow...) = Table(rows, [])
 
@@ -87,7 +90,7 @@ end
 *(objects::Object...) = Paragraph(objects)
 *(cells::TableCell...) = TableRow(cells)
 
-function *(a::TextPlain{SubString}, b::TextPlain{SubString})
+function *(a::TextPlain{SubString{String}}, b::TextPlain{SubString{String}})
     if a.text.string === b.text.string &&
         a.text.offset + a.text.ncodeunits == b.text.offset
         TextPlain(@inbounds SubString(a.text.string, 1 + a.text.offset,
@@ -105,7 +108,8 @@ end
 
 function ==(a::T, b::T) where {T <: OrgComponent}
     for f in fieldnames(T)
-        if getproperty(a, f) != getproperty(b, f)
+        F = fieldtype(T, f)
+        if getproperty(a, f)::F != getproperty(b, f)::F
             return false
         end
     end
@@ -214,10 +218,10 @@ iterate(l::List, index::Integer) =
         (l.items[index], index + 1)
     end
 
-length(i::Item) = length(i.contents) + if isnothing(i.tag) 0 else length(i.tag) end
+length(i::Item) = length(i.contents) + if isnothing(i.tag) 0 else length(i.tag::Vector) end
 iterate(i::Item) = if length(i) > 0 iterate(i, 1) end
 function iterate(i::Item, index::Integer)
-    taglen = if isnothing(i.tag) 0 else length(i.tag) end
+    taglen = if isnothing(i.tag) 0 else length(i.tag::Vector) end
     if index <= taglen
         (i.tag[index], index + 1)
     elseif index - taglen <= length(i.contents)
@@ -406,9 +410,9 @@ function getindex(props::PropertyDrawer, name::AbstractString)
 end
 
 function getindex(h::Heading, prop::AbstractString)
-    if isnothing(h.properties)
+    if isnothing(h.section) || isnothing(h.section.properties)
         nothing
     else
-        getindex(h.properties, prop)
+        getindex(h.section.properties, prop)
     end
 end
