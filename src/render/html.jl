@@ -30,6 +30,8 @@ html_tagwrap(s::AbstractString, tag::String, attrs::Pair...) = html_tagwrap(s, t
 # Org
 # ---------------------
 
+import Markdown.html
+
 function html(io::IO, o::OrgDoc)
     for component in o.contents
         html(io, component)

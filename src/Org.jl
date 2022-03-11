@@ -8,6 +8,7 @@ include("types/org.jl")
 include("cache/cache.jl")
 
 include("parse/interpret.jl")
+include("parse/markdown.jl")
 
 const org_str_typeflags =
     Dict("d" => OrgDoc,
