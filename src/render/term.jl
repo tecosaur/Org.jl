@@ -156,6 +156,7 @@ function term(io::IO, o::OrgDoc, specialblock::SpecialBlock, indent::Integer=0)
     printstyled(io, ' '^indent, "#+begin_", specialblock.name, '\n', color=:light_black)
     for el in specialblock.contents
         term(io, o, el, indent)
+        print(io, '\n')
     end
     printstyled(io, ' '^indent, "#+end_", specialblock.name, color=:light_black)
 end
@@ -614,14 +615,14 @@ function term(io::IO, link::Union{PlainLink, AngleLink}, stylecodes::Vector{Stri
     print(io, pathlink, termstyle(stylecodes))
 end
 
-function term(io::IO, link::RegularLink, stylecodes::Vector{String}=String[])
+function term(io::IO, o::OrgDoc, link::RegularLink, stylecodes::Vector{String}=String[])
     print(io, termstyle(term_stylecodes_link))
     pathlink = term(io, link.path)
     if isnothing(link.description) || length(link.description) == 0
         print(io, string(link.path))
     else
         for obj in link.description
-            term(io, obj, [stylecodes; term_stylecodes_link])
+            term(io, o, obj, [stylecodes; term_stylecodes_link])
         end
     end
     print(io, pathlink, termstyle(stylecodes))
