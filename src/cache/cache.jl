@@ -31,7 +31,7 @@ function gencache(c::OrgCache, ::Val{:elements})
 end
 
 function gencache(c::OrgCache, ::Val{:components})
-    Vector{OrgComponent}(OrgIterator(c.doc::OrgDoc) |> collect)
+    Vector{Component}(OrgIterator(c.doc::OrgDoc) |> collect)
 end
 
 function gencache(c::OrgCache, ::Val{:headings})

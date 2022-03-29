@@ -1,6 +1,6 @@
 Base.show(io::IO, ::MIME"text/org", org::OrgDoc) = org(io, org)
 
-function Base.string(component::Union{OrgDoc, OrgComponent})
+function Base.string(component::Union{OrgDoc, Component})
     b = IOBuffer()
     org(b, component)
     String(take!(b))
@@ -14,14 +14,14 @@ function org(io::IO, o::OrgDoc)
     end
 end
 
-function org(io::IO, component::OrgComponent, indent::Integer)
+function org(io::IO, component::Component, indent::Integer)
     print(io, ' '^indent)
     org(io, component)
 end
 
-org(o::Union{OrgDoc, OrgComponent}) = org(stdout, o)
+org(o::Union{OrgDoc, Component}) = org(stdout, o)
 
-function org(::IO, component::C) where { C <: OrgComponent}
+function org(::IO, component::C) where { C <: Component}
     @warn "No method for converting $C to a string representation currently exists"
 end
 

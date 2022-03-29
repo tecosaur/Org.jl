@@ -1,5 +1,5 @@
 parsetree(org::OrgDoc, maxdepth=-1) = parsetree(stdout, org, maxdepth)
-parsetree(org::OrgComponent, maxdepth=-1) = parsetree(stdout, org, maxdepth)
+parsetree(org::Component, maxdepth=-1) = parsetree(stdout, org, maxdepth)
 
 function parsetree(io::IO, org::OrgDoc, maxdepth=-1, depth=0)
     printstyled(io, "Org Parse Tree", color=:yellow)
@@ -22,7 +22,7 @@ function printstructure(io::IO, component::AbstractString, description,
         print(io, '\n')
     elseif contents isa Vector && length(contents) == 0
         printstyled(io, " (empty)\n", color=:light_black)
-    elseif ! (contents isa Vector{<:OrgComponent})
+    elseif ! (contents isa Vector{<:Component})
         print(io, '\n')
     elseif depth == maxdepth
         printstyled(io, " [hidden]\n", color=:light_black)
@@ -49,7 +49,7 @@ parsetree(io::IO, s::Section, maxdepth::Integer, depth::Integer) =
 parsetree(io::IO, l::L, maxdepth::Integer, depth::Integer) where {L <: List} =
     printstructure(io, string(L), l.items[1].bullet, l.items, maxdepth, depth, :magenta, true)
 
-function parsetree(io::IO, component::T, maxdepth::Integer, depth::Integer=0) where {T <: OrgComponent}
+function parsetree(io::IO, component::T, maxdepth::Integer, depth::Integer=0) where {T <: Component}
     contents = if applicable(iterate, component)
         collect(component)
     end
@@ -64,8 +64,8 @@ function parsetree(io::IO, component::T, maxdepth::Integer, depth::Integer=0) wh
                    contents, maxdepth, depth, color, bold)
 end
 
-structurename(::C) where {C<:OrgComponent} = string(nameof(C))
-structuredesc(_::OrgComponent) = nothing
+structurename(::C) where {C<:Component} = string(nameof(C))
+structuredesc(_::Component) = nothing
 
 structuredesc(d::Drawer) = d.name
 structuredesc(k::CitationReference) = string('@', k.key)

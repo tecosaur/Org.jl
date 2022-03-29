@@ -38,7 +38,7 @@ function *(a::Section, b::Section)
         Section(vcat(ac.contents, bc.contents), ac.planning, mergedprops)
     end
 end
-function *(s::Section, o::OrgComponent)
+function *(s::Section, o::Component)
     sc = deepcopy(s)
     if o isa Object
         if sc.contents[end] isa Paragraph
@@ -52,7 +52,7 @@ function *(s::Section, o::OrgComponent)
     end
     sc
 end
-function *(h::Heading, o::OrgComponent)
+function *(h::Heading, o::Component)
     hc = copy(h)
     if isnothing(hc.section)
         hc.section = Section(Element[], nothing, nothing) * o
@@ -106,7 +106,7 @@ end
 # Equality
 # ---------------------
 
-function ==(a::T, b::T) where {T <: OrgComponent}
+function ==(a::T, b::T) where {T <: Component}
     for f in fieldnames(T)
         F = fieldtype(T, f)
         if getproperty(a, f)::F != getproperty(b, f)::F

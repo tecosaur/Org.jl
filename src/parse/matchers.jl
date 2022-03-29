@@ -1,6 +1,6 @@
-# Matchers for OrgComponents  -*- mode: julia; -*-
+# Matchers for Components  -*- mode: julia; -*-
 
-orgmatcher(::Type{<:OrgComponent}) = nothing
+orgmatcher(::Type{<:Component}) = nothing
 
 # ---------------------
 # Sections

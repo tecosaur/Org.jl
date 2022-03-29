@@ -1,6 +1,6 @@
 using Dates
 
-abstract type Object <: OrgComponent end
+abstract type Object <: Component end
 
 include("../data/entities.jl")
 struct Entity <: Object

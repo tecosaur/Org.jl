@@ -1,4 +1,4 @@
-function consume(component::Type{<:OrgComponent}, text::SubString{String})
+function consume(component::Type{<:Component}, text::SubString{String})
     matcher = orgmatcher(component)
     if isnothing(matcher)
         @warn "No matcher is defined for $(component), should it have a matcher or dedicated consumer?" maxlog=1
@@ -12,7 +12,7 @@ function consume(component::Type{<:OrgComponent}, text::SubString{String})
         elseif matcher isa Function
             @warn "$(component) is using a Function matcher, this should be changed to a dedicated consumer" maxlog=1
             matchresult = matcher(text)
-            if isnothing(matchresult) || matchresult isa Tuple{Int64, OrgComponent}
+            if isnothing(matchresult) || matchresult isa Tuple{Int64, Component}
                 matchresult
             else
                 @warn "Matcher for $(component) returned an unworkable result type: $(typeof(matchresult))"
@@ -207,7 +207,7 @@ function consume(::Type{Item}, text::SubString{String})
         counterset, checkbox, tag = itemextras.captures
         # collect contents
         rest = @inbounds @view text[ncodeunits(itemstart.match) + ncodeunits(itemextras.match):end]
-        contentlen, contentobjs = 0, OrgComponent[]
+        contentlen, contentobjs = 0, Component[]
         len, obj = itemconsume(rest, indent)
         contentlen += len
         push!(contentobjs, obj)

@@ -13,15 +13,15 @@ function term(io::IO, o::OrgDoc, indent::Integer=2)
     termfootnotes(io, o, indent)
 end
 
-function term(io::IO, o::OrgDoc, component::OrgComponent, indent::Integer)
+function term(io::IO, o::OrgDoc, component::Component, indent::Integer)
     print(io, ' '^indent)
     term(io, o, component)
 end
 
-term(io::IO, ::OrgDoc, component::OrgComponent) =
+term(io::IO, ::OrgDoc, component::Component) =
     term(io, component)
 
-function term(io::IO, o::OrgDoc, components::Vector{<:OrgComponent}, indent::Integer=2)
+function term(io::IO, o::OrgDoc, components::Vector{<:Component}, indent::Integer=2)
     for component in components
         (component isa Heading && component !== first(components)) && print(io, '\n')
         term(io, o, component, indent)
@@ -30,7 +30,7 @@ function term(io::IO, o::OrgDoc, components::Vector{<:OrgComponent}, indent::Int
 end
 
 term(o::OrgDoc) = term(stdout, o, 2)
-term(c::OrgComponent) = term(stdout, OrgDoc(), c, 2)
+term(c::Component) = term(stdout, OrgDoc(), c, 2)
 term(p::Paragraph) = (term(stdout, p, 2); print('\n'))
 term(o::Object) = (term(stdout, OrgDoc(), o, 2); print('\n'))
 
@@ -749,7 +749,7 @@ end
 # Catchall
 # ---------------------
 
-function term(io::IO, component::OrgComponent)
+function term(io::IO, component::Component)
     @warn "No method for converting $(typeof(component)) to a term representation currently exists"
     print(io, component, '\n')
 end

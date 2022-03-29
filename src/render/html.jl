@@ -39,7 +39,7 @@ function html(io::IO, o::OrgDoc)
     end
 end
 
-html(o::Union{OrgDoc, OrgComponent}) = html(stdout, o)
+html(o::Union{OrgDoc, Component}) = html(stdout, o)
 
 # ---------------------
 # Sections
@@ -469,7 +469,7 @@ end
 # Catchall
 # ---------------------
 
-function html(io::IO, component::OrgComponent)
+function html(io::IO, component::Component)
     @warn "No method for converting $(typeof(component)) to a term representation currently exists"
     print(io, html_escape(sprint(org, component)), '\n')
 end

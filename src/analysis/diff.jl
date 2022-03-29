@@ -3,8 +3,8 @@ import Base.diff
 # Because diff is already documented in markdown, we should just use MD documentation
 """
     diff(A::OrgDoc, B::OrgDoc)
-    diff(A::OrgComponent, B::OrgComponent)
-    diff(A::Vector{<:OrgComponent}, B::Vector{<:OrgComponent})
+    diff(A::Component, B::Component)
+    diff(A::Vector{<:Component}, B::Vector{<:Component})
 Compare two different Org components or ASTs.
 
 The diff method can detect insertions, deletions, and reshuffling of
@@ -42,7 +42,7 @@ function printdiffheader(message, aval, bval)
     printstyled("  × ", bold=true, color=:magenta)
     printstyled(message, '\n', color=:magenta)
     if isnothing(aval)
-    elseif aval isa OrgComponent
+    elseif aval isa Component
         printstyled("    A (Org representation):\n", color=:red)
         org(stdout, aval, 7)
         print('\n')
@@ -51,7 +51,7 @@ function printdiffheader(message, aval, bval)
         print(aval, '\n')
     end
     if isnothing(bval)
-    elseif bval isa OrgComponent
+    elseif bval isa Component
         printstyled("    B (Org representation):\n", color=:green)
         org(stdout, bval, 7)
         print('\n')
@@ -61,7 +61,7 @@ function printdiffheader(message, aval, bval)
     end
 end
 
-function diff(A::OrgComponent, B::OrgComponent, path::Vector=[], counter=1)
+function diff(A::Component, B::Component, path::Vector=[], counter=1)
     pathA = vcat(path, (nameof(typeof(A)), counter, :yellow))
     if A == B
     elseif nameof(typeof(A)) != nameof(typeof(B))
@@ -72,10 +72,10 @@ function diff(A::OrgComponent, B::OrgComponent, path::Vector=[], counter=1)
         for prop in props
             ap, bp = getproperty(A, prop), getproperty(B, prop)
             if ap != bp
-                if (ap isa OrgComponent && bp isa OrgComponent) ||
-                    (ap isa Vector{<:OrgComponent} && ap isa Vector{<:OrgComponent})
+                if (ap isa Component && bp isa Component) ||
+                    (ap isa Vector{<:Component} && ap isa Vector{<:Component})
                     diff(ap, bp, pathA, 1)
-                elseif ap isa OrgComponent || ap isa Vector{<:OrgComponent}
+                elseif ap isa Component || ap isa Vector{<:Component}
                     printbreadcrums(pathA)
                     printdiffheader("$(nameof(typeof(A))) $prop type mismatch", typeof(ap), typeof(bp))
                 else
@@ -88,7 +88,7 @@ function diff(A::OrgComponent, B::OrgComponent, path::Vector=[], counter=1)
     nothing
 end
 
-function diff(As::Vector{<:OrgComponent}, Bs::Vector{<:OrgComponent}, path::Vector=[], counter=0)
+function diff(As::Vector{<:Component}, Bs::Vector{<:Component}, path::Vector=[], counter=0)
     # Detect reorderings
     diffmat = [A == B for A in As, B in Bs]
     reorderings = []

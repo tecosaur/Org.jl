@@ -1,11 +1,11 @@
-# Methods to interpret string representations of OrgComponents
+# Methods to interpret string representations of Components
 
-struct OrgComponentParseError <: Exception
+struct ComponentParseError <: Exception
     element::Type
     msg::SubString{String}
 end
 
-function Base.showerror(io::IO, ex::OrgComponentParseError)
+function Base.showerror(io::IO, ex::ComponentParseError)
     print(io, "Org parse error")
     print(io, " for component $(ex.element):\n")
     print(io, ex.msg, '\n')
@@ -25,7 +25,7 @@ macro parseassert(elem, expr::Expr, msg)
     expr = matchp(expr)
     quote
         if !($(esc(expr)))
-            throw(OrgComponentParseError($(esc(elem)), $(esc(msg))))
+            throw(ComponentParseError($(esc(elem)), $(esc(msg))))
         end
     end
 end
@@ -38,12 +38,12 @@ include("consumers.jl")
 
 import Base.parse
 
-function parse(component::Type{<:OrgComponent}, content::SubString{String})
+function parse(component::Type{<:Component}, content::SubString{String})
     result = consume(component, content)
     if isnothing(result)
         msg = string("│ ", join(split(content, '\n'), "\n│ "),
                      "\ndoes not start with any recognised form of $component.")
-        throw(OrgComponentParseError(component, msg))
+        throw(ComponentParseError(component, msg))
     else
         len, obj = result
         @parseassert(component, len == ncodeunits(content),
@@ -53,8 +53,8 @@ function parse(component::Type{<:OrgComponent}, content::SubString{String})
     end
 end
 
-parse(component::Type{<:OrgComponent}, content::String) =
     parse(component, convert(SubString{String}, content))
+parse(component::Type{<:Component}, content::String) =
 
 # ---------------------
 # Org

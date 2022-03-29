@@ -1,4 +1,4 @@
-abstract type OrgComponent end
+abstract type Component end
 
 include("objects.jl")
 include("elements.jl")

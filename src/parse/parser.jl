@@ -22,12 +22,12 @@ end
 function parseorg(content::SubString{String}, typematchers::Dict{Char, <:Vector{<:Type}},
                   typefallbacks::Vector{<:Type};
                   debug::Bool=false, partial::Bool=false, maxobj::Integer=0)
-    point, objects = 1, OrgComponent[]
+    point, objects = 1, Component[]
     points = [point]
     clen = lastindex(content) # this does not change, help the compiler
     while point <= clen
         if debug print("\n\e[36m$(lpad(point, 4))\e[37m") end
-        obj::Union{OrgComponent, Nothing} = nothing
+        obj::Union{Component, Nothing} = nothing
         types = DataType[]
         # use the next non-whitespace char to guide type matchers
         char::Char = if content[point] == ' ' || content[point] == '\t'

@@ -21,7 +21,7 @@ const README, compatability =
 
 @doc org"""
 #+begin_src julia
-@org_str -> Union{OrgDoc, OrgComponent}
+@org_str -> Union{OrgDoc, Component}
 #+end_src
 
 Parse the string as Org, sepecifically to ~OrgDoc~ by default.
@@ -44,7 +44,7 @@ The following type flags are currently supported:
 
 @doc org"""
 #+begin_src julia
-orgmatcher(::Type{C}) where {C <: OrgComponent}
+orgmatcher(::Type{C}) where {C <: Component}
 #+end_src
 
 Return a /matcher/ for components of type ~C~.
@@ -59,7 +59,7 @@ This will either be:
 
 @doc org"""
 #+begin_src julia
-consume(component::Type{<:OrgComponent}, text::SubString{String})
+consume(component::Type{<:Component}, text::SubString{String})
 #+end_src
 Try to /consume/ a ~component~ from the start of ~text~.
 

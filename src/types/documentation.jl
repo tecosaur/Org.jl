@@ -462,7 +462,7 @@ bullet::SubString{String}
 counterset::Union{SubString{String}, Nothing}
 checkbox::Union{Char, Nothing}
 tag::Union{SubString{String}, Nothing}
-contents::Vector{OrgComponent}
+contents::Vector{Component}
 #+end_src
 """ Item
 

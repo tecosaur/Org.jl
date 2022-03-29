@@ -40,8 +40,8 @@ mutable struct Item <: GreaterElement
     bullet::SubString{String}
     counterset::Union{SubString{String}, Nothing}
     checkbox::Union{Char, Nothing}
-    tag::Union{Vector{OrgComponent}, Nothing}
-    contents::Vector{OrgComponent}
+    tag::Union{Vector{Component}, Nothing}
+    contents::Vector{Component}
 end
 
 mutable struct UnorderedList <: List
