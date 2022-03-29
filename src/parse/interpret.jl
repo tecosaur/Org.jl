@@ -53,8 +53,8 @@ function parse(component::Type{<:Component}, content::SubString{String})
     end
 end
 
-    parse(component, convert(SubString{String}, content))
 parse(component::Type{<:Component}, content::String) =
+    parse(component, SubString(content))
 
 # ---------------------
 # Org
