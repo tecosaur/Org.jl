@@ -346,7 +346,7 @@ function org(io::IO, afk::AffiliatedKeyword{Vector{Object}})
         print(io, ']')
     end
     print(io, ':')
-    if !isnothing(afk.optval)
+    if !isnothing(afk.value)
         print(io, ' ')
         for obj in afk.value
             org(io, obj)
