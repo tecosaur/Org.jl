@@ -330,7 +330,7 @@ function org(io::IO, afk::AffiliatedKeyword{SubString{String}})
     if !isnothing(afk.optval)
         print(io, '[', afk.optval, ']')
     end
-    print(io, ": ", afk.value)
+    print(io, ':')
     if !isnothing(afk.value)
         print(io, ' ', afk.value)
     end
