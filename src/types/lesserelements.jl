@@ -55,10 +55,10 @@ mutable struct Keyword{V <: Union{SubString{String}, Vector{Object}, Nothing}} <
     key::SubString{String}
     value::V
 end
-Keyword(key::String, value::Union{Vector{Object}, Nothing}=nothing) =
+Keyword(key::String, value::Union{Vector{<:Object}, Nothing}=nothing) =
     Keyword(SubString(key), value)
 Keyword(key::String, value::String) = Keyword(SubString(key), SubString(value))
-Keyword((key, value)::Pair{String, <:Union{String, Vector{Object}, Nothing}}) =
+Keyword((key, value)::Pair{String, <:Union{String, Vector{<:Object}, Nothing}}) =
     Keyword(key, value)
 
 mutable struct AffiliatedKeyword{V <: Union{SubString{String}, Vector{Object}, Nothing}} <: LesserElement

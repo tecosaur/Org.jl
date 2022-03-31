@@ -6,27 +6,27 @@ mutable struct CenterBlock <: GreaterBlock
     parameters::Union{SubString{String}, Nothing}
     contents::Vector{Element}
 end
-CenterBlock(contents::Vector{Element}) =
+CenterBlock(contents::Vector{<:Element}) =
     CenterBlock(nothing, contents)
 mutable struct QuoteBlock <: GreaterBlock
     parameters::Union{SubString{String}, Nothing}
     contents::Vector{Element}
 end
-QuoteBlock(contents::Vector{Element}) =
+QuoteBlock(contents::Vector{<:Element}) =
     QuoteBlock(nothing, contents)
 mutable struct SpecialBlock <: GreaterBlock
     name::SubString{String}
     parameters::Union{SubString{String}, Nothing}
     contents::Vector{Element}
 end
-SpecialBlock(name::String, contents::Vector{Element}) =
+SpecialBlock(name::String, contents::Vector{<:Element}) =
     SpecialBlock(SubString(name), nothing, contents)
 
 mutable struct Drawer <: GreaterElement
     name::SubString{String}
     contents::Vector{Element}
 end
-Drawer(name::String, contents::Vector{Element}) =
+Drawer(name::String, contents::Vector{<:Element}) =
     Drawer(SubString(name), contents)
 
 mutable struct DynamicBlock <: GreaterElement
@@ -39,11 +39,11 @@ mutable struct FootnoteDefinition <: GreaterElement
     label::SubString{String}
     definition::Vector{Element}
 end
-FootnoteDefinition(label::String, definition::Vector{Element}) =
+FootnoteDefinition(label::String, definition::Vector{<:Element}) =
     FootnoteDefinition(SubString(label), definition)
 FootnoteDefinition(label::String, definition::String) =
     FootnoteDefinition(SubString(label), Paragraph(definition))
-FootnoteDefinition((label, definition)::Pair{String, <:Union{Vector{Element}, String}}) =
+FootnoteDefinition((label, definition)::Pair{String, <:Union{Vector{<:Element}, String}}) =
     FootnoteDefinition(label, definition)
 
 # See elements.jl for InlineTask for load order reasons
@@ -57,21 +57,23 @@ mutable struct Item <: GreaterElement
     tag::Union{Vector{Object}, Nothing}
     contents::Vector{Element}
 end
-Item(bullet::String, tag::Union{Vector{Component}, Nothing},
-     contents::Vector{Component};
-     counterset::Union{SubString{String}, Nothing}=nothing,
+Item(bullet::String, tag::Union{Vector{<:Object}, Nothing},
+     contents::Vector{<:Element};
+     counterset::Union{String, Nothing}=nothing,
      checkbox::Union{Char, Nothing}=nothing) =
-         Item(SubString(bullet), counterset, checkbox, tag, contents)
-Item(bullet::String, contents::Vector{Component};
-     counterset::Union{SubString{String}, Nothing}=nothing,
+         Item(SubString(bullet),
+              if !isnothing(counterset) SubString(counterset) end,
+              checkbox, tag, contents)
+Item(bullet::String, contents::Vector{<:Element};
+     counterset::Union{String, Nothing}=nothing,
      checkbox::Union{Char, Nothing}=nothing) =
          Item(bullet, nothing, contents; counterset, checkbox)
-Item(contents::Vector{Component};
-     counterset::Union{SubString{String}, Nothing}=nothing,
+Item(contents::Vector{<:Element};
+     counterset::Union{String, Nothing}=nothing,
      checkbox::Union{Char, Nothing}=nothing) =
          Item("+", nothing, contents; counterset, checkbox)
 Item(contents::String;
-     counterset::Union{SubString{String}, Nothing}=nothing,
+     counterset::Union{String, Nothing}=nothing,
      checkbox::Union{Char, Nothing}=nothing) =
          Item(Component[Paragraph(contents)]; counterset, checkbox)
 
