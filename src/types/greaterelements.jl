@@ -54,8 +54,8 @@ mutable struct Item <: GreaterElement
     bullet::SubString{String}
     counterset::Union{SubString{String}, Nothing}
     checkbox::Union{Char, Nothing}
-    tag::Union{Vector{Component}, Nothing}
-    contents::Vector{Component}
+    tag::Union{Vector{Object}, Nothing}
+    contents::Vector{Element}
 end
 Item(bullet::String, tag::Union{Vector{Component}, Nothing},
      contents::Vector{Component};
