@@ -91,6 +91,7 @@ function org(io::IO, specialblock::SpecialBlock, indent::Integer=0)
     print(io, '\n')
     for el in specialblock.contents
         org(io, el, indent)
+        print(io, '\n')
     end
     print(io, ' '^indent, "#+end_", specialblock.name)
 end
