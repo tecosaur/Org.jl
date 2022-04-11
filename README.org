@@ -23,6 +23,8 @@ Julia.
 * Basic usage
 
 #+begin_src julia
+# after installing with ~] add Org~ or ~Pkg.add("Org")~
+using Org
 text1 = org"Some *Org* markup, written with easy using the ~org\"\"~ macro."
 parsetree(text1)  # show the generated parse tree
 
