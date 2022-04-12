@@ -79,7 +79,7 @@ function wraplines(s::AbstractString, width::Integer, offset::Integer=0)
             push!(lines, @inbounds @view s[nextind(s, lastwrap):prevind(s, i)])
             lastwrap = i
             offset = 0
-        elseif i - (lastwrap - offset) > width
+        elseif i - (lastwrap - offset) > width && mostrecentbreakoppotunity > 1
             if lastwrap == mostrecentbreakoppotunity
                 nextbreak = findfirst(' ', @inbounds @view s[nextind(s, lastwrap):end])
                 if isnothing(nextbreak)
