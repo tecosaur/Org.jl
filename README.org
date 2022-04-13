@@ -25,17 +25,17 @@ Julia.
 #+begin_src julia
 # after installing with ~] add Org~ or ~Pkg.add("Org")~
 using Org
-text1 = org"Some *Org* markup, written with easy using the ~org\"\"~ macro."
+text1 = org"Some *Org* markup, written with ease using the ~org\"\"~ macro."
 parsetree(text1)  # show the generated parse tree
 
-text2 = parse(Org, "Some *Org* markup, written with easy using the ~parse~ function.")
+text2 = parse(OrgDoc, "Some *Org* markup, written with ease using the ~parse~ function.")
 diff(text1, text2)  # show the components of the parse trees that differ
 
 dochead = @doc Org.Heading  # the documentation for the Heading component (::OrgDoc)
 org(dochead)  # generate Org text that produces the Org.Heading object
 string(dochead)  # as above, but produces a String
 
-parse(Org, string(dochead)) == dochead  # round-trip equality
+parse(OrgDoc, string(dochead)) == dochead  # round-trip equality
 
 # get the lang of each source block
 [c.lang for c in dochead.components if c isa Org.SourceBlock]
