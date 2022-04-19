@@ -19,8 +19,9 @@ function markdown(io::IO, heading::Heading)
         print(io, "[#", heading.priority, "] ")
     end
     markdown.(Ref(io), heading.title)
+    print(io, '\n')
     if !isnothing(heading.section)
-        print(io, "\n\n")
+        print(io, '\n')
         markdown(io, heading.section)
     end
 end
