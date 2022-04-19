@@ -368,7 +368,7 @@ end
 function html(io::IO, target::RadioTarget)
     print(io, "<span id=\"radio_", string(hash(target), base=62), ">")
     foreach(o -> html(io, o), target.contents)
-    print(io, "</a>")
+    print(io, "</span>")
 end
 
 html(io::IO, target::Target) =
@@ -470,6 +470,6 @@ end
 # ---------------------
 
 function html(io::IO, component::Component)
-    @warn "No method for converting $(typeof(component)) to a term representation currently exists"
+    @warn "No method for converting $(typeof(component)) to an html representation currently exists"
     print(io, html_escape(sprint(org, component)), '\n')
 end
