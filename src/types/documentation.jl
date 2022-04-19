@@ -6,7 +6,7 @@ Base.Docs.catdoc(org::OrgDoc...) = *(org...)
 A type representing an Org document.
 
 #+begin_src julia
-OrgDoc([settings::Dict], contents::Vector{Union{Heading, Section}})
+OrgDoc([settings::Dict], contents::Vector{<:Union{Heading, Section}})
 #+end_src
 
 There are three ways of constructing an Org document:
