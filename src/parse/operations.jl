@@ -127,6 +127,7 @@ end
 
 terminal(::Element) = false
 terminal(::LesserElement) = true
+terminal(::Planning) = false
 terminal(::Clock) = false
 terminal(::Paragraph) = false
 terminal(::TableRow) = false
@@ -166,11 +167,38 @@ iterate(h::Heading, index::Integer) =
         (h.section, index + 1)
     end
 
-length(s::Section) = length(s.contents)
-iterate(s::Section) = if length(s) > 0 (s.contents[1], 2) end
+length(s::Section) =
+     !isnothing(s.planning) + !isnothing(s.properties) + length(s.contents)
+iterate(s::Section) = iterate(s, :planning)
+iterate(s::Section, attr::Symbol) =
+    if attr == :planning
+        if !isnothing(s.planning)
+            s.planning, :properties
+        else
+            iterate(s, :properties)
+        end
+    elseif attr == :properties
+        if !isnothing(s.properties)
+            s.properties, :contents
+        else
+            iterate(s, :contents)
+        end
+    else
+        iterate(s, 1)
+    end
 iterate(s::Section, index::Integer) =
     if index <= length(s.contents)
         (s.contents[index], index + 1)
+    end
+
+length(p::Planning) = sum(map(!isnothing, [p.deadline, p.scheduled, p.closed]))
+function iterate(p::Planning)
+    times = filter(!isnothing, [p.deadline, p.scheduled, p.closed])
+    times[1], times[2:end]
+end
+iterate(::Planning, rest::Vector) =
+    if length(rest) > 0
+        rest[1], rest[2:end]
     end
 
 length(a::AffiliatedKeywordsWrapper) = 1 + length(a.keywords)
