@@ -19,6 +19,9 @@ function convert(::Type{OrgDoc}, md::Markdown.MD)
             push!(sectioning, Section(elements[1:heading_positions[1]-1], nothing, nothing))
         end
         for (hpos, hend) in zip(heading_positions, vcat(heading_positions[2:end], length(elements)))
+            if hend < length(elements)
+                hend -= 1
+            end
             if hpos < hend
                 elements[hpos].section = Section(elements[hpos+1:hend], nothing, nothing)
             end
