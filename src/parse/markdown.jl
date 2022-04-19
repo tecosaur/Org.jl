@@ -101,6 +101,18 @@ end
 convert(::Type{Component}, a::Markdown.Admonition) =
     SpecialBlock(a.category, nothing, convert.(Component, a.content))
 
+function convert(::Type{Component}, l::Markdown.List)
+    olist, bullets = if Markdown.isordered(l)
+        OrderedList, string.(1:length(l.items), '.')
+    else
+        UnorderedList, fill("-", length(l.items))
+    end
+    items = map(zip(bullets, l.items)) do (bullet, contents)
+        Item(bullet, convert.(Component, contents))
+    end
+    olist(items)
+end
+
 # Might as well, just in case
 
 convert(::Type{OrgDoc},
