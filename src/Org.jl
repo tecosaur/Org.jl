@@ -1,8 +1,8 @@
 module Org
 
-export OrgDoc, @org_str,              # types/org.jl, here
-    org, term, tableofcontents, html, # render/*
-    parsetree                         # analysis/parsetree.jl
+export OrgDoc, @org_str,                        # types/org.jl, here
+    org, term, tableofcontents, html, markdown, # render/*
+    parsetree                                   # analysis/parsetree.jl
 
 include("types/org.jl")
 include("cache/cache.jl")
@@ -40,6 +40,7 @@ include("render/formatting.jl")
 include("render/org.jl")
 include("render/term.jl")
 include("render/html.jl")
+include("render/markdown.jl")
 
 include("analysis/parsetree.jl")
 include("analysis/diff.jl")
