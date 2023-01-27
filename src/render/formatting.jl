@@ -83,7 +83,7 @@ function wraplines(s::AbstractString, width::Integer, offset::Integer=0)
             if lastwrap == mostrecentbreakoppotunity
                 nextbreak = findfirst(' ', @inbounds @view s[nextind(s, lastwrap):end])
                 if isnothing(nextbreak)
-                    mostrecentbreakoppotunity = slen
+                    break
                 else
                     mostrecentbreakoppotunity = lastwrap + nextbreak
                 end
