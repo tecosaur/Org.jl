@@ -82,7 +82,7 @@ function markdown(io::IO, dynblock::DynamicBlock)
 end
 
 function markdown(io::IO, fn::FootnoteDefinition)
-    print(io, "[^", fn.label, "]:\n\n")
+    print(io, "[^", replace(fn.label, r"[^A-Za-z0-9]" => ""), "]:\n\n")
     content = join(sprint.(markdown, fn.definition), '\n')
     for line in split(content, '\n')
         print(io, "    ", line, '\n')
@@ -238,7 +238,8 @@ markdown(io::IO, snippet::ExportSnippet) =
     if snippet.backend == "markdown" print(io, snippet.snippet) end
 
 function markdown(io::IO, fn::FootnoteReference)
-    label = something(fn.label, string(rand(UInt32), base=36))
+    label = replace(something(fn.label, string(rand(UInt32), base=36)),
+                    r"[^A-Za-z0-9]" => "")
     print(io, "[^", label, "]")
     if !isnothing(fn.definition)
         print(io, '\n')
