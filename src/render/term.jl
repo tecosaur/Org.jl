@@ -594,13 +594,13 @@ function term(io::IO, link::RadioLink, stylecodes::Vector{String}=String[])
     print(io, termstyle(stylecodes))
 end
 
-const link_uri_schemes =
+const link_term_uri_schemes =
     Dict("https" => p -> "https://$p",
          "file" => p -> "file://$(abspath(p))")
 
 function term(io::IO, path::LinkPath)
-    if path.protocol in keys(link_uri_schemes)
-        pathuri = link_uri_schemes[path.protocol](path.path)
+    if path.protocol in keys(link_term_uri_schemes)
+        pathuri = link_term_uri_schemes[path.protocol](path.path)
         print(io, "\e]8;;", pathuri, "\e\\")
         "\e[0;31mꜛ\e[0;0m\e]8;;\e\\"
     else

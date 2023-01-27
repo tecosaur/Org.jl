@@ -272,9 +272,15 @@ markdown(io::IO, ::LineBreak) = print(io, "\n")
 
 markdown(io::IO, link::RadioLink) = markdown(io, link.radio)
 
+const link_md_uri_schemes =
+    Dict("https" => p -> "https://$p",
+         "file" => p -> if endswith(p, ".org")
+             first(splitext(p)) * ".md"
+         else p end)
+
 function markdown(io::IO, path::LinkPath)
-    if path.protocol in keys(link_uri_schemes)
-        pathuri = link_uri_schemes[path.protocol](path.path)
+    if path.protocol in keys(link_md_uri_schemes)
+        pathuri = link_md_uri_schemes[path.protocol](path.path)
         print(io, pathuri)
     end
 end

@@ -315,9 +315,15 @@ function html(io::IO, link::RadioLink)
                            "href" => "radio_" * string(hash(link.radio), base=62)))
 end
 
+const link_html_uri_schemes =
+    Dict("https" => p -> "https://$p",
+         "file" => p -> if endswith(p, ".org")
+             first(splitext(p)) * ".html"
+         else p end)
+
 function html(io::IO, path::LinkPath)
-    if path.protocol in keys(link_uri_schemes)
-        pathuri = link_uri_schemes[path.protocol](path.path)
+    if path.protocol in keys(link_html_uri_schemes)
+        pathuri = link_html_uri_schemes[path.protocol](path.path)
         print(io, pathuri)
     end
 end
