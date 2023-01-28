@@ -135,8 +135,12 @@ function Drawer(components::Vector{Union{Nothing, SubString{String}}})
 end
 
 function DynamicBlock(components::Vector{Union{Nothing, SubString{String}}})
-    name::SubString{String}, parameters, contents::SubString{String} = components
-    containedelem = parseorg(contents, org_element_matchers, org_element_fallbacks)
+    name::SubString{String}, parameters, contents = components
+    containedelem = if isnothing(contents)
+        Element[]
+    else
+        parseorg(contents, org_element_matchers, org_element_fallbacks)
+    end
     DynamicBlock(name, parameters, containedelem)
 end
 
