@@ -208,23 +208,25 @@ function term(io::IO, o::OrgDoc, fn::FootnoteDefinition, indent::Integer=0)
     contentbuf = IOContext(IOBuffer(), :color => get(io, :color, false),
                            :displaysize => (displaysize(io)[1],
                                             displaysize(io)[2] - indent - 2))
-    parlines = if fn.definition[1] isa Paragraph
-        for obj in fn.definition[1]; term(contentbuf, o, obj) end
-        contents = String(take!(contentbuf.io))
-        wraplines(contents, displaysize(io)[2] - indent, 6 + ncodeunits(fn.label))
-    else
-        [""]
-    end
-    components = @view fn.definition[if fn.definition[1] isa Paragraph 2 else 1 end:end]
-    for component in components
-        term(contentbuf, o, component, indent)
-        component === last(components) || print(contentbuf, '\n')
-    end
-    otherlines = split(String(take!(contentbuf.io)), '\n')
-    lines = vcat(parlines, if otherlines == [""]; [] else otherlines end)
-    for line in lines
-        print(io, line)
-        line === last(lines) || print(io, '\n', ' '^indent)
+    if !isempty(fn.definition)
+        parlines = if fn.definition[1] isa Paragraph
+            for obj in fn.definition[1]; term(contentbuf, o, obj) end
+            contents = String(take!(contentbuf.io))
+            wraplines(contents, displaysize(io)[2] - indent, 6 + ncodeunits(fn.label))
+        else
+            [""]
+        end
+        components = @view fn.definition[if fn.definition[1] isa Paragraph 2 else 1 end:end]
+        for component in components
+            term(contentbuf, o, component, indent)
+            component === last(components) || print(contentbuf, '\n')
+        end
+        otherlines = split(String(take!(contentbuf.io)), '\n')
+        lines = vcat(parlines, if otherlines == [""]; [] else otherlines end)
+        for line in lines
+            print(io, line)
+            line === last(lines) || print(io, '\n', ' '^indent)
+        end
     end
 end
 
