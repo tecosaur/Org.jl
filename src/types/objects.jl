@@ -29,8 +29,6 @@ mutable struct FootnoteReference{L <: Union{SubString{String}, Nothing},
 end
 FootnoteReference(label::String, definition::Union{Vector{Object}, Nothing}=nothing) =
     FootnoteReference(SubString(label), definition)
-FootnoteReference(::Nothing, definition::Vector{Object}) =
-    FootnoteReference(nothing, definition)
 FootnoteReference(::Nothing, definition::String) =
     FootnoteReference(nothing, Object[TextPlain(definition)])
 
