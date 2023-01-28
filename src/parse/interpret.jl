@@ -178,6 +178,7 @@ end
 
 function Block(components::Vector{Union{Nothing, SubString{String}}})
     name::SubString{String}, data, contents = components
+    name = lowercase(name)
     lines = if !isnothing(contents)
         split(contents, '\n')
     else
