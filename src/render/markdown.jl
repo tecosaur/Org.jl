@@ -295,7 +295,7 @@ function markdown(io::IO, link::Union{PlainLink, AngleLink})
         markdown_image(io, link.path)
     else
         print(io, '[', sprint(markdown, link.path), "](",
-              string(link.path), ')')
+              sprint(markdown, link.path), ')')
     end
 end
 
@@ -309,7 +309,7 @@ function markdown(io::IO, link::RegularLink)
     else
         print(io, '[')
         foreach(o -> markdown(io, o), link.description)
-        print(io, "](", string(link.path), ")")
+        print(io, "](", sprint(markdown, link.path), ")")
     end
 end
 
