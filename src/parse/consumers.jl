@@ -474,7 +474,7 @@ function consume(::Type{Timestamp}, text::SubString{String})
         if !isnothing(n); n else parse(Float64, n) end
     end
     function DateTimeRD(type, date, time, mark, value, unit, warnmark, warnvalue, warnunit)
-        type(if !isnothing(tryparse(Time, time))
+        type(if isnothing(time) || !isnothing(tryparse(Time, time))
                  parse(Date, date)
              else
                  date = parse(Date, date)
