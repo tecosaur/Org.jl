@@ -108,9 +108,13 @@ end
 # ---------------------
 
 function GreaterBlock(components::Vector{Union{Nothing, SubString{String}}})
-    name::SubString{String}, parameters, contents::SubString{String} = components
+    name::SubString{String}, parameters, contents = components
     name = ensurelowercase(name)
-    containedelem = parseorg(contents, org_element_matchers, org_element_fallbacks)
+    containedelem = if isnothing(contents)
+        Element[]
+    else
+        parseorg(contents, org_element_matchers, org_element_fallbacks)
+    end
     if name == "center"
         CenterBlock(parameters, containedelem)
     elseif name == "quote"
