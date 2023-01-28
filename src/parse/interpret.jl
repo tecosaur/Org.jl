@@ -203,7 +203,7 @@ function Block(components::Vector{Union{Nothing, SubString{String}}})
         end
         SourceBlock(lang, arguments, lines)
     elseif name == "export"
-        ExportBlock(data, lines)
+        ExportBlock(something(data, ""), lines)
     elseif name == "example"
         ExampleBlock(lines)
     end
