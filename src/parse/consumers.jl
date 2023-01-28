@@ -474,8 +474,16 @@ function consume(::Type{Timestamp}, text::SubString{String})
         if !isnothing(n); n else parse(Float64, n) end
     end
     function DateTimeRD(type, date, time, mark, value, unit, warnmark, warnvalue, warnunit)
-        type(Date(date),
-             if isnothing(time) nothing else Time(time) end,
+        type(if !isnothing(tryparse(Time, time))
+                 parse(Date, date)
+             else
+                 date = parse(Date, date)
+                 hour, min = parse.(Int, match(r"(\d?\d):(\d\d)", time).captures)
+                 date += Day(hour ÷ 24)
+                 time = Time(hour % 24, min)
+                 date
+             end,
+             if isnothing(time) nothing elseif time isa Time time else Time(time) end,
              if isnothing(mark) nothing else
                  TimestampRepeaterOrDelay(rodtypes[mark], parsenum(value), unit[1]) end,
              if isnothing(warnmark) nothing else
