@@ -136,7 +136,7 @@ function consume(::Type{AffiliatedKeywordsWrapper}, text::SubString{String})
         element = parseorg((@inbounds @view text[point:textend]),
                            org_element_matchers, org_element_fallbacks[1:end-1],
                            partial = true, maxobj = 1)
-        if !isnothing(element) && any(isa.(Ref(element[2][1]), org_affiliable_elements))
+        if !isnothing(element) && !isempty(last(element)) && any(isa.(Ref(element[2][1]), org_affiliable_elements))
             (point - 1 + element[1],
                 AffiliatedKeywordsWrapper(element[2][1], affiliatedkeywords))
         end
