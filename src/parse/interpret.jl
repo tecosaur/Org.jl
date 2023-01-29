@@ -317,7 +317,7 @@ end
 function parse(::Type{LinkPath}, content::SubString{String}, verify::Bool=true)
     protocolmatch = match(r"^([^:#*<>()\[\]{}\s]+):(?://)?(.*)$", content)
     if isnothing(protocolmatch)
-        verify && @parseassert(LinkPath, !occursin(r"\\[\[\]]", content),
+        verify && @parseassert(LinkPath, !occursin(r"[^\\][\[\]]", content),
                                "\"$content\" cannot contain unescapesquare brackets")
         if content[1] == '(' && content[end] == ')'
             LinkPath(:coderef, content[2:end-1])
@@ -330,7 +330,7 @@ function parse(::Type{LinkPath}, content::SubString{String}, verify::Bool=true)
         end
     else
         protocol, path = protocolmatch.captures
-        verify && @parseassert(LinkPath, !occursin(r"\\[\[\]]", content),
+        verify && @parseassert(LinkPath, !occursin(r"[^\\][\[\]]", content),
                                "\"$content\" cannot contain unescaped square brackets")
         LinkPath(protocol, path)
     end
