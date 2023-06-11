@@ -30,8 +30,8 @@ function parseorg(content::SubString{String}, typematchers::Dict{Char, <:Vector{
         obj::Union{Component, Nothing} = nothing
         types = DataType[]
         # use the next non-whitespace char to guide type matchers
-        char::Char = if content[point] == ' ' || content[point] == '\t'
-            nextnonspace = findfirst(c -> c != ' ' && c != '\t',
+        char::Char = if content[point] ∈ (' ', '\t', '\u2000':'\u200c'...)
+            nextnonspace = findfirst(c -> c ∉ (' ', '\t', '\u2000':'\u200c'...),
                                      @inbounds @view content[point:clen])
             if !isnothing(nextnonspace)
                 content[point + nextnonspace - 1]

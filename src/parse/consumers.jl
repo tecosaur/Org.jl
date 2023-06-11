@@ -541,11 +541,11 @@ function consume(::Type{TextMarkup}, text::SubString{String})
         if text isa SubString
             text.offset == 0 ||
             text.string[prevind(text.string, 1+text.offset)] in
-            (' ', '\t', '\n', '-', '(', '{', ''', '"') # pre condition
+            ('-', '(', '{', ''', '"', ' ', '\t', '\n', '\u2000':'\u200c'...) # pre condition
         else
             true
         end
-        markupmatch = match(r"^([*\/_=~+])(\S[^\n]*?(?:\n[^\n]+?(?:\n[^\n]+?)?)?(?<=\S))\1([ \t\n\-.,;:!?'\")\[}]|$)", text)
+        markupmatch = match(r"^([*\/_=~+])(\S[^\n]*?(?:\n[^\n]+?(?:\n[^\n]+?)?)?(?<=\S))\1([ \t\n\u2000-\u200c\-.,;:!?'\")\[}]|$)", text)
         if !isnothing(markupmatch)
             char::SubString{String}, content::SubString{String}, _ = markupmatch.captures
             formatting = org_markup_formatting[char[1]]
@@ -563,7 +563,8 @@ end
 function consume(::Type{TextPlain}, content::SubString{String})
     alph(c) = c in 'a':'z' || c in 'A':'Z'
     alphnum(c) = alph(c) || c in '0':'9'
-    spc(c) = c in (' ', '\t', '\n')
+    hspc(c) = c in (' ', '\t', '\u2000':'\u200c'...)
+    spc(c) = hspc(c) || c == '\n'
     regularisewhitespace(s) = replace(s, r"[ \t\n]{2,}|\n" => " ")
     function textobjupto(index)
         substr = @inbounds @view content[1:index]
@@ -586,7 +587,7 @@ function consume(::Type{TextPlain}, content::SubString{String})
     lc, c, nc = ' ', content[i], content[ni]
     cc = 1 # char count
     while true
-        if alphnum(c) || c in (' ', '\t')
+        if alphnum(c) || hspc(c)
         elseif c == '\n' && lc == '\n' # empty line
             return if i > 1 textobjupto(li) end
         elseif c in ('+', '-', '*') && lc == '\n' && spc(nc) # list items, heading
@@ -603,7 +604,7 @@ function consume(::Type{TextPlain}, content::SubString{String})
             else # subscript
                 return if cc > 2 textobjupto(prevind(content, li)) end
             end
-        elseif c == ':' && lc ∉ (' ', '\t') # plain link
+        elseif c == ':' && !hspc(lc) # plain link
             return if i > 1 textobjupto(something(findprev(c -> !(alphnum(c) || c in ('_', '-', '/', '+', '\'', '"')),
                                                            content, li), li)) end
         elseif c == '[' && (nc == '[' || nc == 'f' || nc == 'c' || nc in '0':'9') # regular link, citations, footnotes & inactive timestamps & statistics cookies
