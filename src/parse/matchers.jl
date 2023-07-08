@@ -77,6 +77,7 @@ const org_object_matchers =
         '{' => [Macro],
         '<' => [RadioTarget, Target, AngleLink, Timestamp],
         '\\' => [LineBreak, Entity, LaTeXFragment],
+        '$' => [LaTeXFragment],
         '*' => [TextMarkup],
         '/' => [TextMarkup],
         '_' => [TextMarkup],
@@ -93,7 +94,7 @@ const org_object_fallbacks =
 
 # Entity has a custom consumer
 
-@inline orgmatcher(::Type{LaTeXFragment}) = r"^(\\[A-Za-z]+(?:{[^{}\n]*}|\[[^][{}\n]*\])*)|(\\\(.*?\\\)|\\\[.*?\\\])"
+@inline orgmatcher(::Type{LaTeXFragment}) = r"^(\\[A-Za-z]+(?:{[^{}\n]*}|\[[^][{}\n]*\])*)|(\\\(.*?\\\)|\\\[.*?\\\]|\$.*?\$)"
 @inline orgmatcher(::Type{ExportSnippet}) = r"^\@\@([A-Za-z0-9-]+):(.*?)\@\@"
 # FootnoteReference has a dedicated consumer
 @inline orgmatcher(::Type{InlineBabelCall}) = r"^call_([^()\n]+?)(?:(\[[^]\n]+\]))?\(([^)\n]*)\)(?:(\[[^]\n]+\]))?"
