@@ -270,10 +270,11 @@ function term(io::IO, o::OrgDoc, item::Item, ordered::Bool=false, indent::Intege
         contentbuf = IOContext(IOBuffer(), :color => get(io, :color, false),
                                :displaysize => (displaysize(io)[1],
                                                 displaysize(io)[2] - indent - 2))
+        cindent = indent + textwidth(item.bullet) + 1
         parlines = if item.contents[1] isa Paragraph
             for obj in item.contents[1]; term(contentbuf, o, obj) end
             contents = String(take!(contentbuf.io))
-            wraplines(contents, displaysize(io)[2] - indent - 2, offset)
+            wraplines(contents, displaysize(io)[2] - cindent, offset)
         else
             ["\n"]
         end
@@ -290,7 +291,7 @@ function term(io::IO, o::OrgDoc, item::Item, ordered::Bool=false, indent::Intege
         lines = vcat(parlines, if otherlines == [""]; [] else otherlines end)
         for line in lines
             print(io, line)
-            line === last(lines) || print(io, '\n', ' '^indent)
+            line === last(lines) || print(io, '\n', ' '^cindent)
         end
     end
 end

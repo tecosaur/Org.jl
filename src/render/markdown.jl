@@ -94,8 +94,7 @@ end
 function markdown(io::IO, item::Item, indent::Integer=0, offset::Integer=0)
     print(io, ' '^indent,
           if item.bullet in ("+", "-", "*")
-              '-' else item.bullet end,
-          ' ')
+              '-' else item.bullet end)
     offset += length(item.bullet) + 1
     if !isnothing(item.counterset)
         print(io, " [@", item.counterset, "]")
@@ -127,10 +126,11 @@ function markdown(io::IO, item::Item, indent::Integer=0, offset::Integer=0)
         contentbuf = IOContext(IOBuffer(), :color => get(io, :color, false),
                                :displaysize => (displaysize(io)[1],
                                                 displaysize(io)[2] - indent - 2))
+        cindent = indent + textwidth(item.bullet) + 1
         parlines = if item.contents[1] isa Paragraph
             for obj in item.contents[1]; markdown(contentbuf, obj) end
             contents = String(take!(contentbuf.io))
-            wraplines(contents, displaysize(io)[2] - indent - 2, offset)
+            wraplines(contents, displaysize(io)[2] - cindent, offset)
         else
             [""]
         end
@@ -143,7 +143,7 @@ function markdown(io::IO, item::Item, indent::Integer=0, offset::Integer=0)
         lines = vcat(parlines, if otherlines == [""]; [] else otherlines end)
         for line in lines
             print(io, line)
-            line === last(lines) || print(io, '\n', ' '^(indent+2))
+            line === last(lines) || print(io, '\n', ' '^cindent)
         end
     end
 end
