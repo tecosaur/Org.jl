@@ -615,7 +615,7 @@ function consume(::Type{TextPlain}, content::SubString{String})
             return if i > 1 textobjupto(li) end
         elseif c in ('*', '/', '+', '_', '~', '=') && (spc(lc) || lc in ('-', '(', '{', '\'', '"')) && !spc(nc) # markup
             return if cc > 2 textobjupto(li) end
-        elseif c == '\\' && !spc(nc) # entities & latex & line break
+        elseif (c == '\\' || c == '$') && !spc(nc) # entities & latex & line break
             return if i > 1 textobjupto(li) end
         elseif c == '<' # angle links, targets, active timestamps
             return if i > 1 textobjupto(li) end

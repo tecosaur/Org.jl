@@ -288,8 +288,13 @@ function LaTeXFragment(components::Vector{Union{Nothing, SubString{String}}})
     if isnothing(delimitedform)
         LaTeXFragment(command::SubString{String}, nothing)
     else
-        LaTeXFragment(delimitedform[3:end-2],
+        if delimitedform[1] == '$'
+            LaTeXFragment(delimitedform[2:end-1],
+                      (delimitedform[1:1], delimitedform[end:end]))
+        else
+            LaTeXFragment(delimitedform[3:end-2],
                       (delimitedform[1:2], delimitedform[end-1:end]))
+        end
     end
 end
 
