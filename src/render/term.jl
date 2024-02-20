@@ -751,7 +751,10 @@ end
 # Catchall
 # ---------------------
 
-function term(io::IO, component::Component)
-    @warn "No method for converting $(typeof(component)) to a term representation currently exists"
+function term(io::IO, component::C) where {C <: Component}
+    but = if hasmethod(term, Tuple{IO, OrgDoc, C})
+        ", but a term(::IO, ::OrgDoc, ::$C) method is defined"
+    else "" end
+    @warn "No method for converting $C to a term representation currently exists$but"
     print(io, component, '\n')
 end
