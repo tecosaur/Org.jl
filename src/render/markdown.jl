@@ -352,10 +352,10 @@ function markdown(io::IO, markup::TextMarkup)
 end
 
 function markdown(io::IO, text::TextPlain)
-    tsub = replace(replace(replace(replace(text.text,
-                                           "..." => "&hellip;"),
-                                   r"---([^-])" => s"&mdash;\1"),
-                           r"--([^-])" => s"&mdash;\1"),
-                   r"\\-" => "&shy;")
+    tsub = replace(text.text,
+                   "..." => "…",
+                   r"---([^-])" => s"—\1",
+                   r"--([^-])" => s"–\1",
+                   r"\\-" => "-")
     print(io, tsub)
 end

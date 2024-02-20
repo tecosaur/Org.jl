@@ -463,10 +463,10 @@ function html(io::IO, markup::TextMarkup)
 end
 
 function html(io::IO, text::TextPlain)
-    tsub = replace(replace(replace(replace(html_escape(text.text),
-                                           "..." => "&hellip;"),
-                                   r"---([^-])" => s"&mdash;\1"),
-                           r"--([^-])" => s"&mdash;\1"),
+    tsub = replace(html_escape(text.text),
+                   "..." => "&hellip;",
+                   r"---([^-])" => s"&mdash;\1",
+                   r"--([^-])" => s"&mdash;\1",
                    r"\\-" => "&shy;")
     print(io, tsub)
 end

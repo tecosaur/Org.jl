@@ -739,10 +739,10 @@ function term(io::IO, o::OrgDoc, markup::TextMarkup, stylecodes::Vector{String}=
 end
 
 function term(io::IO, text::TextPlain)
-    tsub = replace(replace(replace(replace(text.text,
-                                           "..." => "…"),
-                                   r"---([^-])" => s"—\1"),
-                           r"--([^-])" => s"–\1"),
+    tsub = replace(text.text,
+                   "..." => "…",
+                   r"---([^-])" => s"—\1",
+                   r"--([^-])" => s"–\1",
                    r"\\-" => "-")
     print(io, tsub)
 end
