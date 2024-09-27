@@ -275,14 +275,19 @@ markdown(io::IO, link::RadioLink) = markdown(io, link.radio)
 
 const link_md_uri_schemes =
     Dict("https" => p -> "https://$p",
+         "http" => p -> "http://$p",
          "file" => p -> if endswith(p, ".org")
              first(splitext(p)) * ".md"
          else p end)
 
 function markdown(io::IO, path::LinkPath)
-    if path.protocol in keys(link_md_uri_schemes)
+    if haskey(link_md_uri_schemes, path.protocol)
         pathuri = link_md_uri_schemes[path.protocol](path.path)
         print(io, pathuri)
+    elseif path.protocol === :fuzzy
+        print(io, path.path)
+    elseif path.protocol isa String
+        print(io, path.protocol, ':', path.path)
     end
 end
 
