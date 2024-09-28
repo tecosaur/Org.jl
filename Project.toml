@@ -1,7 +1,7 @@
 name = "Org"
 uuid = "587fedb0-ad84-11e9-2bd6-d15ea4be1f9e"
 authors = ["TEC <tec@tecosaur.com> and contributors"]
-version = "0.3.5"
+version = "0.3.6"
 
 [deps]
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
