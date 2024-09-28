@@ -44,7 +44,11 @@ end
 # ---------------------
 
 function markdown(io::IO, specialblock::SpecialBlock)
-    print(io, "!!! ", specialblock.name, '\n')
+    print(io, "!!! ", specialblock.name)
+    if !isnothing(specialblock.parameters)
+        print(io, ' ', specialblock.parameters)
+    end
+    println(io)
     content = join(sprint.(markdown, specialblock.contents), '\n')
     for line in split(content, '\n')
         print(io, "    ", line, '\n')
