@@ -541,7 +541,9 @@ function consume(::Type{TextMarkup}, text::SubString{String})
         if text isa SubString
             text.offset == 0 ||
             text.string[prevind(text.string, 1+text.offset)] in
-            ('-', '(', '{', ''', '"', ' ', '\t', '\n', '\u2000':'\u200c'...) # pre condition
+            ('-', '(', '{', ''', '"', ' ', '\t', '\n', '\u2000':'\u200c'...) || # pre condition
+            (text.string[prevind(text.string, 1+text.offset)] == '[' &&
+            text.string[prevind(text.string, text.offset)] == ']') # link description
         else
             true
         end
