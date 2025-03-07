@@ -26,58 +26,57 @@ TODO
 
 * Progress
 
-| Component           | Type | Parse | Org | Term | HTML |
-|---------------------+------+-------+-----+------+------|
-| Heading             |      |       |     |      |      |
-| Section             |      |       |     |      |      |
-|---------------------+------+-------+-----+------+------|
-| Affiliated Keywords |      |       |     |      |      |
-|---------------------+------+-------+-----+------+------|
-| GreaterBlock        |      |       |     |      |      |
-| Drawer              |      |       |     |      |      |
-| DynamicBlock        |      |       |     |      |      |
-| FootnoteDefinition  |      |       |     |      |      |
-| InlineTask          |      |       |     |      |      |
-| Item                |      |       |     |      |      |
-| List                |      |       |     |      |      |
-| PropertyDrawer      |      |       |     |      |      |
-| Table               |      |       |     |      |      |
-|---------------------+------+-------+-----+------+------|
-| BabelCall           |      |       |     |      |      |
-| Block               |      |       |     |      |      |
-| Clock               |      |       |     |      |      |
-| DiarySexp           |      |       |     |      |      |
-| Planning            |      |       |     |      |      |
-| Comment             |      |       |     |      |      |
-| FixedWidth          |      |       |     |      |      |
-| HorizontalRule      |      |       |     |      |      |
-| Keyword             |      |       |     |      |      |
-| LaTe Environment    |      |       |     |      |      |
-| NodeProperty        |      |       |     |      |      |
-| Paragraph           |      |       |     |      |      |
-| TableRow            |      |       |     |      |      |
-| TableHRule          |      |       |     |      |      |
-| BlankLine           |      |       |     |      |      |
-|---------------------+------+-------+-----+------+------|
-| OrgEntity           |      |       |     |      |      |
-| LaTe Fragment       |      |       |     |      |      |
-| ExportSnippet       |      |       |     |      |      |
-| FootnoteReference   |      |       |     |      |      |
-| InlineBabelCall     |      |       |     |      |      |
-| InlineSrcBlock      |      |       |     |      |      |
-| RadioLink           |      |       |     |      |      |
-| PlainLink           |      |       |     |      |      |
-| AngleLink           |      |       |     |      |      |
-| RegularLink         |      |       |     |      |      |
-| LineBreak           |      |       |     |      |      |
-| Macro               |      |       |     |      |      |
-| Citation            |      |       |     |      |      |
-| RadioTarget         |      |       |     |      |      |
-| Target              |      |       |     |      |      |
-| StatisticsCookie    |      |       |     |      |      |
-| Subscript           |      |       |     |      |      |
-| Superscript         |      |       |     |      |      |
-| TableCell           |      |       |     |      |      |
-| Timestamp           |      |       |     |      |      |
-| TextPlain           |      |       |     |      |      |
-| TextMarkup          |      |       |     |      |      |
+| Component           | Type | Lex | Parse | Org | Term | HTML |
+|---------------------+------+-----+-------+-----+------+------|
+| Heading             |      | X   |       |     |      |      |
+| Section             |      | -   |       |     |      |      |
+|---------------------+------+-----+-------+-----+------+------|
+| GreaterBlock        |      | X   |       |     |      |      |
+| Drawer              |      |     |       |     |      |      |
+| DynamicBlock        |      | X   |       |     |      |      |
+| FootnoteDefinition  |      |     |       |     |      |      |
+| InlineTask          | -    | -   | -     | -   | -    | -    |
+| Item                |      |     |       |     |      |      |
+| List                |      | -   |       |     |      |      |
+| PropertyDrawer      |      |     |       |     |      |      |
+| Table               |      |     |       |     |      |      |
+|---------------------+------+-----+-------+-----+------+------|
+| BabelCall           |      |     |       |     |      |      |
+| Block               |      | X   |       |     |      |      |
+| Clock               |      |     |       |     |      |      |
+| DiarySexp           | -    | -   | -     | -   | -    | -    |
+| Planning            |      |     |       |     |      |      |
+| Comment             |      |     |       |     |      |      |
+| FixedWidth          |      |     |       |     |      |      |
+| HorizontalRule      |      |     |       |     |      |      |
+| Keyword             |      | X   |       |     |      |      |
+| Affiliated Keywords |      | -   |       |     |      |      |
+| LaTeX Environment   |      |     |       |     |      |      |
+| NodeProperty        |      |     |       |     |      |      |
+| Paragraph           |      |     |       |     |      |      |
+| TableRow            |      |     |       |     |      |      |
+| TableHRule          |      |     |       |     |      |      |
+| BlankLine           |      |     |       |     |      |      |
+|---------------------+------+-----+-------+-----+------+------|
+| OrgEntity           |      |     |       |     |      |      |
+| LaTeX Fragment      |      |     |       |     |      |      |
+| ExportSnippet       |      |     |       |     |      |      |
+| FootnoteReference   |      |     |       |     |      |      |
+| InlineBabelCall     |      |     |       |     |      |      |
+| InlineSrcBlock      |      |     |       |     |      |      |
+| RadioLink           |      |     |       |     |      |      |
+| PlainLink           |      |     |       |     |      |      |
+| AngleLink           |      |     |       |     |      |      |
+| RegularLink         |      |     |       |     |      |      |
+| LineBreak           |      |     |       |     |      |      |
+| Macro               |      |     |       |     |      |      |
+| Citation            |      |     |       |     |      |      |
+| RadioTarget         |      |     |       |     |      |      |
+| Target              |      |     |       |     |      |      |
+| StatisticsCookie    |      |     |       |     |      |      |
+| Subscript           |      |     |       |     |      |      |
+| Superscript         |      |     |       |     |      |      |
+| TableCell           |      |     |       |     |      |      |
+| Timestamp           |      |     |       |     |      |      |
+| TextPlain           |      |     |       |     |      |      |
+| TextMarkup          |      |     |       |     |      |      |

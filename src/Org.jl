@@ -3,4 +3,7 @@
 
 module Org
 
+include("syntax.jl")
+include("lexer.jl")
+
 end

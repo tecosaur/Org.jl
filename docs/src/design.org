@@ -1,0 +1,107 @@
+#+title: Design
+
+* Kind type
+
+Because Org-mode is so context sensitive, we will want to look at and compare
+the kinds of syntax very often, making a highly optimised kind type important.
+
+This is the role the =Kind= type is intended to fulfil during lexing and parsing.
+To be as useful as possible, we ideally want it to be able to specify:
++ The type of syntax object (e.g. block, paragraph, timestamp, etc.)
++ Combinations of syntax objects
++ Start-of/end-of object type variants
++ Extra data that affects syntax interpretation (e.g. heading level, block kind,
+  item depth)
+
+In the design of this, I've taken inspiration from [[https://github.com/JuliaLang/JuliaSyntax.jl][JuliaSyntax.jl]], which defines
+its own =Kind= sumtype as a 16-bit integer. This makes a lot of sense for Julia,
+since there are (at the time of writing) 765 syntax "kinds" (including operator
+symbols) that need to be encoded. Relevant metadata is added separatly to a
+flags field alongside the kind, in places like tokens.
+
+Org has a mere 55 types of syntax, which could be comfortably encoded in a
+repurposed 8-bit integer as JuliaSyntax has done, but it is also notably a just
+under the size of a [[https://en.wikipedia.org/wiki/Word_(computer_architecture)][/word/]] on modern computers (64 bits). Once struct padding is
+taken into account, if we also copy a similar token structure to JuliaSyntax
+(using 32-bit uints for source start and end positions), using an 8-bit kind
+instead of 64-bits only saves us 4 bytes (12 bytes instead of 16 bytes). It's
+also worth noting that on some new hardware, cache lines have been expanded to
+two words, making a 16 byte structure compelling for more than just space
+efficiency reasons. By using one bit for each type of syntax we can efficiently
+encode not just the Org syntax types, but any combination of them.
+
+To aid with parsing, we'll also want to record the newlines we see, which leaves
+us with eight bits free. In order to flag syntax beginning/end variants we must
+use two bits, as we also want to allow for the "normal" third state of not being
+either variant. This leaves us with a tantalising six bits spare, almost a
+=UInt8=. These bits are important, as they let us encode crucial information like
+heading depth, item indentation, and block type within the kind itself. With six
+bits, we can have headings up to 63-deep, lists up with up to 63 characters of
+indentation, and encode 64 different types of blocks. If we hash block names,
+this puts the chance of a hash collision at around 1 in 4000. This seems like
+almost enough, but it's rather lean. I'm certain there are god-forsaken files
+somewhere that violate at least one of these assumptions. This is deeply
+frustrating, since with a mere two more bits we could allow for headings up to
+255-deep, and the chance of block name hash collisions goes to 1 in 60,000.
+
+It is at this point that I commit the latest sin in a programming hobby marked
+by unchecked debauchery and flagrant disregard for norms: I /throw out/ two kinds
+of syntax. [[https://orgmode.org/worg/org-syntax.html#Inlinetasks][Inline tasks]] are clearly the first to go, since they are a syntactic
+abomination that turn some headings into a different kind of syntax altogether
+based on user-specific settings, if an extra library is loaded. I don't really
+want to boot out anything else, but if something must go I think that
+[[https://orgmode.org/worg/org-syntax.html#Diary_Sexp][diary-sexps]] are the obvious choice, since they cannot be meaningfully used
+without an Elisp interpreter, and the whole point of this library is to make use
+of Org-mode files /outside/ of Emacs easier. With these two evictions, we now have
+room for a lovely =UInt8= tag.
+
+#+begin_src @docs
+Org.Kind
+#+end_src
+
+With the syntax mask at the end, we can obtain a numeric index for a single kind
+by counting the number of trailing zeros with the =tzcnt= instruction (invoked
+with ~trailing_zeros~). Syntax classes can also be combined, excluded, or
+otherwise mixed using the relevant bit-manipulation functions.
+
+One key operation that's a little more complex is looking at whether a
+particular syntax kind is part of a larger set. This depends on whether the set
+specifies a beginning/end subtype or not. Thus, based on the presence of these
+flags in the larger set, we may or may not want to preserve those flags in the
+test kind before comparing it. All in all, this takes about eight operations to
+compute, around two cycles on modern CPUs, but thanks to constant propagation
+this is reduced to just three operations for a comparison set known at
+compile-time.
+
+For completeness, we also implement convenience functions for:
++ checking for the presence of a begin/end flag
++ extracting or setting the tag as a =UInt8=
++ removing all of the metadata (tag and flags)
++ counting the number of individual syntax types
++ iterating through the individual syntax types of a multi-kind
+
+Except for iteration and tag-setting, all of these functions compile down to
+just two x86_64 instructions 🙂.
+
+* Lexing
+
+The original version of this library tried to parse in one shot from the source
+using recursive descent via regex horrors. I have since learnt my lesson, and am
+repenting by implementing regex-less lexing.
+
+For highly efficient lexing, we want to represent the entire parsing context in
+a single =Kind= value. This is possible as long as we defer the construction of
+self-nestable syntax structures to the parsing phase. In Org-mode syntax, only
+headings and lists are nestable. We only want to lex individual list items and
+heading lines, which means that for the purpose of lexing, we can assume
+self-nesting is not permitted.
+
+The sole exception to this is greater blocks, as it is /specific block names/ that
+are not nestable, rather than blocks in general. Since they are a greater
+element without any special rules, thankfully they don't actually change what
+syntax is allowed within them and so we can ignore block nesting during lexing
+and process them during parsing.
+
+This allows us to put all the state of the lexer in a small immutable struct,
+and easily implement the lexer via Julia's iteration interface, making lexing as
+easy as ~collect(Lexer("<org input>"))~.
