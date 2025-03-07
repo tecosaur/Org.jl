@@ -32,13 +32,13 @@ TODO
 | Section             |      | -   |       |     |      |      |
 |---------------------+------+-----+-------+-----+------+------|
 | GreaterBlock        |      | X   |       |     |      |      |
-| Drawer              |      |     |       |     |      |      |
+| Drawer              |      | X   |       |     |      |      |
 | DynamicBlock        |      | X   |       |     |      |      |
 | FootnoteDefinition  |      |     |       |     |      |      |
 | InlineTask          | -    | -   | -     | -   | -    | -    |
 | Item                |      |     |       |     |      |      |
 | List                |      | -   |       |     |      |      |
-| PropertyDrawer      |      |     |       |     |      |      |
+| PropertyDrawer      |      | X   |       |     |      |      |
 | Table               |      |     |       |     |      |      |
 |---------------------+------+-----+-------+-----+------+------|
 | BabelCall           |      |     |       |     |      |      |
@@ -52,7 +52,7 @@ TODO
 | Keyword             |      | X   |       |     |      |      |
 | Affiliated Keywords |      | -   |       |     |      |      |
 | LaTeX Environment   |      |     |       |     |      |      |
-| NodeProperty        |      |     |       |     |      |      |
+| NodeProperty        |      | X   |       |     |      |      |
 | Paragraph           |      |     |       |     |      |      |
 | TableRow            |      |     |       |     |      |      |
 | TableHRule          |      |     |       |     |      |      |

@@ -16,95 +16,131 @@ Lexer(string::AbstractString) = Lexer(codeunits(string))
 struct LexerState
     position::UInt32
     ctx::Kind
-    last::Kind
+    restriction::Kind
+    lastelement::Kind
 end
 
 Base.eltype(::Type{<:Lexer}) = Token
 Base.IteratorSize(::Type{<:Lexer}) = Base.SizeUnknown()
 
 function Base.iterate(lex::Lexer)
-    state = LexerState(firstindex(lex.input), K"", K"")
+    state = LexerState(firstindex(lex.input), K"", restrictions(K""), K"")
     iterate(lex, state)
 end
 
-function Base.iterate(lex::Lexer, (; position, ctx, last)::LexerState)
-    position >= length(lex.input) && return
-    restriction = restrictions(ctx)
+function Base.iterate(lex::Lexer, state::LexerState)
+    state.position >= length(lex.input) && return
+    (; position, ctx, restriction, lastelement) = state
     local token
     while position <= length(lex.input)
-        token, position = lexnext(lex.input, position, ctx, restriction, last)
+        token, position = lexnext(state, lex.input, position)
         if token.kind == K"plaintext"
-            last = token.kind
         elseif token.kind == K"heading"
             ctx = K""
+            restriction = restrictions(ctx)
             break
         elseif token.kind ∈ K"block"
             break
         elseif isbegin(token.kind) || isend(token.kind)
             ctx = ctx ⊻ plain(token.kind)
+            restriction = restrictions(ctx)
             break
         else
             break
         end
     end
-    token, LexerState(position, ctx, token.kind)
+    token, LexerState(position, ctx, restriction, lastelement)
 end
 
 
-# Lexers
+# Lexing entrypoint
 
-function lexnext(bytes::DenseVector{UInt8}, start::UInt32, ctx::Kind, restrictions::Kind, last::Kind)
-    newline, blankline = false, false
+function lexnext(state::LexerState, bytes::DenseVector{UInt8}, position::UInt32)
+    newline, blankline = position == 1, false
     while true
-        if bytes[start] == UInt8('\n')
+        if bytes[position] == UInt8('\n')
             blankline = newline
             newline = true
-            start += 1
-        elseif bytes[start] == UInt8('\r') && isthischar(bytes, start + 1, UInt8('\n'))
+            position += 1
+        elseif bytes[position] == UInt8('\r') && ischarat(bytes, position + 1, UInt8('\n'))
             blankline = newline
             newline = true
-            start += 2
+            position += 2
         else
             break
         end
+        position <= length(bytes) || return Token(K"", position, position), length(bytes) + 1
     end
-    skipws = skiphspace(bytes, start)
+    skipws = skiphspace(bytes, position)
     pos = skipws.stop
     chr = bytes[pos]
     next = if newline
-        if chr == UInt8('*') && isthischar(bytes, pos + countsame(bytes, pos, UInt8('*')), ' ')
-            lex_heading(bytes, pos)
-        elseif chr == UInt8('#') && isthischar(bytes, pos + 1, '+') && (ctx in (K"#+" ⊻ K"keyword") || !isempty(K"#+" & restrictions))
-            lex_hashplus(bytes, pos, ctx, restrictions)
+        if chr == UInt8('*') && ischarat(bytes, pos + countsame(bytes, pos, UInt8('*')), ' ')
+            lex_heading(state, bytes, pos)
+        elseif chr == UInt8(':')
+            lex_drawer(state, bytes, pos)
+        elseif chr == UInt8('#') && ischarat(bytes, pos + 1, '+') && (state.ctx in (K"#+" ⊻ K"keyword") || !isempty(K"#+" & restriction))
+            lex_hashplus(state, bytes, pos)
         end
     end
     if isnothing(next)
         pos = skipplain(bytes, pos)
-        Token(K"plaintext", start, pos), (pos + 1) % UInt32
+        Token(K"plaintext", position, pos), (pos + 1) % UInt32
     else
         token, pos = next
         token, pos % UInt32
     end
 end
 
-function lex_heading(bytes::DenseVector{UInt8}, pos::UInt32)
+
+# Element lexing
+
+function lex_heading(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
     depth = countsame(bytes, pos, UInt8('*'))
     Token(settag(K"heading", depth % UInt8), pos, lineend(bytes, pos) - 1),
     pos + depth
 end
 
-function lex_hashplus(bytes::DenseVector{UInt8}, pos::UInt32, ctx::Kind, res::Kind)
-    @something(lex_block(bytes, pos, ctx),
-               if K"dynamic_block" in ctx
-                   lex_dynamicblock(bytes, pos)
+function lex_drawer(state::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
+    kind, drawend = if state.lastelement ∈ K"heading" && hasprefix(bytes, pos, ":properties:")
+        K"<property_drawer", pos + ncodeunits(":properties:")
+    elseif hasprefix(bytes, pos, ":end:")
+        if K"property_drawer" ∈ state.ctx
+            K">property_drawer"
+        elseif K"drawer" ∈ state.ctx
+            K">drawer"
+        else
+            return
+        end, pos + ncodeunits(":end:")
+    elseif K"property_drawer" ∈ state.ctx
+        nameend = nextindex(bytes, pos + 1, (' ', '\t'))
+        bytes[nameend - 1] == UInt8(':') || return
+        K"node_property", lineend(bytes, nameend)
+    elseif K"drawer" ∈ state.restriction
+        nameend = nextindex(bytes, pos + 1, ':')
+        nameend == skipwords(bytes, pos + 1, ('-', '_')) || return
+        K"<drawer", nameend + 1
+    else
+        return
+    end
+    drawend = skiphspace(bytes, drawend).stop
+    if islineend(bytes, drawend)
+        Token(kind, pos, drawend - 1), drawend
+    end
+end
+
+function lex_hashplus(state::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
+    @something(lex_block(state, bytes, pos),
+               if K"dynamic_block" in state.ctx
+                   lex_dynamicblock(state, bytes, pos)
                end,
-               if K"keyword" in res
-                   lex_keyword(bytes, pos)
+               if K"keyword" in state.restriction
+                   lex_keyword(state, bytes, pos)
                end,
                Some(nothing))
 end
 
-function lex_block(bytes::DenseVector{UInt8}, start::UInt32, ctx::Kind)
+function lex_block((; ctx)::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
     mode, pos = if hasprefix(bytes, start, "#+begin_")
         K"<", start + ncodeunits("#+begin_")
     elseif hasprefix(bytes, start, "#+end_")
@@ -132,7 +168,7 @@ function lex_block(bytes::DenseVector{UInt8}, start::UInt32, ctx::Kind)
     Token(settag(K"block" | mode, tag), start, lend - 1), lend
 end
 
-function lex_dynamicblock(bytes::DenseVector{UInt8}, pos::UInt32)
+function lex_dynamicblock(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
     mode, prefixlen = if hasprefix(bytes, pos, "#+begin:")
         K"<", ncodeunits("#+begin:")
     elseif hasprefix(bytes, pos, "#+end:")
@@ -151,17 +187,20 @@ function lex_dynamicblock(bytes::DenseVector{UInt8}, pos::UInt32)
     Token(settag(K"dynamic_block" | mode, tag), pos, lend - 1), lend
 end
 
-function lex_keyword(bytes::DenseVector{UInt8}, pos::UInt32)
+function lex_keyword(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
     if !hasprefix(bytes, pos, "#+")
         return
     end
-    nameend = nextindex(bytes, pos, UInt8(':'))
+    nameend = nextindex(bytes, pos, ':')
     nameend > length(bytes) && return
     containswhitespace(bytes, pos, nameend) && return
     lend = lineend(bytes, pos)
     tag = word2tag(bytes, pos + 2, nameend - 1)
     Token(settag(K"keyword", tag), pos, lend - 1), lend
 end
+
+
+# Object lexing
 
 
 # Utility functions
@@ -282,7 +321,93 @@ function skipplain(bytes::DenseVector{UInt8}, start::Integer)
     length(bytes)
 end
 
-function isthischar(bytes::DenseVector{UInt8}, pos::Integer, char::Char)
+"""
+    charat(bytes::DenseVector{UInt8}, pos::Integer) -> UInt32
+
+Return the Unicode codepoint at the position `pos` in the byte array `bytes`.
+
+This assumes that `bytes` are the codepoints of a valid UTF-8 encoded string.
+
+# Examples
+
+```julia-repl
+julia> cu = codeunits("aþ—🧮")
+10-element Base.CodeUnits{UInt8, String}:
+ 0x61
+ 0xc3
+ 0xbe
+ 0xe2
+ 0x80
+ 0x94
+ 0xf0
+ 0x9f
+ 0xa7
+ 0xae
+
+julia> charat(cu, 1)
+0x00000061
+
+julia> charat(cu, 2)
+0x000000fe
+
+julia> charat(cu, 4)
+0x00002014
+
+julia> charat(cu, 7)
+0x0001f9ee
+```
+"""
+function charat(bytes::DenseVector{UInt8}, pos::Integer)
+    b1 = bytes[pos]
+    b1 < 0x80 && return UInt32(b1), 1 # ASCII fast-path
+    len = utf8bytes(b1)
+    if len == 2 && length(bytes) >= pos + 1
+        b2 = bytes[pos + 1]
+        UInt32(b1 & 0x1F) << 6 | b2 & 0x3f
+    elseif len == 3 && length(bytes) >= pos + 2
+        b2 = bytes[pos + 1]
+        b3 = bytes[pos + 2]
+        UInt32(b1 & 0x0F) << 12 | UInt32(b2 & 0x3f) << 6 | b3 & 0x3f
+    elseif len == 4 && length(bytes) >= pos + 3
+        b2 = bytes[pos + 1]
+        b3 = bytes[pos + 2]
+        b4 = bytes[pos + 3]
+        UInt32(b1 & 0x07) << 18 | UInt32(b2 & 0x3f) << 12 |
+            UInt32(b3 & 0x3f) << 6 | b4 & 0x3f
+    else
+        0x0000fffd
+    end, len
+end
+
+"""
+    skipwords(bytes::DenseVector{UInt8}, pos::Integer, extras) -> Integer
+
+Skip over all word-constituent characters in `bytes` starting at `pos`.
+
+If `extras` is provided, then any character in `extras` is also considered,
+where `extras` is a tuple of characters as `UInt8`s or `Char`s.
+"""
+function skipwords(bytes::DenseVector{UInt8}, pos::Integer, extras::NTuple{N, C} = ()) where {N, C <: Union{Char, UInt8}}
+    len, next = 1, pos
+    alsoskip = map(UInt8, extras)
+    while next <= length(bytes)
+        b1 = bytes[next]
+        if b1 < 0x7f
+            len = 1
+            UInt8('a') <= b1 <= UInt8('z') ||
+                UInt8('A') <= b1 <= UInt8('Z') ||
+                UInt8('0') <= b1 <= UInt8('9') ||
+                b1 ∈ alsoskip
+        else
+            chr, len = charat(bytes, next)
+            1 <= Base.Unicode.category_code(chr) <= 4
+        end || return next
+        pos, next = next, next + len
+    end
+    pos
+end
+
+function ischarat(bytes::DenseVector{UInt8}, pos::Integer, char::Char)
     length(bytes) >= pos || return false
     bytes[pos] == UInt8(char)
 end
@@ -321,6 +446,17 @@ end
 function nextindex(bytes::DenseVector{UInt8}, pos::Integer, char::UInt8)
     for p in pos:length(bytes)
         bytes[p] == char && return p
+    end
+    length(bytes) + 1
+end
+
+nextindex(bytes::DenseVector{UInt8}, pos::Integer, char::Char) =
+    nextindex(bytes, pos, UInt8(char))
+
+function nextindex(bytes::DenseVector{UInt8}, pos::Integer, chars::NTuple{N, C}) where {N, C <: Union{UInt8, Char}}
+    ichars = map(UInt8, chars)
+    for p in pos:length(bytes)
+        bytes[p] ∈ ichars && return p
     end
     length(bytes) + 1
 end
