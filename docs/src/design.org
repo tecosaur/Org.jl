@@ -30,30 +30,19 @@ two words, making a 16 byte structure compelling for more than just space
 efficiency reasons. By using one bit for each type of syntax we can efficiently
 encode not just the Org syntax types, but any combination of them.
 
-To aid with parsing, we'll also want to record the newlines we see, which leaves
-us with eight bits free. In order to flag syntax beginning/end variants we must
-use two bits, as we also want to allow for the "normal" third state of not being
-either variant. This leaves us with a tantalising six bits spare, almost a
-=UInt8=. These bits are important, as they let us encode crucial information like
-heading depth, item indentation, and block type within the kind itself. With six
-bits, we can have headings up to 63-deep, lists up with up to 63 characters of
-indentation, and encode 64 different types of blocks. If we hash block names,
-this puts the chance of a hash collision at around 1 in 4000. This seems like
-almost enough, but it's rather lean. I'm certain there are god-forsaken files
-somewhere that violate at least one of these assumptions. This is deeply
-frustrating, since with a mere two more bits we could allow for headings up to
-255-deep, and the chance of block name hash collisions goes to 1 in 60,000.
+This leaves us with nine bits free. In order to flag syntax beginning/end
+variants we must use two bits, as we also want to allow for the "normal" third
+state of not being either variant. This leaves us with a tantalising seven bits
+spare, almost a =UInt8=. These bits are important, as they let us encode crucial
+information like heading depth, item indentation, and block type within the kind
+itself.
 
 It is at this point that I commit the latest sin in a programming hobby marked
-by unchecked debauchery and flagrant disregard for norms: I /throw out/ two kinds
-of syntax. [[https://orgmode.org/worg/org-syntax.html#Inlinetasks][Inline tasks]] are clearly the first to go, since they are a syntactic
-abomination that turn some headings into a different kind of syntax altogether
-based on user-specific settings, if an extra library is loaded. I don't really
-want to boot out anything else, but if something must go I think that
-[[https://orgmode.org/worg/org-syntax.html#Diary_Sexp][diary-sexps]] are the obvious choice, since they cannot be meaningfully used
-without an Elisp interpreter, and the whole point of this library is to make use
-of Org-mode files /outside/ of Emacs easier. With these two evictions, we now have
-room for a lovely =UInt8= tag.
+by unchecked debauchery and flagrant disregard for norms: I /throw out/ a kind of
+syntax I don't like. [[https://orgmode.org/worg/org-syntax.html#Inlinetasks][Inline tasks]] the clear candidate for this, since they are a
+syntactic abomination that turn some headings into a different kind of syntax
+altogether based on user-specific settings, if an extra library is loaded. With
+this eviction, we now have room for a lovely =UInt8= tag.
 
 #+begin_src @docs
 Org.Kind

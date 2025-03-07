@@ -23,7 +23,7 @@ Base.eltype(::Type{<:Lexer}) = Token
 Base.IteratorSize(::Type{<:Lexer}) = Base.SizeUnknown()
 
 function Base.iterate(lex::Lexer)
-    state = LexerState(firstindex(lex.input), K"", K"newline")
+    state = LexerState(firstindex(lex.input), K"", K"")
     iterate(lex, state)
 end
 
@@ -54,14 +54,24 @@ end
 # Lexers
 
 function lexnext(bytes::DenseVector{UInt8}, start::UInt32, ctx::Kind, restrictions::Kind, last::Kind)
+    newline, blankline = false, false
+    while true
+        if bytes[start] == UInt8('\n')
+            blankline = newline
+            newline = true
+            start += 1
+        elseif bytes[start] == UInt8('\r') && isthischar(bytes, start + 1, UInt8('\n'))
+            blankline = newline
+            newline = true
+            start += 2
+        else
+            break
+        end
+    end
     skipws = skiphspace(bytes, start)
     pos = skipws.stop
     chr = bytes[pos]
-    next = if chr == UInt8('\n')
-        Token(K"newline", pos, pos), pos + 1
-    elseif chr == UInt8('\r') && isthischar(bytes, pos + 1, UInt8('\n'))
-        Token(K"newline", pos, pos + 1), pos + 2
-    elseif last == K"newline"
+    next = if newline
         if chr == UInt8('*') && isthischar(bytes, pos + countsame(bytes, pos, UInt8('*')), ' ')
             lex_heading(bytes, pos)
         elseif chr == UInt8('#') && isthischar(bytes, pos + 1, '+') && (ctx in (K"#+" ⊻ K"keyword") || !isempty(K"#+" & restrictions))

@@ -144,7 +144,7 @@ const KIND_NAMES = (
                     :verse_block,
                 :_end_lesser_blocks,
                 :clock,
-                # :diarysexp, # EXCLUDED
+                :diarysexp,
                 :planning,
                 :comment,
                 :fixedwidth,
@@ -193,8 +193,6 @@ const KIND_NAMES = (
         :_end_objects,
         :plaintext,
     :_end_all,
-    # special
-    :newline,
 )
 
 

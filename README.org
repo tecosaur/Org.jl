@@ -44,7 +44,7 @@ TODO
 | BabelCall           |      |     |       |     |      |      |
 | Block               |      | X   |       |     |      |      |
 | Clock               |      |     |       |     |      |      |
-| DiarySexp           | -    | -   | -     | -   | -    | -    |
+| DiarySexp           |      |     |       |     |      |      |
 | Planning            |      |     |       |     |      |      |
 | Comment             |      |     |       |     |      |      |
 | FixedWidth          |      |     |       |     |      |      |
