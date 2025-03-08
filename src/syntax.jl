@@ -42,55 +42,61 @@ primitive type Kind 64 end
 # 53 kinds + 1 special + 2 flags + 8-bit tag = 64 bits
 
 """
-    kind_number(name::Symbol) -> Int
+    kind_number(name::Symbol) -> Union{UInt8, Nothing}
 
 Return the index of `name` in the `KIND_NAMES` tuple, ignoring
 group markers. If `name` is not found, return `nothing`.
 """
 function kind_number(name::Symbol)
+    name == Symbol("") && return 0x00
     idx = findfirst(==(name), KIND_NAMES)
     isnothing(idx) && return
     mkrs = findlast(m -> first(m) < idx, KIND_MARKER_OFFSETS)::Int
     moff = last(KIND_MARKER_OFFSETS[mkrs])
-    idx - moff
+    (idx - moff) % UInt8
 end
 
 function kind_number(k::Kind)
-    1 + trailing_zeros(Base.bitcast(UInt64, k))
+    (1 + trailing_zeros(reinterpret(UInt64, k))) % UInt8
 end
 
 Base.:(|)(k1::Kind, k2::Kind) =
-    Base.bitcast(Kind, Base.bitcast(UInt64, k1) | Base.bitcast(UInt64, k2))
+    reinterpret(Kind, reinterpret(UInt64, k1) | reinterpret(UInt64, k2))
 
 Base.:(&)(k1::Kind, k2::Kind) =
-    Base.bitcast(Kind, Base.bitcast(UInt64, k1) & Base.bitcast(UInt64, k2))
+    reinterpret(Kind, reinterpret(UInt64, k1) & reinterpret(UInt64, k2))
 
 Base.xor(k1::Kind, k2::Kind) =
-    Base.bitcast(Kind, Base.bitcast(UInt64, k1) ⊻ Base.bitcast(UInt64, k2))
+    reinterpret(Kind, reinterpret(UInt64, k1) ⊻ reinterpret(UInt64, k2))
+
+function Base.:(!)(k::Kind)
+    ku = reinterpret(UInt64, k)
+    reinterpret(Kind, (ku & KIND_SPECIAL) | (KIND_NOSPECIAL & ~ku))
+end
 
 function Base.:(~)(k::Kind)
-    ku = Base.bitcast(UInt64, k)
-    Base.bitcast(Kind, (ku & KIND_SPECIAL) | (KIND_NOSPECIAL & ~ku))
+    ku = reinterpret(UInt64, k)
+    reinterpret(Kind, ku ⊻ KIND_SPECIAL)
 end
 
 function Base.in(k::Kind, kset::Kind)
-    ku = Base.bitcast(UInt64, k)
-    ksu = Base.bitcast(UInt64, kset)
+    ku = reinterpret(UInt64, k)
+    ksu = reinterpret(UInt64, kset)
     kmask = ifelse(ksu & (KIND_BEGIN | KIND_END) == 0, KIND_NOSPECIAL, KIND_NOTAG)
     km = ku & kmask
     km & ksu == km
 end
 
 Base.isempty(k::Kind) =
-    iszero(Base.bitcast(UInt64, k) & KIND_NOSPECIAL)
+    iszero(reinterpret(UInt64, k) & KIND_NOSPECIAL)
 
 Base.length(k::Kind) =
-    count_ones(Base.bitcast(UInt64, k) & KIND_NOSPECIAL)
+    count_ones(reinterpret(UInt64, k) & KIND_NOSPECIAL)
 
 Base.eltype(::Type{Kind}) = Kind
 
 function Base.iterate(k::Kind, from::Int = 0)
-    ku = Base.bitcast(UInt64, k) & KIND_NOSPECIAL
+    ku = reinterpret(UInt64, k) & KIND_NOSPECIAL
     from >= 64 - leading_zeros(ku) && return
     ku = ku >> from
     skip = trailing_zeros(ku)
@@ -98,7 +104,7 @@ function Base.iterate(k::Kind, from::Int = 0)
     from += skip
     ku = ku & 0x0000000000000001
     ku = ku << from
-    Base.bitcast(Kind, ku), from + 1
+    reinterpret(Kind, ku), from + 1
 end
 
 const KIND_BEGIN = UInt64(1) << 55
@@ -107,16 +113,16 @@ const KIND_NOTAG = ~(UInt64(0xff) << 56)
 const KIND_NOSPECIAL = ~(KIND_BEGIN | KIND_END) & KIND_NOTAG
 const KIND_SPECIAL = ~KIND_NOSPECIAL
 
-isbegin(k::Kind) = Base.bitcast(UInt64, k) & KIND_BEGIN != 0
-isend(k::Kind)   = Base.bitcast(UInt64, k) & KIND_END != 0
-tag(k::Kind)     = (Base.bitcast(UInt64, k) >> 56) % UInt8
-plain(k::Kind)   = Base.bitcast(Kind, Base.bitcast(UInt64, k) & KIND_NOSPECIAL)
+isbegin(k::Kind) = reinterpret(UInt64, k) & KIND_BEGIN != 0
+isend(k::Kind)   = reinterpret(UInt64, k) & KIND_END != 0
+tag(k::Kind)     = (reinterpret(UInt64, k) >> 56) % UInt8
+plain(k::Kind)   = reinterpret(Kind, reinterpret(UInt64, k) & KIND_NOSPECIAL)
 
 function settag(k::Kind, tag::UInt8)
-    ku = Base.bitcast(UInt64, k)
+    ku = reinterpret(UInt64, k)
     ku &= ~(UInt64(0xff) << 56)
     ku |= UInt64(tag) << 56
-    Base.bitcast(Kind, ku)
+    reinterpret(Kind, ku)
 end
 
 const KIND_NAMES = (
@@ -220,16 +226,20 @@ const KIND_SPECIAL_SETS = let n2k(set) = mapreduce(n -> UInt64(1) << (kind_numbe
     end
     standard_objs = all_objs ⊻ n2k((:citation_reference, :table_cell))
     hashplus = n2k((:block, :dynamic_block, :comment_block, :example_block, :source_block, :verse_block, :keyword))
-    (:minimal_objects => Base.bitcast(Kind, minimal_objs),
-     :standard_objects => Base.bitcast(Kind, standard_objs),
-     Symbol("#+") => Base.bitcast(Kind, hashplus))
+    (:minimal_objects => reinterpret(Kind, minimal_objs),
+     :standard_objects => reinterpret(Kind, standard_objs),
+     Symbol("#+") => reinterpret(Kind, hashplus))
 end
 
 
 # Construction and display
 
+function Kind(number::Number)
+    reinterpret(Kind, UInt64(1) << (number - 1))
+end
+
 function Kind(name::String, tag::UInt8; start::Bool = false, stop::Bool = false)
-    kmod = UInt64(tag) >> 56
+    kmod = UInt64(tag) << 56
     if start
         kmod |= KIND_BEGIN
     end
@@ -238,7 +248,7 @@ function Kind(name::String, tag::UInt8; start::Bool = false, stop::Bool = false)
     end
     kint = kind_number(Symbol(name))
     if isnothing(kint)
-        isempty(name) && return Base.bitcast(Kind, kmod)
+        isempty(name) && return reinterpret(Kind, kmod)
         sname = Symbol(name)
         for (kset, kind) in KIND_SPECIAL_SETS
             sname == kset && return kind
@@ -250,11 +260,11 @@ function Kind(name::String, tag::UInt8; start::Bool = false, stop::Bool = false)
             for i in (mbeg - 1):(mend - 2)
                 kmask |= UInt64(1) << i
             end
-            return Base.bitcast(Kind, kmod | kmask)
+            return reinterpret(Kind, kmod | kmask)
         end
         throw(ArgumentError("Unknown kind: $name"))
     end
-    Base.bitcast(Kind, kmod | UInt64(1) << (kint - 1))
+    reinterpret(Kind, kmod | UInt64(1) << (kint - 1))
 end
 
 function Kind(name::String)
@@ -289,7 +299,7 @@ Kind(name::Symbol) = Kind(String(name))
 # end
 
 function Base.show(io::IO, k::Kind)
-    ku = Base.bitcast(UInt64, k)
+    ku = reinterpret(UInt64, k)
     ks = Int[]
     for i in 1:54
         ku & (UInt64(1) << (i - 1)) != 0 && push!(ks, i)
@@ -373,7 +383,7 @@ function all_restrictions(k::Kind)
     for (rk, res) in DENSE_RESTRICTIONS
         if k in rk
             allowed &= res
-            k = k & ~rk
+            k = k & !rk
         end
         k == K"" && break
     end
@@ -382,7 +392,7 @@ end
 
 const FLAT_RESTRICTIONS = let res = Kind[]
     for kind in K"all"
-        push!(res, all_restrictions(kind))
+        push!(res, all_restrictions(kind) ⊻ kind)
     end
     Tuple(res)
 end
