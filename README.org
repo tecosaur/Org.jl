@@ -34,7 +34,7 @@ TODO
 | GreaterBlock        |      | X   |       |     |      |      |
 | Drawer              |      | X   |       |     |      |      |
 | DynamicBlock        |      | X   |       |     |      |      |
-| FootnoteDefinition  |      |     |       |     |      |      |
+| FootnoteDefinition  |      | X   |       |     |      |      |
 | InlineTask          | -    | -   | -     | -   | -    | -    |
 | Item                |      |     |       |     |      |      |
 | List                |      | -   |       |     |      |      |

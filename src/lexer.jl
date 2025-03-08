@@ -33,7 +33,7 @@ function Base.iterate(lex::Lexer, state::LexerState)
     (; position, ctx, restriction, lastelement) = state
     local token
     while position <= length(lex.input)
-        token, position = lexnext(state, lex.input, position)
+        token, position = @inline lexnext(state, lex.input, position)
         if token.kind == K"plaintext"
         elseif token.kind == K"heading"
             ctx = K""
@@ -49,43 +49,34 @@ function Base.iterate(lex::Lexer, state::LexerState)
             break
         end
     end
+    token.kind ∈ (K"", K"plaintext") && return
     token, LexerState(position, ctx, restriction, lastelement)
 end
 
 
 # Lexing entrypoint
 
-function lexnext(state::LexerState, bytes::DenseVector{UInt8}, position::UInt32)
-    newline, blankline = position == 1, false
-    while true
-        if bytes[position] == UInt8('\n')
-            blankline = newline
-            newline = true
-            position += 1
-        elseif bytes[position] == UInt8('\r') && ischarat(bytes, position + 1, UInt8('\n'))
-            blankline = newline
-            newline = true
-            position += 2
-        else
-            break
-        end
-        position <= length(bytes) || return Token(K"", position, position), length(bytes) + 1
-    end
-    skipws = skiphspace(bytes, position)
+function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
+    linestart, newlines = @inline skipnewlines(bytes, start)
+    skipws = skiphspace(bytes, linestart)
     pos = skipws.stop
     chr = bytes[pos]
-    next = if newline
+    next = if newlines > 2 && K"footnote_definition" ∈ state.ctx
+        Token(K">footnote_definition", linestart, pos), start
+    elseif newlines != 0
         if chr == UInt8('*') && ischarat(bytes, pos + countsame(bytes, pos, UInt8('*')), ' ')
             lex_heading(state, bytes, pos)
         elseif chr == UInt8(':')
             lex_drawer(state, bytes, pos)
+        elseif chr == UInt8('[') && pos == linestart && K"footnote_definition" ∈ state.restriction
+            lex_footnotedef(state, bytes, pos)
         elseif chr == UInt8('#') && ischarat(bytes, pos + 1, '+') && (state.ctx in (K"#+" ⊻ K"keyword") || !isempty(K"#+" & restriction))
             lex_hashplus(state, bytes, pos)
         end
     end
     if isnothing(next)
-        pos = skipplain(bytes, pos)
-        Token(K"plaintext", position, pos), (pos + 1) % UInt32
+        pos = @inline skipplain(bytes, pos)
+        Token(K"plaintext", linestart, pos), (pos + 1) % UInt32
     else
         token, pos = next
         token, pos % UInt32
@@ -127,6 +118,13 @@ function lex_drawer(state::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
     if islineend(bytes, drawend)
         Token(kind, pos, drawend - 1), drawend
     end
+end
+
+function lex_footnotedef(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
+    hasprefix(bytes, pos, "[fn:") || return
+    fnend = skipwords(bytes, pos + ncodeunits("[fn:"), ('-', '_'))
+    bytes[fnend] == UInt8(']') || return
+    Token(K"<footnote_definition", pos, fnend), fnend + 1
 end
 
 function lex_hashplus(state::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
@@ -224,7 +222,7 @@ function skiphspace(bytes::DenseVector{UInt8}, pos::Integer)
             break
         end
     end
-    (width = wskipped, stop = pos % UInt32)
+    (width = wskipped, stop = min(pos, length(bytes)) % UInt32)
 end
 
 function iswhitespace(bytes::DenseVector{UInt8}, pos::Integer)
@@ -255,11 +253,8 @@ const PLAIN_SKIP_TABLE = let canskip = zeros(Bool, 255)
     for c in UInt8('0'):UInt8('9')
         canskip[c] = true
     end
-    for c in (UInt8('.'), UInt8(','), UInt8('!'), UInt8('?'), UInt8('('), UInt8(')'))
-        canskip[c] = true
-    end
-    for c in (UInt8(' '), UInt8('\t'))
-        canskip[c] = true
+    for c in "!\"&'(),.;?]}"
+        canskip[UInt8(c)] = true
     end
     Tuple(canskip)
 end
@@ -466,6 +461,28 @@ function untilwhitespace(bytes::DenseVector{UInt8}, pos::Integer)
         iswhitespace(bytes, p) && return p - 1
     end
     length(bytes)
+end
+
+function skipnewlines(bytes::DenseVector{UInt8}, pos::Integer)
+    newlines = Int(pos == 1)
+    while true
+        if bytes[pos] == UInt8('\n')
+            pos += 1
+        elseif bytes[pos] == UInt8('\r') && ischarat(bytes, pos + 1, UInt8('\n'))
+            pos += 2
+        else
+            wsend = skiphspace(bytes, pos).stop
+            if wsend > pos && wsend == lineend(bytes, pos)
+                pos = wsend
+                newlines -= 1
+            else
+                break
+            end
+        end
+        newlines += 1
+        pos <= length(bytes) || return length(bytes), newlines - 1
+    end
+    pos, newlines
 end
 
 function word2tag(bytes::DenseVector{UInt8}, start::Integer, stop::Integer)
