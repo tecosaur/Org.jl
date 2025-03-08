@@ -58,6 +58,8 @@ end
 
 const U1 = UInt32(1)
 
+const NONE_TOKEN = Token(K"", 0, 0), UInt32(0)
+
 function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)::Tuple{Token, UInt32}
     linestart, newlines = @inline skipnewlines(bytes, start)
     skipws = skipspaces(bytes, linestart)
@@ -84,12 +86,16 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)::T
                 end
             elseif K"table" ∈ state.restriction
                 Token(K"<table", pos, pos), pos
+            else
+                NONE_TOKEN
             end
         elseif chr == UInt8('#') && ischarat(bytes, pos + U1, '+') && (state.ctx in (K"#+" ⊻ K"keyword") || !isempty(K"#+" & state.restriction))
             lex_hashplus(state, bytes, pos)
         else
             if K"item" ∈ state.restriction
                 lex_item(state, bytes, pos, skipws.width)
+            else
+                NONE_TOKEN
             end
         end
     else # No newlines
@@ -100,6 +106,8 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)::T
                 Token(K">table_row", pos, pos), pos
             elseif K"table" ∈ state.ctx
                 Token(K">table", pos, pos), pos + U1
+            else
+                NONE_TOKEN
             end
         elseif K"table_row" ∈ state.ctx
             if K"table_cell" ∈ state.ctx
@@ -109,9 +117,11 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)::T
             else
                 Token(K"<table_cell", pos + U1, pos + U1), pos + U1
             end
+        else
+            NONE_TOKEN
         end
     end
-    if isnothing(next)
+    if next == NONE_TOKEN
         pos = @inline skipplain(bytes, pos)
         Token(K"plaintext", linestart, pos), pos % UInt32 + U1
     else
@@ -138,29 +148,28 @@ function lex_drawer(state::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
         elseif K"drawer" ∈ state.ctx
             K">drawer"
         else
-            return
+            return NONE_TOKEN
         end, pos + ncodeunits(":end:") % UInt32
     elseif K"property_drawer" ∈ state.ctx
         nameend = nextchar(bytes, pos + U1, (' ', '\t'))
-        bytes[nameend - 1] == UInt8(':') || return
+        bytes[nameend - 1] == UInt8(':') || return NONE_TOKEN
         K"node_property", lineend(bytes, nameend)
     elseif K"drawer" ∈ state.restriction
         nameend = nextchar(bytes, pos + U1, ':')
-        nameend == skipwords(bytes, pos + U1, ('-', '_')) || return
+        nameend == skipwords(bytes, pos + U1, ('-', '_')) || return NONE_TOKEN
         K"<drawer", nameend + U1
     else
-        return
+        return NONE_TOKEN
     end
     drawend = skipspaces(bytes, drawend).stop
-    if islineend(bytes, drawend)
-        Token(kind, pos, drawend - U1), drawend
-    end
+    islineend(bytes, drawend) || return NONE_TOKEN
+    Token(kind, pos, drawend - U1), drawend
 end
 
 function lex_footnotedef(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
-    hasprefix(bytes, pos, "[fn:") || return
+    hasprefix(bytes, pos, "[fn:") || return NONE_TOKEN
     fnend = skipwords(bytes, pos + ncodeunits("[fn:") % UInt32, ('-', '_'))
-    bytes[fnend] == UInt8(']') || return
+    bytes[fnend] == UInt8(']') || return NONE_TOKEN
     Token(K"<footnote_definition", pos, fnend), fnend + U1
 end
 
@@ -184,7 +193,7 @@ function lex_item(::LexerState, bytes::DenseVector{UInt8}, start::UInt32, column
         ord, skipspaces(bytes, pos).stop
     end
     ordered, pos = read_bullet(bytes, start)
-    pos != 0 || return
+    pos != 0 || return NONE_TOKEN
     contentend = lineend(bytes, pos)
     while contentend < length(bytes)
         pos, newlines = skipnewlines(bytes, contentend)
@@ -209,7 +218,7 @@ function lex_hashplus(state::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
                if K"keyword" in state.restriction
                    lex_keyword(state, bytes, pos)
                end,
-               Some(nothing))
+               NONE_TOKEN)
 end
 
 function lex_block((; ctx)::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
@@ -218,11 +227,11 @@ function lex_block((; ctx)::LexerState, bytes::DenseVector{UInt8}, start::UInt32
     elseif hasprefix(bytes, start, "#+end_")
         K">", start + ncodeunits("#+end_") % UInt32
     else
-        return
+        return NONE_TOKEN
     end
     lend = lineend(bytes, pos)
     nameend = untilwhitespace(bytes, pos)
-    containswhitespace(bytes, pos, nameend) && return
+    containswhitespace(bytes, pos, nameend) && return NONE_TOKEN
     for (name, kind) in (("comment", K"comment_block"),
                          ("example", K"example_block"),
                          ("export",  K"export_block"),
@@ -233,6 +242,8 @@ function lex_block((; ctx)::LexerState, bytes::DenseVector{UInt8}, start::UInt32
                 Token(kind | mode, start, lend - 1), lend
             elseif mode == K">" && kind ∈ ctx
                 Token(kind | mode, start, lend - 1), lend
+            else
+                NONE_TOKEN
             end
         end
     end
@@ -246,14 +257,14 @@ function lex_dynamicblock(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
     elseif hasprefix(bytes, pos, "#+end:")
         K">", ncodeunits("#+end:")
     else
-        return
+        return NONE_TOKEN
     end
     ws = skipspaces(bytes, pos + prefixlen)
     if mode == ">" && !islineend(bytes, ws.stop)
-        return
+        return NONE_TOKEN
     end
     nameend = untilwhitespace(bytes, pos + prefixlen)
-    containswhitespace(bytes, pos, nameend) && return
+    containswhitespace(bytes, pos, nameend) && return NONE_TOKEN
     lend = lineend(bytes, pos)
     tag = word2tag(bytes, pos + prefixlen, nameend - 1)
     Token(settag(K"dynamic_block" | mode, tag), pos, lend - 1), lend
@@ -261,11 +272,11 @@ end
 
 function lex_keyword(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
     if !hasprefix(bytes, pos, "#+")
-        return
+        return NONE_TOKEN
     end
     nameend = nextchar(bytes, pos, ':')
-    nameend > length(bytes) && return
-    containswhitespace(bytes, pos, nameend) && return
+    nameend > length(bytes) && return NONE_TOKEN
+    containswhitespace(bytes, pos, nameend) && return NONE_TOKEN
     lend = lineend(bytes, pos)
     tag = word2tag(bytes, pos + 2, nameend - 1)
     Token(settag(K"keyword", tag), pos, lend - 1), lend
