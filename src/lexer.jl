@@ -29,7 +29,7 @@ function Base.iterate(lex::Lexer)
 end
 
 function Base.iterate(lex::Lexer, state::LexerState)
-    state.position >= length(lex.input) && return
+    state.position <= length(lex.input) || return
     (; position, ctx, restriction, lastelement) = state
     local token
     while position <= length(lex.input)
@@ -70,11 +70,42 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
             lex_drawer(state, bytes, pos)
         elseif chr == UInt8('[') && pos == linestart && K"footnote_definition" ∈ state.restriction
             lex_footnotedef(state, bytes, pos)
+        elseif chr == UInt8('|')
+            if K"table_row" ∈ state.ctx
+                Token(K"<table_cell", pos+1, pos+1), pos + 1
+            elseif K"table" ∈ state.ctx
+                if ischarat(bytes, pos+1, '-')
+                    lend = lineend(bytes, pos)
+                    Token(K"table_row[1]", pos, lend), lend + 1
+                else
+                    Token(K"<table_row", pos, pos), pos
+                end
+            elseif K"table" ∈ state.restriction
+                Token(K"<table", pos, pos), pos
+            end
         elseif chr == UInt8('#') && ischarat(bytes, pos + 1, '+') && (state.ctx in (K"#+" ⊻ K"keyword") || !isempty(K"#+" & restriction))
             lex_hashplus(state, bytes, pos)
         else
             if K"item" ∈ state.restriction
                 lex_item(state, bytes, pos, skipws.width)
+            end
+        end
+    else # No newlines
+        if K"table" ∈ state.ctx && islineend(bytes, pos+1)
+            if K"table_cell" ∈ state.ctx
+                Token(K">table_cell", pos, pos), pos
+            elseif K"table_row" ∈ state.ctx
+                Token(K">table_row", pos, pos), pos
+            elseif K"table" ∈ state.ctx
+                Token(K">table", pos, pos), pos + 1
+            end
+        elseif K"table_row" ∈ state.ctx
+            if K"table_cell" ∈ state.ctx
+                cellend = nextchar(bytes, pos, ('|', '\n', '\r'))
+                cellend -= bytes[cellend] ∈ ('\n', '\r')
+                Token(K">table_cell", cellend, cellend), cellend
+            else
+                Token(K"<table_cell", pos+1, pos+1), pos + 1
             end
         end
     end
@@ -88,7 +119,7 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
 end
 
 
-# Element lexing
+# Greater element lexing
 
 function lex_heading(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
     depth = countsame(bytes, pos, UInt8('*'))
@@ -108,11 +139,11 @@ function lex_drawer(state::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
             return
         end, pos + ncodeunits(":end:")
     elseif K"property_drawer" ∈ state.ctx
-        nameend = nextindex(bytes, pos + 1, (' ', '\t'))
+        nameend = nextchar(bytes, pos + 1, (' ', '\t'))
         bytes[nameend - 1] == UInt8(':') || return
         K"node_property", lineend(bytes, nameend)
     elseif K"drawer" ∈ state.restriction
-        nameend = nextindex(bytes, pos + 1, ':')
+        nameend = nextchar(bytes, pos + 1, ':')
         nameend == skipwords(bytes, pos + 1, ('-', '_')) || return
         K"<drawer", nameend + 1
     else
@@ -230,7 +261,7 @@ function lex_keyword(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
     if !hasprefix(bytes, pos, "#+")
         return
     end
-    nameend = nextindex(bytes, pos, ':')
+    nameend = nextchar(bytes, pos, ':')
     nameend > length(bytes) && return
     containswhitespace(bytes, pos, nameend) && return
     lend = lineend(bytes, pos)
@@ -494,7 +525,7 @@ function ischarat(bytes::DenseVector{UInt8}, pos::Integer, char::Char)
 end
 
 function islineend(bytes::DenseVector{UInt8}, pos::Integer)
-    pos >= length(bytes) || bytes[pos] ∈ (UInt8('\r'), UInt8('\n'))
+    pos > length(bytes) || bytes[pos] ∈ (UInt8('\r'), UInt8('\n'))
 end
 
 function lineend(bytes::DenseVector{UInt8}, pos::Integer)
@@ -524,17 +555,17 @@ function countsame(bytes::DenseVector{UInt8}, pos::Integer, char::UInt8)
     length(bytes) + 1
 end
 
-function nextindex(bytes::DenseVector{UInt8}, pos::Integer, char::UInt8)
+function nextchar(bytes::DenseVector{UInt8}, pos::Integer, char::UInt8)
     for p in pos:length(bytes)
         bytes[p] == char && return p
     end
     length(bytes) + 1
 end
 
-nextindex(bytes::DenseVector{UInt8}, pos::Integer, char::Char) =
-    nextindex(bytes, pos, UInt8(char))
+nextchar(bytes::DenseVector{UInt8}, pos::Integer, char::Char) =
+    nextchar(bytes, pos, UInt8(char))
 
-function nextindex(bytes::DenseVector{UInt8}, pos::Integer, chars::NTuple{N, C}) where {N, C <: Union{UInt8, Char}}
+function nextchar(bytes::DenseVector{UInt8}, pos::Integer, chars::NTuple{N, C}) where {N, C <: Union{UInt8, Char}}
     ichars = map(UInt8, chars)
     for p in pos:length(bytes)
         bytes[p] ∈ ichars && return p

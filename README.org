@@ -39,7 +39,7 @@ TODO
 | Item                |      | X   |       |     |      |      |
 | List                |      | -   |       |     |      |      |
 | PropertyDrawer      |      | X   |       |     |      |      |
-| Table               |      |     |       |     |      |      |
+| Table               |      | X   |       |     |      |      |
 |---------------------+------+-----+-------+-----+------+------|
 | BabelCall           |      |     |       |     |      |      |
 | Block               |      | X   |       |     |      |      |
@@ -54,8 +54,8 @@ TODO
 | LaTeX Environment   |      |     |       |     |      |      |
 | NodeProperty        |      | X   |       |     |      |      |
 | Paragraph           |      |     |       |     |      |      |
-| TableRow            |      |     |       |     |      |      |
-| TableHRule          |      |     |       |     |      |      |
+| TableRow            |      | X   |       |     |      |      |
+| TableHRule          |      | X   |       |     |      |      |
 | BlankLine           |      |     |       |     |      |      |
 |---------------------+------+-----+-------+-----+------+------|
 | OrgEntity           |      |     |       |     |      |      |
@@ -76,7 +76,7 @@ TODO
 | StatisticsCookie    |      |     |       |     |      |      |
 | Subscript           |      |     |       |     |      |      |
 | Superscript         |      |     |       |     |      |      |
-| TableCell           |      |     |       |     |      |      |
+| TableCell           |      | X   |       |     |      |      |
 | Timestamp           |      |     |       |     |      |      |
 | TextPlain           |      |     |       |     |      |      |
 | TextMarkup          |      |     |       |     |      |      |
