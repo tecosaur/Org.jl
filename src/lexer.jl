@@ -58,7 +58,7 @@ end
 
 function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
     linestart, newlines = @inline skipnewlines(bytes, start)
-    skipws = skiphspace(bytes, linestart)
+    skipws = skipspaces(bytes, linestart)
     pos = skipws.stop
     chr = bytes[pos]
     next = if newlines > 2 && K"footnote_definition" ∈ state.ctx
@@ -72,6 +72,10 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
             lex_footnotedef(state, bytes, pos)
         elseif chr == UInt8('#') && ischarat(bytes, pos + 1, '+') && (state.ctx in (K"#+" ⊻ K"keyword") || !isempty(K"#+" & restriction))
             lex_hashplus(state, bytes, pos)
+        else
+            if K"item" ∈ state.restriction
+                lex_item(state, bytes, pos, skipws.width)
+            end
         end
     end
     if isnothing(next)
@@ -114,7 +118,7 @@ function lex_drawer(state::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
     else
         return
     end
-    drawend = skiphspace(bytes, drawend).stop
+    drawend = skipspaces(bytes, drawend).stop
     if islineend(bytes, drawend)
         Token(kind, pos, drawend - 1), drawend
     end
@@ -125,6 +129,43 @@ function lex_footnotedef(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
     fnend = skipwords(bytes, pos + ncodeunits("[fn:"), ('-', '_'))
     bytes[fnend] == UInt8(']') || return
     Token(K"<footnote_definition", pos, fnend), fnend + 1
+end
+
+function lex_item(::LexerState, bytes::DenseVector{UInt8}, start::UInt32, column::Integer)
+    function read_bullet(bytes::DenseVector{UInt8}, pos::Integer)
+        ordered, pos = if bytes[pos] ∈ (UInt8('-'), UInt8('+'), UInt8('*'))
+            false, pos + 1
+        else
+            bulletend = nextchar(bytes, pos, ('.', ')', '\n', '\r'))
+            if bulletend >= length(bytes) ||
+                bytes[bulletend] ∈ (UInt8('\n'), UInt8('\r')) ||
+                nextchar(bytes, pos, (' ', '\n', '\r')) < bulletend
+                return false, zero(pos)
+            end
+            bulletend == skipcharsets(bytes, pos, '0':'9') ||
+                bulletend == skipcharsets(bytes, pos, 'a':'z', 'A':'Z') ||
+                return false, zero(pos)
+            true, bulletend + 1
+        end
+        bytes[pos] ∈ (UInt8(' '), UInt8('\t')) || return false, zero(pos)
+        ordered, skipspaces(bytes, pos).stop
+    end
+    ordered, pos = read_bullet(bytes, start)
+    pos != 0 || return
+    contentend = lineend(bytes, pos)
+    while contentend < length(bytes)
+        pos, newlines = skipnewlines(bytes, contentend)
+        newlines >= 2 && break
+        ws = skipspaces(bytes, pos)
+        if ws.width <= column
+            break
+        elseif last(read_bullet(bytes, ws.stop)) != 0
+            break
+        else
+            contentend = lineend(bytes, pos)
+        end
+    end
+    Token(settag(K"item", UInt8(column)), start, contentend), contentend + 1
 end
 
 function lex_hashplus(state::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
@@ -174,7 +215,7 @@ function lex_dynamicblock(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
     else
         return
     end
-    ws = skiphspace(bytes, pos + prefixlen)
+    ws = skipspaces(bytes, pos + prefixlen)
     if mode == ">" && !islineend(bytes, ws.stop)
         return
     end
@@ -203,7 +244,7 @@ end
 
 # Utility functions
 
-function skiphspace(bytes::DenseVector{UInt8}, pos::Integer)
+function skipspaces(bytes::DenseVector{UInt8}, pos::Integer)
     wskipped = 0
     while pos <= length(bytes)
         if bytes[pos] == UInt8(' ')
@@ -284,7 +325,7 @@ julia> utf8bytes(codeunit("🟣", 1))
 4
 ```
 """
-function utf8bytes(chr::UInt8)
+@inline function utf8bytes(chr::UInt8)
     clamp(leading_ones(chr), 1, 4)
 end
 
@@ -402,6 +443,51 @@ function skipwords(bytes::DenseVector{UInt8}, pos::Integer, extras::NTuple{N, C}
     pos
 end
 
+"""
+    skipcharsets(bytes::DenseVector{UInt8}, pos::Integer, charsets...) -> Integer
+
+Skip over all characters in `bytes` starting at `pos` that are in the given
+character sets.
+
+Each character set can be a single character or a range of characters.
+
+# Examples
+
+```julia-repl
+julia> strv = codeunits("abc0123 .--");
+
+julia> skipcharsets(strv, 1, 'a':'z')
+4
+
+julia> skipcharsets(strv, 1, 'a':'z', '0':'9')
+8
+
+julia> skipcharsets(strv, 1, 'a':'z', '0':'9', ' ')
+9
+
+julia> skipcharsets(strv, 1, 'a':'z', '0':'9', ' ', '-')
+9
+
+julia> skipcharsets(strv, 1, 'a':'z', '0':'9', ' ', '.')
+10
+
+julia> skipcharsets(strv, 1, 'a':'z', '0':'9', ' ', '.', '-')
+12
+```
+"""
+function skipcharsets(bytes::DenseVector{UInt8}, pos::Integer, charsets::Union{StepRange{Char}, Char}...)
+    skipranges = map(c -> if c isa Char UInt8(c) else
+                         UInt8(first(c)):UInt8(last(c)) end,
+                     charsets)
+    len, next = 1, pos
+    while next <= length(bytes)
+        b1 = bytes[next]
+        any(sr -> b1 in sr, skipranges) || return next
+        pos, next = next, next + utf8bytes(b1)
+    end
+    next
+end
+
 function ischarat(bytes::DenseVector{UInt8}, pos::Integer, char::Char)
     length(bytes) >= pos || return false
     bytes[pos] == UInt8(char)
@@ -471,7 +557,7 @@ function skipnewlines(bytes::DenseVector{UInt8}, pos::Integer)
         elseif bytes[pos] == UInt8('\r') && ischarat(bytes, pos + 1, UInt8('\n'))
             pos += 2
         else
-            wsend = skiphspace(bytes, pos).stop
+            wsend = skipspaces(bytes, pos).stop
             if wsend > pos && wsend == lineend(bytes, pos)
                 pos = wsend
                 newlines -= 1
