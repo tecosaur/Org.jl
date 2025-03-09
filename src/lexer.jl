@@ -20,13 +20,11 @@ struct LexerState
     lastelement::Kind
 end
 
+LexerState() = LexerState(1, K"", restrictions(K""), K"")
+
+Base.iterate(lex::Lexer) = iterate(lex, LexerState())
 Base.eltype(::Type{<:Lexer}) = Token
 Base.IteratorSize(::Type{<:Lexer}) = Base.SizeUnknown()
-
-function Base.iterate(lex::Lexer)
-    state = LexerState(firstindex(lex.input), K"", restrictions(K""), K"")
-    iterate(lex, state)
-end
 
 function Base.iterate(lex::Lexer, state::LexerState)
     state.position <= length(lex.input) || return
@@ -34,6 +32,9 @@ function Base.iterate(lex::Lexer, state::LexerState)
     local token
     while position <= length(lex.input)
         token, position = @inline lexnext(state, lex.input, position)
+        if token.kind in K"elements"
+            lastelement = token.kind
+        end
         if token.kind == K"plaintext"
         elseif token.kind == K"heading"
             ctx = K""
@@ -56,8 +57,6 @@ end
 
 # Lexing entrypoint
 
-const U1 = UInt32(1)
-
 const NONE_TOKEN = Token(K"", 0, 0), UInt32(0)
 
 function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)::Tuple{Token, UInt32}
@@ -66,30 +65,33 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)::T
     pos = skipws.stop
     chr = bytes[pos]
     next = if newlines > 2 && K"footnote_definition" ∈ state.ctx
-        Token(K">footnote_definition", linestart, pos), start
+        Token(K">footnote_definition", start - 0x1, start - 0x1), start
     elseif newlines != 0
-        if chr == UInt8('*') && ischarat(bytes, pos + countsame(bytes, pos, '*'), ' ')
+        if K"table" ∈ state.ctx
+            if chr == UInt8('|')
+                if ischarat(bytes, pos + 0x1, '-')
+                    lend = lineend(bytes, pos)
+                    Token(K"table_row[1]", pos, lend - 0x1), lend
+                else
+                    Token(K"<table_row", pos, pos), pos + 0x1
+                end
+            else
+                Token(K">table", start - 0x1, start - 0x1), start
+            end
+        elseif chr == UInt8('*') && pos == linestart && ischarat(bytes, pos + countsame(bytes, pos, '*'), ' ')
             lex_heading(state, bytes, pos)
         elseif chr == UInt8(':')
             lex_drawer(state, bytes, pos)
-        elseif chr == UInt8('[') && pos == linestart && K"footnote_definition" ∈ state.restriction
-            lex_footnotedef(state, bytes, pos)
-        elseif chr == UInt8('|')
-            if K"table_row" ∈ state.ctx
-                Token(K"<table_cell", pos + U1, pos + U1), pos + U1
-            elseif K"table" ∈ state.ctx
-                if ischarat(bytes, pos + U1, '-')
-                    lend = lineend(bytes, pos)
-                    Token(K"table_row[1]", pos, lend), lend + U1
-                else
-                    Token(K"<table_row", pos, pos), pos
-                end
-            elseif K"table" ∈ state.restriction
-                Token(K"<table", pos, pos), pos
+        elseif chr == UInt8('[') && pos == linestart
+            fndef = lex_footnotedef(state, bytes, pos)
+            if fndef != NONE_TOKEN && K"footnote_definition" ∈ state.ctx
+                Token(K">footnote_definition", start - 0x1, start - 0x1), start
             else
-                NONE_TOKEN
+                fndef
             end
-        elseif chr == UInt8('#') && ischarat(bytes, pos + U1, '+') && (state.ctx in (K"#+" ⊻ K"keyword") || !isempty(K"#+" & state.restriction))
+        elseif chr == UInt8('|') && K"table" ∈ state.restriction
+            Token(K"<table", pos, pos), pos
+        elseif chr == UInt8('#') && ischarat(bytes, pos + 0x1, '+')
             lex_hashplus(state, bytes, pos)
         else
             if K"item" ∈ state.restriction
@@ -99,34 +101,37 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)::T
             end
         end
     else # No newlines
-        if K"table" ∈ state.ctx && islineend(bytes, pos + U1)
+        if K"table" ∈ state.ctx && islineend(bytes, pos + 0x1)
             if K"table_cell" ∈ state.ctx
                 Token(K">table_cell", pos, pos), pos
             elseif K"table_row" ∈ state.ctx
-                Token(K">table_row", pos, pos), pos
-            elseif K"table" ∈ state.ctx
-                Token(K">table", pos, pos), pos + U1
+                Token(K">table_row", pos, pos), pos + 0x1
             else
                 NONE_TOKEN
             end
         elseif K"table_row" ∈ state.ctx
             if K"table_cell" ∈ state.ctx
-                cellend = nextchar(bytes, pos, ('|', '\n', '\r'))
-                cellend -= bytes[cellend] ∈ ('\n', '\r')
+                cellend = min(length(bytes), nextchar(bytes, pos, ('|', '\n', '\r')))
+                cellend -= (bytes[cellend] ∈ (UInt8('\n'), UInt8('\r'))) % UInt32
                 Token(K">table_cell", cellend, cellend), cellend
             else
-                Token(K"<table_cell", pos + U1, pos + U1), pos + U1
+                if bytes[pos] == UInt8('|')
+                    pos += 0x1
+                end
+                Token(K"<table_cell", pos, pos), pos
             end
         else
             NONE_TOKEN
         end
     end
-    if next == NONE_TOKEN
-        pos = @inline skipplain(bytes, pos)
-        Token(K"plaintext", linestart, pos), pos % UInt32 + U1
+    if next != NONE_TOKEN
+        next
     else
-        token, pos = next
-        token, pos % UInt32
+        npos = @inline skipplain(bytes, pos)
+        if pos == npos && pos < length(bytes)
+            npos = @inline skipplain(bytes, pos + 0x1)
+        end
+        Token(K"plaintext", linestart, npos - 0x1), npos
     end
 end
 
@@ -151,53 +156,53 @@ function lex_drawer(state::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
             return NONE_TOKEN
         end, pos + ncodeunits(":end:") % UInt32
     elseif K"property_drawer" ∈ state.ctx
-        nameend = nextchar(bytes, pos + U1, (' ', '\t'))
+        nameend = nextchar(bytes, pos + 0x1, (' ', '\t'))
         bytes[nameend - 1] == UInt8(':') || return NONE_TOKEN
         K"node_property", lineend(bytes, nameend)
     elseif K"drawer" ∈ state.restriction
-        nameend = nextchar(bytes, pos + U1, ':')
-        nameend == skipwords(bytes, pos + U1, ('-', '_')) || return NONE_TOKEN
-        K"<drawer", nameend + U1
+        nameend = nextchar(bytes, pos + 0x1, ':')
+        nameend == skipwords(bytes, pos + 0x1, ('-', '_')) || return NONE_TOKEN
+        K"<drawer", nameend + 0x1
     else
         return NONE_TOKEN
     end
     drawend = skipspaces(bytes, drawend).stop
     islineend(bytes, drawend) || return NONE_TOKEN
-    Token(kind, pos, drawend - U1), drawend
+    Token(kind, pos, drawend - 0x1), drawend
 end
 
 function lex_footnotedef(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
     hasprefix(bytes, pos, "[fn:") || return NONE_TOKEN
     fnend = skipwords(bytes, pos + ncodeunits("[fn:") % UInt32, ('-', '_'))
     bytes[fnend] == UInt8(']') || return NONE_TOKEN
-    Token(K"<footnote_definition", pos, fnend), fnend + U1
+    Token(K"<footnote_definition", pos, fnend), fnend + 0x1
 end
 
 function lex_item(::LexerState, bytes::DenseVector{UInt8}, start::UInt32, column::Integer)
     function read_bullet(bytes::DenseVector{UInt8}, pos::Integer)
-        ord, pos = if bytes[pos] ∈ (UInt8('-'), UInt8('+'), UInt8('*'))
-            false, pos + U1
+        pos = if bytes[pos] ∈ (UInt8('-'), UInt8('+'), UInt8('*'))
+            pos + 0x1
         else
             bulletend = nextchar(bytes, pos, ('.', ')', '\n', '\r'))
             if bulletend >= length(bytes) ||
                 bytes[bulletend] ∈ (UInt8('\n'), UInt8('\r')) ||
                 nextchar(bytes, pos, (' ', '\n', '\r')) < bulletend
-                return false, zero(pos)
+                return zero(pos)
             end
             bulletend == skipcharsets(bytes, pos, '0':'9') ||
                 bulletend == skipcharsets(bytes, pos, 'a':'z', 'A':'Z') ||
-                return false, zero(pos)
-            true, bulletend + U1
+                return zero(pos)
+            bulletend + 0x1
         end
-        bytes[pos] ∈ (UInt8(' '), UInt8('\t')) || return false, zero(pos)
-        ord, skipspaces(bytes, pos).stop
+        bytes[pos] ∈ (UInt8(' '), UInt8('\t')) || return zero(pos)
+        skipspaces(bytes, pos).stop
     end
-    ordered, pos = read_bullet(bytes, start)
+    pos = read_bullet(bytes, start)
     pos != 0 || return NONE_TOKEN
     contentend = lineend(bytes, pos)
     while contentend < length(bytes)
         pos, newlines = skipnewlines(bytes, contentend)
-        newlines >= 2 && break
+        newlines > 2 && break
         ws = skipspaces(bytes, pos)
         if ws.width <= column
             break
@@ -207,18 +212,19 @@ function lex_item(::LexerState, bytes::DenseVector{UInt8}, start::UInt32, column
             contentend = lineend(bytes, pos)
         end
     end
-    Token(settag(K"item", UInt8(column)), start, contentend), contentend + U1
+    Token(settag(K"item", UInt8(column + one(column))), start, contentend), contentend + 0x1
 end
 
 function lex_hashplus(state::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
-    @something(lex_block(state, bytes, pos),
-               if K"dynamic_block" in state.ctx
-                   lex_dynamicblock(state, bytes, pos)
-               end,
-               if K"keyword" in state.restriction
-                   lex_keyword(state, bytes, pos)
-               end,
-               NONE_TOKEN)
+    blk = lex_block(state, bytes, pos)
+    blk != NONE_TOKEN && return blk
+    blk = lex_dynamicblock(state, bytes, pos)
+    blk != NONE_TOKEN && return blk
+    if K"keyword" in state.restriction
+        blk = lex_keyword(state, bytes, pos)
+        blk != NONE_TOKEN && return blk
+    end
+    NONE_TOKEN
 end
 
 function lex_block((; ctx)::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
@@ -238,7 +244,7 @@ function lex_block((; ctx)::LexerState, bytes::DenseVector{UInt8}, start::UInt32
                          ("verse",   K"verse_block"),
                          ("src",     K"source_block"))
         if nameend - pos + 1 == ncodeunits(name) && hasprefix(bytes, pos, name)
-            return if mode == K"<" && kind ∉ ctx
+            return if mode == K"<" && isempty(K"lesser_blocks" & ctx)
                 Token(kind | mode, start, lend - 1), lend
             elseif mode == K">" && kind ∈ ctx
                 Token(kind | mode, start, lend - 1), lend
@@ -251,10 +257,10 @@ function lex_block((; ctx)::LexerState, bytes::DenseVector{UInt8}, start::UInt32
     Token(settag(K"block" | mode, tag), start, lend - 1), lend
 end
 
-function lex_dynamicblock(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
-    mode, prefixlen = if hasprefix(bytes, pos, "#+begin:")
+function lex_dynamicblock(state::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
+    mode, prefixlen = if hasprefix(bytes, pos, "#+begin:") && K"dynamic_block" ∈ state.restriction
         K"<", ncodeunits("#+begin:")
-    elseif hasprefix(bytes, pos, "#+end:")
+    elseif hasprefix(bytes, pos, "#+end:") && K"dynamic_block" ∈ state.ctx
         K">", ncodeunits("#+end:")
     else
         return NONE_TOKEN
@@ -383,33 +389,32 @@ function skipplain(bytes::DenseVector{UInt8}, start::I)::I where {I <: Integer}
     while pos < length(bytes)
         chr = bytes[pos]
         if PLAIN_SKIP_TABLE[chr]
-            pos += one(pos)
+            pos += 1 % I
         elseif islongwhitespace(bytes, pos)
-            pos += 3 * one(pos)
-        elseif chr == UInt8('@') && bytes[pos - 1] == UInt8('@')
-            return pos - 2 * one(pos)
+            pos += 3 % I
+        elseif chr == UInt8('@') && pos > start + 1 && bytes[pos - 1] == UInt8('@')
+            return pos - 1 % I
         elseif chr == UInt8('_') && pos > start + 2 && (hasprefix(bytes, pos - 3, "src") || hasprefix(bytes, pos - 3, "call"))
-            return pos - 3 * one(pos) - Bool(bytes[pos - 1] == UInt8('l'))
-        elseif chr == UInt8(':') && ((bytes[pos - 1] ∉ (UInt8(' '), UInt8('\t'))) && (pos > start + 2 && !islongwhitespace(bytes, pos - 3)))
+            return pos - 3 % I - (bytes[pos - 1] == UInt8('l')) % I
+        elseif chr == UInt8(':') && ((bytes[pos - 1] ∉ (UInt8(' '), UInt8('\t'))) || (pos > start + 2 && !islongwhitespace(bytes, pos - 3))) && length(bytes) > pos && !iswhitespace(bytes, pos + 1)
             for wp in pos:-1:start+1
-                if iswhitespace(bytes, wp)
-                    return wp % I
-                end
+                iswhitespace(bytes, wp) && return wp % I
             end
             pos += utf8bytes(chr) % I
         else
             clen = utf8bytes(chr) % I
-            clen == 1 && pos > start + 1 && return pos - one(pos)
+            clen == 1 && pos > start + 1 && return pos - one(I)
             pos += clen
         end
     end
-    length(bytes) % I
+    (length(bytes) + 1) % I
 end
 
 """
-    charat(bytes::DenseVector{UInt8}, pos::Integer) -> UInt32
+    charat(bytes::DenseVector{UInt8}, pos::Integer) -> Tuple{UInt32, Integer}
 
-Return the Unicode codepoint at the position `pos` in the byte array `bytes`.
+Return the Unicode codepoint at the position `pos` in the byte array `bytes`,
+as well as the number of bytes that the codepoint takes up.
 
 This assumes that `bytes` are the codepoints of a valid UTF-8 encoded string.
 
@@ -430,16 +435,16 @@ julia> cu = codeunits("aþ—🧮")
  0xae
 
 julia> charat(cu, 1)
-0x00000061
+(0x00000061, 1)
 
 julia> charat(cu, 2)
-0x000000fe
+(0x000000fe, 2)
 
 julia> charat(cu, 4)
-0x00002014
+(0x00002014, 3)
 
 julia> charat(cu, 7)
-0x0001f9ee
+(0x0001f9ee, 4)
 ```
 """
 function charat(bytes::DenseVector{UInt8}, pos::I) where {I <: Integer}
@@ -556,12 +561,8 @@ end
 function hasprefix(bytes::DenseVector{UInt8}, start::Integer, pattern::String)
     length(bytes) >= start + ncodeunits(pattern) - 1 || return false
     for (i, c) in enumerate(codeunits(pattern))
-        if bytes[start + i - 1] == c
-        elseif UInt8('A') <= c <= UInt8('Z') &&
-            bytes[start + i - 1] == c ⊻ 0x20
-        else
-            return false
-        end
+        b = bytes[start + i - 1]
+        b == c || b == c ⊻ 0x20 || return false
     end
     true
 end
@@ -604,7 +605,7 @@ function skipnewlines(bytes::DenseVector{UInt8}, pos::I)::Tuple{I, Int} where {I
     while true
         if bytes[pos] == UInt8('\n')
             pos += 1 % I
-        elseif bytes[pos] == UInt8('\r') && ischarat(bytes, pos + U1, '\n')
+        elseif bytes[pos] == UInt8('\r') && ischarat(bytes, pos + 0x1, '\n')
             pos += 2 % I
         else
             wsend = skipspaces(bytes, pos).stop
@@ -621,10 +622,20 @@ function skipnewlines(bytes::DenseVector{UInt8}, pos::I)::Tuple{I, Int} where {I
     pos, newlines
 end
 
+"""
+    word2tag(bytes::DenseVector{UInt8}, start::Integer, stop::Integer) -> UInt8
+
+Return a case-insensitive of the (assumed ASCII) word in `bytes` between `start`
+and `stop`.
+"""
 function word2tag(bytes::DenseVector{UInt8}, start::Integer, stop::Integer)
     h = UInt64(0)
     for pos in start:stop
-        h = hash(bytes[pos], h)
+        b = bytes[pos]
+        if UInt8('A') <= b <= UInt8('Z')
+            b |= 0x20
+        end
+        h = hash(b, h)
     end
     h8 = reinterpret(NTuple{8, UInt8}, h)
     reduce(xor, h8)

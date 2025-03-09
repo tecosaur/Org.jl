@@ -1,6 +1,8 @@
 #+title: Org.jl
 #+author: tecosaur
 
+#+html: <a href="https://coveralls.io/github/tecosaur/Org.jl"><img src="https://coveralls.io/repos/github/tecosaur/Org.jl/badge.svg?branch=v1"></a>
+
 #+html: <img src="org-mode-jl.svg" align="right">
 
 A library for working with Org files. Specifically, this provides utilities for:

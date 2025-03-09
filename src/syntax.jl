@@ -280,7 +280,8 @@ function Kind(name::String)
     end
     if endswith(name, ']') && count('[', name) == 1
         tagidx = findfirst('[', name)::Int
-        tag = parse(UInt8, @view name[(tagidx + 1):(end - 1)])
+        tag = tryparse(UInt8, @view name[(tagidx + 1):(end - 1)])
+        isnothing(tag) && throw(ArgumentError("Invalid tag number: $name"))
         name = name[1:(tagidx - 1)]
     end
     Kind(name, tag; start, stop)
