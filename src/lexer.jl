@@ -245,6 +245,21 @@ function lex_block((; ctx)::LexerState, bytes::DenseVector{UInt8}, start::UInt32
                          ("src",     K"source_block"))
         if nameend - pos + 1 == ncodeunits(name) && hasprefix(bytes, pos, name)
             return if mode == K"<" && isempty(K"lesser_blocks" & ctx)
+                heurstart = lend + (bytes[lend] == UInt8('\r')) % UInt32
+                if kind in K"comment_block|example_block|export_block|source_block"
+                    while heurstart < length(bytes) && !ischarat(bytes, heurstart + 0x1, '*')
+                        heurnext = skipspaces(bytes, heurstart + 0x1).stop
+                        if hasprefix(bytes, heurnext, "#+end_") &&
+                            hasprefix(bytes, heurnext + ncodeunits("#+end_"), name)
+                            break
+                        else
+                            heurstart = lineend(bytes, heurnext)
+                            if bytes[heurstart] == UInt8('\r')
+                                heurstart += 0x1
+                            end
+                        end
+                    end
+                end
                 Token(kind | mode, start, lend - 1), lend
             elseif mode == K">" && kind ∈ ctx
                 Token(kind | mode, start, lend - 1), lend
