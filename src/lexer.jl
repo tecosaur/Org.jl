@@ -304,7 +304,58 @@ function lex_keyword(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
 end
 
 
+# Lesser element lexing
+
+# TODO: Clocks
+
+# TODO: Diary sexp
+
+# TODO: Planning
+
+# TODO: Comments
+
+# TODO: Fixed width
+
+# TODO: Horizontal rules
+
+# TODO: LaTeX environments
+
+# TODO: Paragraphs
+
+
 # Object lexing
+
+# TODO: Entities
+
+# TODO: Export snippets
+
+# TODO: Footnote references
+
+# TODO: Citations
+
+# TODO: Citation references
+
+# TODO: Inline babel calls
+
+# TODO: Line breaks
+
+# TODO: Links: Radio links
+# TODO: Links: Plain links
+# TODO: Links: Angle links
+# TODO: Links: Regular links
+
+# TODO: Macros
+
+# TODO: Targets
+# TODO: Radio targets
+
+# TODO: Statistics cookies
+
+# TODO: Subscripts and superscripts
+
+# TODO: Timestamps
+
+# TODO: Text markup
 
 
 # Utility functions
