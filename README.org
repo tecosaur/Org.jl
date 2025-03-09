@@ -5,6 +5,10 @@
 
 #+html: <img src="org-mode-jl.svg" align="right">
 
+#+begin_quote
+⚠️ *This package is currently undergoing a rewrite* ⚠️
+#+end_quote
+
 A library for working with Org files. Specifically, this provides utilities for:
 
 + Parsing Org text to an AST (Abstract Syntax Tree)
