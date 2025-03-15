@@ -403,16 +403,16 @@ end
 
 # Utility functions
 
-function skipspaces(bytes::DenseVector{UInt8}, pos::I) where {I <: Integer}
+function skipspaces(bytes::DenseVector{UInt8}, pos::I; limit::I = length(bytes) % I) where {I <: Integer}
     wskipped = 0
-    while pos <= length(bytes)
+    while pos <= limit
         if bytes[pos] == UInt8(' ')
             pos += 0x1
             wskipped += 1
         elseif bytes[pos] == UInt8('\t')
             pos += 0x1
             wskipped += 8
-        elseif bytes[pos] == 0xe2 && length(bytes) >= pos + 2 &&
+        elseif bytes[pos] == 0xe2 && limit >= pos + 0x2 &&
             bytes[pos + 1] == 0x80 && 0x80 <= bytes[pos + 2] <= 0x8c
             if bytes[pos + 2] < 0x8b
                 wskipped += 1
@@ -422,8 +422,7 @@ function skipspaces(bytes::DenseVector{UInt8}, pos::I) where {I <: Integer}
             break
         end
     end
-    @NamedTuple{width::Int, stop::I}(
-        (wskipped, min(pos, length(bytes) % I + 0x1)))
+    (width = wskipped, stop = min(pos, limit + 0x1))
 end
 
 function iswhitespace(bytes::DenseVector{UInt8}, pos::Integer)
@@ -509,9 +508,9 @@ end
     end
 end
 
-function skipplain(bytes::DenseVector{UInt8}, start::I, multiline::Bool = false)::I where {I <: Integer}
+function skipplain(bytes::DenseVector{UInt8}, start::I, multiline::Bool = false; limit::I = length(bytes) % I)::I where {I <: Integer}
     pos = start + utf8bytes(bytes, start)
-    while pos <= length(bytes)
+    while pos <= limit
         chr = bytes[pos]
         if PLAIN_SKIP_TABLE[chr]
             pos += 1 % I
@@ -522,7 +521,7 @@ function skipplain(bytes::DenseVector{UInt8}, start::I, multiline::Bool = false)
         elseif chr == UInt8('_') && pos > start + 2 && (hasprefix(bytes, pos - 3, "src") || hasprefix(bytes, pos - 3, "call"))
             return pos - 3 % I - (bytes[pos - 1] == UInt8('l')) % I
         elseif chr == UInt8(':') && ((bytes[pos - 1] ∉ (UInt8(' '), UInt8('\t'))) ||
-            (pos > start + 2 && !islongwhitespace(bytes, pos - 3))) && length(bytes) > pos && !iswhitespace(bytes, pos + 1)
+            (pos > start + 2 && !islongwhitespace(bytes, pos - 3))) && limit > pos && !iswhitespace(bytes, pos + 1)
             start == 1 && return pos
             wp = pos
             while wp > start
@@ -542,7 +541,7 @@ function skipplain(bytes::DenseVector{UInt8}, start::I, multiline::Bool = false)
             pos += clen
         end
     end
-    (length(bytes) + 1) % I
+    limit + 0x1
 end
 
 """
@@ -612,10 +611,10 @@ Skip over all word-constituent characters in `bytes` starting at `pos`.
 If `extras` is provided, then any character in `extras` is also considered,
 where `extras` is a tuple of characters as `UInt8`s or `Char`s.
 """
-function skipwords(bytes::DenseVector{UInt8}, pos::I, extras::NTuple{N, C} = ())::I where {I <: Integer, N, C <: Union{Char, UInt8}}
+function skipwords(bytes::DenseVector{UInt8}, pos::I, extras::NTuple{N, C} = (); limit::I = length(bytes) % I)::I where {I <: Integer, N, C <: Union{Char, UInt8}}
     len, next = one(pos), pos
     alsoskip = map(UInt8, extras)
-    while next <= length(bytes)
+    while next <= limit
         b1 = bytes[next]
         if b1 < 0x7f
             len = one(pos)
@@ -626,10 +625,10 @@ function skipwords(bytes::DenseVector{UInt8}, pos::I, extras::NTuple{N, C} = ())
         else
             chr, len = charat(bytes, next)
             1 <= Base.Unicode.category_code(chr) <= 4
-        end || return next % I
+        end || return next
         pos, next = next, next + len
     end
-    pos % I
+    pos
 end
 
 """
@@ -664,12 +663,12 @@ julia> skipcharsets(strv, 1, 'a':'z', '0':'9', ' ', '.', '-')
 12
 ```
 """
-function skipcharsets(bytes::DenseVector{UInt8}, pos::Integer, charsets::Union{StepRange{Char}, Char}...)
+function skipcharsets(bytes::DenseVector{UInt8}, pos::Integer, charsets::Union{StepRange{Char}, Char}...; limit::Integer = length(bytes) % typeof(pos))
     skipranges = map(c -> if c isa Char UInt8(c) else
                          UInt8(first(c)):UInt8(last(c)) end,
                      charsets)
     len, next = one(pos), pos
-    while next <= length(bytes)
+    while next <= limit
         b1 = bytes[next]
         any(sr -> b1 in sr, skipranges) || return next
         pos, next = next, next + utf8bytes(bytes, next)
@@ -677,8 +676,8 @@ function skipcharsets(bytes::DenseVector{UInt8}, pos::Integer, charsets::Union{S
     next + 0x1
 end
 
-function ischarat(bytes::DenseVector{UInt8}, pos::Integer, char::Char)
-    length(bytes) >= pos || return false
+function ischarat(bytes::DenseVector{UInt8}, pos::Integer, char::Char; limit::Integer = length(bytes) % typeof(pos))
+    pos > limit && return false
     bytes[pos] == UInt8(char)
 end
 
@@ -686,15 +685,15 @@ function islineend(bytes::DenseVector{UInt8}, pos::Integer)
     pos > length(bytes) || bytes[pos] ∈ (UInt8('\r'), UInt8('\n'))
 end
 
-function lineend(bytes::DenseVector{UInt8}, pos::I)::I where {I <: Integer}
-    for p in pos:length(bytes)
-        bytes[p] ∈ (UInt8('\r'), UInt8('\n')) && return p % I
+function lineend(bytes::DenseVector{UInt8}, pos::I; limit::I = length(bytes) % I)::I where {I <: Integer}
+    for p in pos:limit
+        bytes[p] ∈ (UInt8('\r'), UInt8('\n')) && return p
     end
-    (length(bytes) + 1) % I
+    limit + 0x1
 end
 
-function hasprefix(bytes::DenseVector{UInt8}, start::Integer, pattern::String)
-    length(bytes) >= start + ncodeunits(pattern) - 1 || return false
+function hasprefix(bytes::DenseVector{UInt8}, start::Integer, pattern::String; limit::Integer = length(bytes) % typeof(start))
+    limit >= start + ncodeunits(pattern) - 1 || return false
     for (i, c) in enumerate(codeunits(pattern))
         b = bytes[start + i - 1]
         b == c || b == c ⊻ 0x20 || return false
@@ -702,46 +701,46 @@ function hasprefix(bytes::DenseVector{UInt8}, start::Integer, pattern::String)
     true
 end
 
-function countsame(bytes::DenseVector{UInt8}, pos::I, char::Char)::I where {I <: Integer}
+function countsame(bytes::DenseVector{UInt8}, pos::I, char::Char; limit::I = length(bytes) % I)::I where {I <: Integer}
     uchar = UInt8(char)
-    for p in pos:length(bytes)
-        bytes[p] != uchar && return (p - pos) % I
+    for p in pos:limit
+        bytes[p] != uchar && return p - pos
     end
-    (length(bytes) + 1) % I
+    limit + 0x1
 end
 
-function nextchar(bytes::DenseVector{UInt8}, pos::I, char::UInt8)::I where {I <: Integer}
-    for p in pos:length(bytes)
-        bytes[p] == char && return p % I
+function nextchar(bytes::DenseVector{UInt8}, pos::I, char::UInt8; limit::I = length(bytes) % I)::I where {I <: Integer}
+    for p in pos:limit
+        bytes[p] == char && return p
     end
-    (length(bytes) + 1) % I
+    limit + 0x1
 end
 
 nextchar(bytes::DenseVector{UInt8}, pos::Integer, char::Char) =
     nextchar(bytes, pos, UInt8(char))
 
-function nextchar(bytes::DenseVector{UInt8}, pos::I, chars::NTuple{N, C})::I where {I <: Integer, N, C <: Union{UInt8, Char}}
+function nextchar(bytes::DenseVector{UInt8}, pos::I, chars::NTuple{N, C}; limit::I = length(bytes) % I)::I where {I <: Integer, N, C <: Union{UInt8, Char}}
     ichars = map(UInt8, chars)
-    for p in pos:length(bytes)
-        bytes[p] ∈ ichars && return p % I
+    for p in pos:limit
+        bytes[p] ∈ ichars && return p
     end
-    (length(bytes) + 1) % I
+    limit + 0x1
 end
 
-function untilwhitespace(bytes::DenseVector{UInt8}, pos::I) where {I <: Integer}
-    for p in pos:length(bytes)
-        iswhitespace(bytes, p) && return (p - 1) % I
+function untilwhitespace(bytes::DenseVector{UInt8}, pos::I; limit::I = length(bytes) % I) where {I <: Integer}
+    for p in pos:limit
+        iswhitespace(bytes, p) && return p - 0x1
     end
-    length(bytes) % I
+    limit
 end
 
-function skipnewlines(bytes::DenseVector{UInt8}, pos::I)::Tuple{I, Int} where {I <: Integer}
+function skipnewlines(bytes::DenseVector{UInt8}, pos::I; limit::I = length(bytes) % I)::Tuple{I, Int} where {I <: Integer}
     newlines = Int(pos == 1)
     while true
         if bytes[pos] == UInt8('\n')
-            pos += 1 % I
+            pos += 0x1
         elseif bytes[pos] == UInt8('\r') && ischarat(bytes, pos + 0x1, '\n')
-            pos += 2 % I
+            pos += 0x2
         else
             wsend = skipspaces(bytes, pos).stop
             if wsend > pos && wsend == lineend(bytes, pos)
@@ -752,7 +751,7 @@ function skipnewlines(bytes::DenseVector{UInt8}, pos::I)::Tuple{I, Int} where {I
             end
         end
         newlines += 1
-        pos <= length(bytes) || return length(bytes), newlines - 1
+        pos <= limit || return limit, newlines - 1
     end
     pos, newlines
 end
