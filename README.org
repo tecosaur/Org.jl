@@ -52,7 +52,7 @@ TODO
 | Clock               |      | X   |       |     |      |      |
 | DiarySexp           |      | X   |       |     |      |      |
 | Planning            |      | X   |       |     |      |      |
-| Comment             |      |     |       |     |      |      |
+| Comment             |      | X   |       |     |      |      |
 | FixedWidth          |      |     |       |     |      |      |
 | HorizontalRule      |      |     |       |     |      |      |
 | Keyword             |      | X   |       |     |      |      |

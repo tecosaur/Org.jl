@@ -109,6 +109,8 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)::T
             lex_clock(state, bytes, pos)
         elseif chr == UInt8('%') && ischarat(bytes, pos + 0x1, '%')
             lex_diarysexp(state, bytes, pos)
+        elseif chr == UInt8('#') && (length(bytes) > pos && iswhitespace(bytes, pos + 0x1) || islineend(bytes, pos + 0x1))
+            lex_comment(state, bytes, pos)
         elseif K"heading" ∈ state.lastelement
             lex_planning(state, bytes, pos)
         else
@@ -412,7 +414,19 @@ function lex_planning(state::LexerState, bytes::DenseVector{UInt8}, start::UInt3
     end
 end
 
-# TODO: Comments
+function lex_comment(::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
+    pos, nextpos = start, start
+    while pos <= length(bytes)
+        nextpos = skipspaces(bytes, nextpos).stop
+        ischarat(bytes, nextpos, '#') &&
+            (islineend(bytes, nextpos + 0x1) ||
+             nextpos < length(bytes) && iswhitespace(bytes, nextpos + 0x1)) ||
+            break
+        pos = lineend(bytes, nextpos) - 0x1
+        nextpos = pos + 0x2
+    end
+    Token(K"comment", start, pos), nextpos
+end
 
 # TODO: Fixed width
 

@@ -254,6 +254,18 @@ end
             [Token(K"heading[1]", 1, 9),
              Token(K"planning[7]", 12, 91)]
     end
+    @testset "Comments" begin
+        @test collect(Lexer("#")) ==
+            [Token(K"comment", 1, 1)]
+        @test collect(Lexer("# comment")) ==
+            [Token(K"comment", 1, 9)]
+        @test collect(Lexer("# comment\n# more")) ==
+            [Token(K"comment", 1, 16)]
+        @test collect(Lexer("# comment\n#\n# more")) ==
+            [Token(K"comment", 1, 18)]
+        @test collect(Lexer("# comment\n # \n# more\n")) ==
+            [Token(K"comment", 1, 20)]
+    end
     @testset "Type inference" begin
         @testset "Utilities" begin
             bytes, pos = codeunits("abc"), UInt32(1)
@@ -289,6 +301,7 @@ end
             @inferred Tuple{Token, UInt32} Org.lex_clock(lstate, bytes, pos)
             @inferred Tuple{Token, UInt32} Org.lex_diarysexp(lstate, bytes, pos)
             @inferred Tuple{Token, UInt32} Org.lex_planning(lstate, bytes, pos)
+            @inferred Tuple{Token, UInt32} Org.lex_comment(lstate, bytes, pos)
         end
     end
     @testset "Unhandled errors" begin
@@ -326,6 +339,7 @@ end
             @test_call Org.lex_clock(lstate, bytes, pos)
             @test_call Org.lex_diarysexp(lstate, bytes, pos)
             @test_call Org.lex_planning(lstate, bytes, pos)
+            @test_call Org.lex_comment(lstate, bytes, pos)
         end
         @testset "Iteration" begin
             @test_call iterate(Lexer("abc"), LexerState())
@@ -366,6 +380,7 @@ end
             @test_opt Org.lex_clock(lstate, bytes, pos)
             @test_opt Org.lex_diarysexp(lstate, bytes, pos)
             @test_opt Org.lex_planning(lstate, bytes, pos)
+            @test_opt Org.lex_comment(lstate, bytes, pos)
         end
         @testset "Iteration" begin
             @test_opt iterate(Lexer("abc"), LexerState())
