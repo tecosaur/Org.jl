@@ -51,7 +51,7 @@ TODO
 | Block               |      | X   |       |     |      |      |
 | Clock               |      | X   |       |     |      |      |
 | DiarySexp           |      | X   |       |     |      |      |
-| Planning            |      |     |       |     |      |      |
+| Planning            |      | X   |       |     |      |      |
 | Comment             |      |     |       |     |      |      |
 | FixedWidth          |      |     |       |     |      |      |
 | HorizontalRule      |      |     |       |     |      |      |

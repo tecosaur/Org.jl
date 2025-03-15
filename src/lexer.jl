@@ -109,6 +109,8 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)::T
             lex_clock(state, bytes, pos)
         elseif chr == UInt8('%') && ischarat(bytes, pos + 0x1, '%')
             lex_diarysexp(state, bytes, pos)
+        elseif K"heading" ∈ state.lastelement
+            lex_planning(state, bytes, pos)
         else
             if K"item" ∈ state.restriction
                 lex_item(state, bytes, pos, skipws.width)
@@ -161,7 +163,7 @@ function lex_heading(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
 end
 
 function lex_drawer(state::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
-    kind, drawend = if state.lastelement ∈ K"heading" && hasprefix(bytes, pos, ":properties:")
+    kind, drawend = if state.lastelement ∈ K"heading|planning" && hasprefix(bytes, pos, ":properties:")
         K"<property_drawer", pos + ncodeunits(":properties:") % UInt32
     elseif hasprefix(bytes, pos, ":end:")
         if K"property_drawer" ∈ state.ctx
@@ -365,7 +367,50 @@ function lex_diarysexp(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
     end
 end
 
-# TODO: Planning
+function lex_planning(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
+    lend = lineend(bytes, start)
+    pos = start
+    sheduled, deadline, closed = false, false, false
+    while skipspaces(bytes, pos).stop < lend
+        pos = skipspaces(bytes, pos).stop
+        if hasprefix(bytes, pos, "scheduled:")
+            sheduled = true
+            pos += ncodeunits("scheduled:") % UInt32
+        elseif hasprefix(bytes, pos, "deadline:")
+            deadline = true
+            pos += ncodeunits("deadline:") % UInt32
+        elseif hasprefix(bytes, pos, "closed:")
+            closed = true
+            pos += ncodeunits("closed:") % UInt32
+        else
+            return NONE_TOKEN
+        end
+        pos = skipspaces(bytes, pos).stop
+        tsbrk, tsket = if ischarat(bytes, pos, '[')
+            pos = nextchar(bytes, pos + 0x1, ']', limit = lend) + 0x1
+            '[', ']'
+        elseif ischarat(bytes, pos, '<')
+            pos = nextchar(bytes, pos + 0x1, '>', limit = lend) + 0x1
+            '<', '>'
+        else
+            return NONE_TOKEN
+        end
+        if hasprefix(bytes, pos, "--") && ischarat(bytes, pos + 0x2, tsbrk)
+            pos = nextchar(bytes, pos + 0x3, tsket, limit = lend) + 0x1
+        end
+    end
+    kwtag = 0x00
+    for (flag, bit) in ((sheduled, 0x01),
+                        (deadline, 0x02),
+                        (closed, 0x04))
+        flag && (kwtag |= bit)
+    end
+    if skipspaces(bytes, pos).stop == lend
+        Token(settag(K"planning", kwtag), start, pos), lend
+    else
+        NONE_TOKEN
+    end
+end
 
 # TODO: Comments
 
@@ -791,8 +836,8 @@ function nextchar(bytes::DenseVector{UInt8}, pos::I, char::UInt8; limit::I = len
     limit + 0x1
 end
 
-nextchar(bytes::DenseVector{UInt8}, pos::Integer, char::Char) =
-    nextchar(bytes, pos, UInt8(char))
+nextchar(bytes::DenseVector{UInt8}, pos::Integer, char::Char; limit::Integer = length(bytes) % typeof(pos)) =
+    nextchar(bytes, pos, UInt8(char); limit)
 
 function nextchar(bytes::DenseVector{UInt8}, pos::I, chars::NTuple{N, C}; limit::I = length(bytes) % I)::I where {I <: Integer, N, C <: Union{UInt8, Char}}
     ichars = map(UInt8, chars)

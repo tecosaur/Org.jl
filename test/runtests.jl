@@ -127,6 +127,18 @@ end
                  Token(K"<property_drawer", 11, 22),
                  Token(K"node_property", 24, 35),
                  Token(K">property_drawer", 37, 41)]
+            @test collect(Lexer("""
+            * Heading
+            SCHEDULED: <2025-03-15 Sat>
+            :PROPERTIES:
+            :node: value
+            :END:
+            """)) ==
+                [Token(K"heading[1]", 1, 9),
+                 Token(K"planning[1]", 11, 38),
+                 Token(K"<property_drawer", 39, 50),
+                 Token(K"node_property", 52, 63),
+                 Token(K">property_drawer", 65, 69)]
         end
     end
     @testset "Footnote defs" begin
@@ -228,6 +240,20 @@ end
         @test collect(Lexer("%%(diary-float t 4 2 \"Meeting (important)\")")) ==
             [Token(K"diarysexp", 1, 44)]
     end
+    @testset "Planning" begin
+        @test collect(Lexer("* Heading\nSCHEDULED: <2025-03-15 Sat>")) ==
+            [Token(K"heading[1]", 1, 9),
+             Token(K"planning[1]", 11, 38)]
+        @test collect(Lexer("* Heading\n  SCHEDULED:  <2025-03-15 Sat>  ")) ==
+            [Token(K"heading[1]", 1, 9),
+             Token(K"planning[1]", 13, 41)]
+        @test collect(Lexer("* Heading\nSCHEDULED: [2025-03-15 Sat]--[2025-03-16 Sun]")) ==
+            [Token(K"heading[1]", 1, 9),
+             Token(K"planning[1]", 11, 56)]
+        @test collect(Lexer("* Heading\n SCHEDULED: <2025-03-15 Sat> DEADLINE: <2025-04-01 Tue> CLOSED: <2025-03-10 Mon>")) ==
+            [Token(K"heading[1]", 1, 9),
+             Token(K"planning[7]", 12, 91)]
+    end
     @testset "Type inference" begin
         @testset "Utilities" begin
             bytes, pos = codeunits("abc"), UInt32(1)
@@ -262,6 +288,7 @@ end
             @inferred Tuple{Token, UInt32} Org.lex_keyword(lstate, bytes, pos)
             @inferred Tuple{Token, UInt32} Org.lex_clock(lstate, bytes, pos)
             @inferred Tuple{Token, UInt32} Org.lex_diarysexp(lstate, bytes, pos)
+            @inferred Tuple{Token, UInt32} Org.lex_planning(lstate, bytes, pos)
         end
     end
     @testset "Unhandled errors" begin
@@ -298,6 +325,7 @@ end
             @test_call Org.lex_keyword(lstate, bytes, pos)
             @test_call Org.lex_clock(lstate, bytes, pos)
             @test_call Org.lex_diarysexp(lstate, bytes, pos)
+            @test_call Org.lex_planning(lstate, bytes, pos)
         end
         @testset "Iteration" begin
             @test_call iterate(Lexer("abc"), LexerState())
@@ -337,6 +365,7 @@ end
             @test_opt Org.lex_keyword(lstate, bytes, pos)
             @test_opt Org.lex_clock(lstate, bytes, pos)
             @test_opt Org.lex_diarysexp(lstate, bytes, pos)
+            @test_opt Org.lex_planning(lstate, bytes, pos)
         end
         @testset "Iteration" begin
             @test_opt iterate(Lexer("abc"), LexerState())
