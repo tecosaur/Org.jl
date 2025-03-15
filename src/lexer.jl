@@ -93,7 +93,11 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)::T
         elseif chr == UInt8('*') && pos == linestart && ischarat(bytes, pos + countsame(bytes, pos, '*'), ' ')
             lex_heading(state, bytes, pos)
         elseif chr == UInt8(':')
-            lex_drawer(state, bytes, pos)
+            if length(bytes) > pos && iswhitespace(bytes, pos + 0x1) || islineend(bytes, pos + 0x1)
+                lex_fixedwidth(state, bytes, pos)
+            else
+                lex_drawer(state, bytes, pos)
+            end
         elseif chr == UInt8('[') && pos == linestart
             fndef = lex_footnotedef(state, bytes, pos)
             if fndef != NONE_TOKEN && K"footnote_definition" ∈ state.ctx
@@ -428,7 +432,19 @@ function lex_comment(::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
     Token(K"comment", start, pos), nextpos
 end
 
-# TODO: Fixed width
+function lex_fixedwidth(::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
+    pos, nextpos = start, start
+    while pos <= length(bytes)
+        nextpos = skipspaces(bytes, nextpos).stop
+        ischarat(bytes, nextpos, ':') &&
+            (islineend(bytes, nextpos + 0x1) ||
+             nextpos < length(bytes) && iswhitespace(bytes, nextpos + 0x1)) ||
+            break
+        pos = lineend(bytes, nextpos) - 0x1
+        nextpos = pos + 0x2
+    end
+    Token(K"fixedwidth", start, pos), nextpos
+end
 
 # TODO: Horizontal rules
 

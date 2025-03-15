@@ -266,6 +266,18 @@ end
         @test collect(Lexer("# comment\n # \n# more\n")) ==
             [Token(K"comment", 1, 20)]
     end
+    @testset "Fixed width" begin
+        @test collect(Lexer(":")) ==
+            [Token(K"fixedwidth", 1, 1)]
+        @test collect(Lexer(": fixed")) ==
+            [Token(K"fixedwidth", 1, 7)]
+        @test collect(Lexer(": fixed\n: more")) ==
+            [Token(K"fixedwidth", 1, 14)]
+        @test collect(Lexer(": fixed\n:\n: more")) ==
+            [Token(K"fixedwidth", 1, 16)]
+        @test collect(Lexer(": fixed\n : \n: more\n")) ==
+            [Token(K"fixedwidth", 1, 18)]
+    end
     @testset "Type inference" begin
         @testset "Utilities" begin
             bytes, pos = codeunits("abc"), UInt32(1)
@@ -302,6 +314,7 @@ end
             @inferred Tuple{Token, UInt32} Org.lex_diarysexp(lstate, bytes, pos)
             @inferred Tuple{Token, UInt32} Org.lex_planning(lstate, bytes, pos)
             @inferred Tuple{Token, UInt32} Org.lex_comment(lstate, bytes, pos)
+            @inferred Tuple{Token, UInt32} Org.lex_fixedwidth(lstate, bytes, pos)
         end
     end
     @testset "Unhandled errors" begin
@@ -340,6 +353,7 @@ end
             @test_call Org.lex_diarysexp(lstate, bytes, pos)
             @test_call Org.lex_planning(lstate, bytes, pos)
             @test_call Org.lex_comment(lstate, bytes, pos)
+            @test_call Org.lex_fixedwidth(lstate, bytes, pos)
         end
         @testset "Iteration" begin
             @test_call iterate(Lexer("abc"), LexerState())
@@ -381,6 +395,7 @@ end
             @test_opt Org.lex_diarysexp(lstate, bytes, pos)
             @test_opt Org.lex_planning(lstate, bytes, pos)
             @test_opt Org.lex_comment(lstate, bytes, pos)
+            @test_opt Org.lex_fixedwidth(lstate, bytes, pos)
         end
         @testset "Iteration" begin
             @test_opt iterate(Lexer("abc"), LexerState())

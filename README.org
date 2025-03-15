@@ -53,7 +53,7 @@ TODO
 | DiarySexp           |      | X   |       |     |      |      |
 | Planning            |      | X   |       |     |      |      |
 | Comment             |      | X   |       |     |      |      |
-| FixedWidth          |      |     |       |     |      |      |
+| FixedWidth          |      | X   |       |     |      |      |
 | HorizontalRule      |      |     |       |     |      |      |
 | Keyword             |      | X   |       |     |      |      |
 | Affiliated Keywords |      | -   |       |     |      |      |
