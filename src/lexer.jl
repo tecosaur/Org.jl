@@ -115,6 +115,8 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)::T
             lex_diarysexp(state, bytes, pos)
         elseif chr == UInt8('#') && (length(bytes) > pos && iswhitespace(bytes, pos + 0x1) || islineend(bytes, pos + 0x1))
             lex_comment(state, bytes, pos)
+        elseif chr == UInt8('-') && ischarat(bytes, pos + 0x1, '-')
+            lex_hrule(state, bytes, pos)
         elseif K"heading" ∈ state.lastelement
             lex_planning(state, bytes, pos)
         else
@@ -446,7 +448,15 @@ function lex_fixedwidth(::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
     Token(K"fixedwidth", start, pos), nextpos
 end
 
-# TODO: Horizontal rules
+function lex_hrule(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
+    rend = skipcharsets(bytes, pos, '-')
+    rend - pos >= 5 || return NONE_TOKEN
+    lend = lineend(bytes, pos)
+    rend == lend ||
+        skipspaces(bytes, rend).stop == lend ||
+        return NONE_TOKEN
+    Token(K"hrule", pos, rend - 0x1), lend
+end
 
 # TODO: LaTeX environments
 
@@ -760,7 +770,7 @@ function skipcharsets(bytes::DenseVector{UInt8}, pos::Integer, charsets::Union{S
         any(sr -> b1 in sr, skipranges) || return next
         pos, next = next, next + utf8bytes(bytes, next)
     end
-    next + 0x1
+    next
 end
 
 """

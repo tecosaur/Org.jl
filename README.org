@@ -54,7 +54,7 @@ TODO
 | Planning            |      | X   |       |     |      |      |
 | Comment             |      | X   |       |     |      |      |
 | FixedWidth          |      | X   |       |     |      |      |
-| HorizontalRule      |      |     |       |     |      |      |
+| HorizontalRule      |      | X   |       |     |      |      |
 | Keyword             |      | X   |       |     |      |      |
 | Affiliated Keywords |      | -   |       |     |      |      |
 | LaTeX Environment   |      |     |       |     |      |      |
