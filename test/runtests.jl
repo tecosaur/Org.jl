@@ -220,6 +220,14 @@ end
         @test collect(Lexer("clock: [2024-10-12]--")) !=
             [Token(K"<clock", 1, 1)]
     end
+    @testset "Diary sexp" begin
+       @test collect(Lexer("%%(org-calendar-holiday)")) ==
+            [Token(K"diarysexp", 1, 25)]
+        @test collect(Lexer("%%(org-class 2012 1 1 2013 12 12 2 \"New Year's Day\")")) ==
+            [Token(K"diarysexp", 1, 53)]
+        @test collect(Lexer("%%(diary-float t 4 2 \"Meeting (important)\")")) ==
+            [Token(K"diarysexp", 1, 44)]
+    end
     @testset "Type inference" begin
         @testset "Utilities" begin
             bytes, pos = codeunits("abc"), UInt32(1)
@@ -253,6 +261,7 @@ end
             @inferred Tuple{Token, UInt32} Org.lex_dynamicblock(lstate, bytes, pos)
             @inferred Tuple{Token, UInt32} Org.lex_keyword(lstate, bytes, pos)
             @inferred Tuple{Token, UInt32} Org.lex_clock(lstate, bytes, pos)
+            @inferred Tuple{Token, UInt32} Org.lex_diarysexp(lstate, bytes, pos)
         end
     end
     @testset "Unhandled errors" begin
@@ -288,6 +297,7 @@ end
             @test_call Org.lex_dynamicblock(lstate, bytes, pos)
             @test_call Org.lex_keyword(lstate, bytes, pos)
             @test_call Org.lex_clock(lstate, bytes, pos)
+            @test_call Org.lex_diarysexp(lstate, bytes, pos)
         end
         @testset "Iteration" begin
             @test_call iterate(Lexer("abc"), LexerState())
@@ -326,6 +336,7 @@ end
             @test_opt Org.lex_dynamicblock(lstate, bytes, pos)
             @test_opt Org.lex_keyword(lstate, bytes, pos)
             @test_opt Org.lex_clock(lstate, bytes, pos)
+            @test_opt Org.lex_diarysexp(lstate, bytes, pos)
         end
         @testset "Iteration" begin
             @test_opt iterate(Lexer("abc"), LexerState())

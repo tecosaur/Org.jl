@@ -107,6 +107,8 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)::T
             lex_hashplus(state, bytes, pos)
         elseif chr == UInt8('c') && hasprefix(bytes, pos + 0x1, "lock:")
             lex_clock(state, bytes, pos)
+        elseif chr == UInt8('%') && ischarat(bytes, pos + 0x1, '%')
+            lex_diarysexp(state, bytes, pos)
         else
             if K"item" ∈ state.restriction
                 lex_item(state, bytes, pos, skipws.width)
@@ -351,7 +353,17 @@ function lex_clock(::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
     end
 end
 
-# TODO: Diary sexp
+function lex_diarysexp(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
+    hasprefix(bytes, pos, "%%") || return NONE_TOKEN
+    lend = lineend(bytes, pos)
+    sexpend = skipbalanced(bytes, pos + 0x2, '(' => ')', quotes = ('"',), escapechar = '\\', limit = lend - 0x1)
+    sexpend != 0 || return NONE_TOKEN
+    if skipspaces(bytes, sexpend).stop == lend
+        Token(K"diarysexp", pos, sexpend), lend
+    else
+        NONE_TOKEN
+    end
+end
 
 # TODO: Planning
 
@@ -674,6 +686,69 @@ function skipcharsets(bytes::DenseVector{UInt8}, pos::Integer, charsets::Union{S
         pos, next = next, next + utf8bytes(bytes, next)
     end
     next + 0x1
+end
+
+"""
+    skipbalanced(bytes::DenseVector{UInt8}, pos::Integer, bpair::Pair{Char, Char},
+                 quotes::NTuple{N, Char} = (), escapechar::Union{Char, Nothing} = nothing) -> Integer
+
+Skip over a balanced pair of characters (`bpair`) in `bytes` starting at `pos`.
+
+It is expected that `bytes[pos]` is the opening character of the pair, from which
+point all characters until as many closing characters of the pair have been
+encountered as opening characters.
+
+If `quotes` is provided, then the characters in `quotes` are considered as
+additional opening characters, only characters outside quotes are considered.
+
+Quotes and pairs can be escaped by `escapechar`, if provided.
+
+# Examples
+
+```julia-repl
+julia> strv = codeunits("[some [nested] [text [deeply]] 'more] words\\' ] finally' an] end");
+
+julia> skipbalanced(strv, 1, '[' => ']')
+38
+
+julia> skipbalanced(strv, 1, '[' => ']', ('\\'',))
+48
+
+julia> skipbalanced(strv, 1, '[' => ']', ('\\'',), '\\\\')
+61
+```
+"""
+function skipbalanced(bytes::DenseVector{UInt8}, pos::Integer, bpair::Pair{Char, Char};
+                      quotes::NTuple{N, Char} = (), escapechar::Union{Char, Nothing} = nothing,
+                      limit::Integer = length(bytes) % typeof(pos)) where {N}
+    uopen = UInt8(first(bpair))
+    uclose = UInt8(last(bpair))
+    uquotes = map(q -> UInt8(q), quotes)
+    uescape = UInt8(something(escapechar, '\0'))
+    depth = 1
+    currentquote = 0x00
+    bytes[pos] == uopen || return zero(pos)
+    pos += 0x1
+    while true
+        pos <= limit || break
+        chr = bytes[pos]
+        if !isnothing(escapechar) && chr == uescape && pos < limit
+            pos += 0x1
+        elseif currentquote != 0
+            if chr == currentquote
+                currentquote = 0x00
+            end
+        elseif currentquote == 0 && chr ∈ uquotes
+            currentquote = chr
+        elseif chr == uopen
+            depth += 1
+        elseif chr == uclose
+            depth -= 1
+        end
+        pos += utf8bytes(bytes, pos)
+        depth == 0 && return pos
+    end
+    zero(pos)
 end
 
 function ischarat(bytes::DenseVector{UInt8}, pos::Integer, char::Char; limit::Integer = length(bytes) % typeof(pos))

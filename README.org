@@ -50,7 +50,7 @@ TODO
 | BabelCall           |      |     |       |     |      |      |
 | Block               |      | X   |       |     |      |      |
 | Clock               |      | X   |       |     |      |      |
-| DiarySexp           |      |     |       |     |      |      |
+| DiarySexp           |      | X   |       |     |      |      |
 | Planning            |      |     |       |     |      |      |
 | Comment             |      |     |       |     |      |      |
 | FixedWidth          |      |     |       |     |      |      |
