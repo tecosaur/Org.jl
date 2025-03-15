@@ -760,7 +760,7 @@ julia> skipcharsets(strv, 1, 'a':'z', '0':'9', ' ', '.', '-')
 12
 ```
 """
-function skipcharsets(bytes::DenseVector{UInt8}, pos::Integer, charsets::Union{StepRange{Char}, Char}...; limit::Integer = length(bytes) % typeof(pos))
+function skipcharsets(bytes::DenseVector{UInt8}, pos::Integer, charsets::NTuple{N, Union{StepRange{Char}, Char}}; limit::Integer = length(bytes) % typeof(pos)) where {N}
     skipranges = map(c -> if c isa Char UInt8(c) else
                          UInt8(first(c)):UInt8(last(c)) end,
                      charsets)
@@ -772,6 +772,9 @@ function skipcharsets(bytes::DenseVector{UInt8}, pos::Integer, charsets::Union{S
     end
     next
 end
+
+skipcharsets(bytes::DenseVector{UInt8}, pos::Integer, charsets::Union{StepRange{Char}, Char}...; limit::Integer = length(bytes) % typeof(pos)) =
+    skipcharsets(bytes, pos, Tuple(charsets); limit)
 
 """
     skipbalanced(bytes::DenseVector{UInt8}, pos::Integer, bpair::Pair{Char, Char},
