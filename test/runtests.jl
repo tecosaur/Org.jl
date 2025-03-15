@@ -208,6 +208,18 @@ end
              Token(K">table_cell", 28, 28),
              Token(K">table_row", 28, 28)]
     end
+    @testset "Clock" begin
+        @test collect(Lexer("clock: => 12:30")) ==
+            [Token(K"<clock", 1, 1)]
+        @test collect(Lexer("clock: [2024-10-12]")) ==
+            [Token(K"<clock", 1, 1)]
+        @test collect(Lexer("clock: [2019-03-25 Mon 10:49]--[2019-03-25 Mon 11:31] =>  0:42")) ==
+            [Token(K"<clock", 1, 1)]
+        @test collect(Lexer("clock: 12:30")) !=
+            [Token(K"<clock", 1, 1)]
+        @test collect(Lexer("clock: [2024-10-12]--")) !=
+            [Token(K"<clock", 1, 1)]
+    end
     @testset "Type inference" begin
         @testset "Utilities" begin
             bytes, pos = codeunits("abc"), UInt32(1)
@@ -240,6 +252,7 @@ end
             @inferred Tuple{Token, UInt32} Org.lex_block(lstate, bytes, pos)
             @inferred Tuple{Token, UInt32} Org.lex_dynamicblock(lstate, bytes, pos)
             @inferred Tuple{Token, UInt32} Org.lex_keyword(lstate, bytes, pos)
+            @inferred Tuple{Token, UInt32} Org.lex_clock(lstate, bytes, pos)
         end
     end
     @testset "Unhandled errors" begin
@@ -274,6 +287,7 @@ end
             @test_call Org.lex_block(lstate, bytes, pos)
             @test_call Org.lex_dynamicblock(lstate, bytes, pos)
             @test_call Org.lex_keyword(lstate, bytes, pos)
+            @test_call Org.lex_clock(lstate, bytes, pos)
         end
         @testset "Iteration" begin
             @test_call iterate(Lexer("abc"), LexerState())
@@ -311,6 +325,7 @@ end
             @test_opt Org.lex_block(lstate, bytes, pos)
             @test_opt Org.lex_dynamicblock(lstate, bytes, pos)
             @test_opt Org.lex_keyword(lstate, bytes, pos)
+            @test_opt Org.lex_clock(lstate, bytes, pos)
         end
         @testset "Iteration" begin
             @test_opt iterate(Lexer("abc"), LexerState())

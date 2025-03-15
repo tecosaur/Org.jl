@@ -372,6 +372,7 @@ const DENSE_RESTRICTIONS = (
     K"regular_link" => K"minimal_objects" | K"export_snippet|inline_call|source_block|macro|statistics_cookie",
     K"table_cell" => K"minimal_objects" | K"citation|export_snippet|footnote_reference|link|macro|radio_target|target|timestamp",
     K"table_row" => K"table_cell",
+    K"clock|planning" => K"timestamp",
     K"lesser_elements" => K"plaintext",
     K"property_drawer" => K"node_property",
     K"table" => K"table_row",

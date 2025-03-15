@@ -57,6 +57,14 @@ end
 
 # Lexing entrypoint
 
+"""
+    NONE_TOKEN
+
+A token that represents the absence of a token.
+
+This is intended for use stand-in for `nothing` without
+introducing type instability.
+"""
 const NONE_TOKEN = Token(K"", 0, 0), UInt32(0)
 
 function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)::Tuple{Token, UInt32}
@@ -64,7 +72,9 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)::T
     skipws = skipspaces(bytes, linestart)
     pos = skipws.stop
     chr = bytes[pos]
-    next = if newlines > 2 && K"footnote_definition" ∈ state.ctx
+    next = if newlines > 0 && K"clock" ∈ state.ctx
+        Token(K">clock", start - 0x01, start - 0x01), start
+    elseif newlines > 2 && K"footnote_definition" ∈ state.ctx
         Token(K">footnote_definition", start - 0x1, start - 0x1), start
     elseif newlines != 0
         if K"table" ∈ state.ctx
@@ -78,6 +88,8 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)::T
             else
                 Token(K">table", start - 0x1, start - 0x1), start
             end
+        elseif K"clock" ∈ state.ctx
+            Token(K">clock", start - 0x1, start - 0x1), start
         elseif chr == UInt8('*') && pos == linestart && ischarat(bytes, pos + countsame(bytes, pos, '*'), ' ')
             lex_heading(state, bytes, pos)
         elseif chr == UInt8(':')
@@ -93,6 +105,8 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)::T
             Token(K"<table", pos, pos), pos
         elseif chr == UInt8('#') && ischarat(bytes, pos + 0x1, '+')
             lex_hashplus(state, bytes, pos)
+        elseif chr == UInt8('c') && hasprefix(bytes, pos + 0x1, "lock:")
+            lex_clock(state, bytes, pos)
         else
             if K"item" ∈ state.restriction
                 lex_item(state, bytes, pos, skipws.width)
@@ -306,7 +320,36 @@ end
 
 # Lesser element lexing
 
-# TODO: Clocks
+function lex_clock(::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
+    hasprefix(bytes, start, "clock:") || return NONE_TOKEN
+    pos = start + ncodeunits("clock:") % UInt32
+    pos = skipspaces(bytes, pos).stop
+    hastimestamp = if bytes[pos] == UInt8('[')
+        pos = nextchar(bytes, pos + 0x1, (']', '\n'))
+        ischarat(bytes, pos, ']') && (pos += 0x1)
+        if hasprefix(bytes, pos, "--[")
+            pos = nextchar(bytes, pos + 0x4, (']', '\n'))
+            ischarat(bytes, pos, ']') && (pos += 0x1)
+        end
+        pos = skipspaces(bytes, pos).stop
+        true
+    else
+        false
+    end
+    hasduration = if hasprefix(bytes, pos, "=>")
+        pos = skipspaces(bytes, pos + ncodeunits("=>") % UInt32).stop
+        pos = skipcharsets(bytes, pos, '0':'9', ':')
+        pos = skipspaces(bytes, pos).stop
+        true
+    else
+        false
+    end
+    if (hastimestamp || hasduration) && islineend(bytes, pos)
+        Token(K"<clock", start, start), start + ncodeunits("clock:") % UInt32
+    else
+        NONE_TOKEN
+    end
+end
 
 # TODO: Diary sexp
 
@@ -360,27 +403,27 @@ end
 
 # Utility functions
 
-function skipspaces(bytes::DenseVector{UInt8}, pos::Integer)
+function skipspaces(bytes::DenseVector{UInt8}, pos::I) where {I <: Integer}
     wskipped = 0
     while pos <= length(bytes)
         if bytes[pos] == UInt8(' ')
-            pos += 1
+            pos += 0x1
             wskipped += 1
         elseif bytes[pos] == UInt8('\t')
-            pos += 1
+            pos += 0x1
             wskipped += 8
         elseif bytes[pos] == 0xe2 && length(bytes) >= pos + 2 &&
             bytes[pos + 1] == 0x80 && 0x80 <= bytes[pos + 2] <= 0x8c
             if bytes[pos + 2] < 0x8b
                 wskipped += 1
             end
-            pos += 3
+            pos += 0x3
         else
             break
         end
     end
-    @NamedTuple{width::Int, stop::UInt32}(
-        (wskipped, min(pos, length(bytes)) % UInt32))
+    @NamedTuple{width::Int, stop::I}(
+        (wskipped, min(pos, length(bytes) % I + 0x1)))
 end
 
 function iswhitespace(bytes::DenseVector{UInt8}, pos::Integer)
@@ -450,9 +493,25 @@ end
     clamp(leading_ones(bytes[pos]) % I, I(1), I(4))
 end
 
-function skipplain(bytes::DenseVector{UInt8}, start::I)::I where {I <: Integer}
+@inline function utf8next(bytes::DenseVector{UInt8}, pos::Integer)
+    pos + utf8bytes(bytes, pos)
+end
+
+@inline function utf8prev(bytes::DenseVector{UInt8}, pos::Integer)
+    pos - if pos > 4 && utf8bytes(bytes, pos - 0x4) == 4
+        0x4
+    elseif pos > 3 && utf8bytes(bytes, pos - 0x3) == 3
+        0x3
+    elseif pos > 2 && utf8bytes(bytes, pos - 0x2) == 2
+        0x2
+    else
+        0x1
+    end
+end
+
+function skipplain(bytes::DenseVector{UInt8}, start::I, multiline::Bool = false)::I where {I <: Integer}
     pos = start + utf8bytes(bytes, start)
-    while pos < length(bytes)
+    while pos <= length(bytes)
         chr = bytes[pos]
         if PLAIN_SKIP_TABLE[chr]
             pos += 1 % I
@@ -462,14 +521,24 @@ function skipplain(bytes::DenseVector{UInt8}, start::I)::I where {I <: Integer}
             return pos - 1 % I
         elseif chr == UInt8('_') && pos > start + 2 && (hasprefix(bytes, pos - 3, "src") || hasprefix(bytes, pos - 3, "call"))
             return pos - 3 % I - (bytes[pos - 1] == UInt8('l')) % I
-        elseif chr == UInt8(':') && ((bytes[pos - 1] ∉ (UInt8(' '), UInt8('\t'))) || (pos > start + 2 && !islongwhitespace(bytes, pos - 3))) && length(bytes) > pos && !iswhitespace(bytes, pos + 1)
-            for wp in pos:-1:start+1
+        elseif chr == UInt8(':') && ((bytes[pos - 1] ∉ (UInt8(' '), UInt8('\t'))) ||
+            (pos > start + 2 && !islongwhitespace(bytes, pos - 3))) && length(bytes) > pos && !iswhitespace(bytes, pos + 1)
+            start == 1 && return pos
+            wp = pos
+            while wp > start
                 iswhitespace(bytes, wp) && return wp % I
+                wp = utf8prev(bytes, wp)
             end
             pos += utf8bytes(chr) % I
+        elseif chr ∈ (UInt8('\n'), UInt8('\r'))
+            if multiline
+                pos += 0x1
+            else
+                return pos
+            end
         else
             clen = utf8bytes(chr) % I
-            clen == 1 && pos > start + 1 && return pos - one(I)
+            clen == 1 && pos > start && return pos - 0x1
             pos += clen
         end
     end
@@ -599,13 +668,13 @@ function skipcharsets(bytes::DenseVector{UInt8}, pos::Integer, charsets::Union{S
     skipranges = map(c -> if c isa Char UInt8(c) else
                          UInt8(first(c)):UInt8(last(c)) end,
                      charsets)
-    len, next = 1, pos
+    len, next = one(pos), pos
     while next <= length(bytes)
         b1 = bytes[next]
         any(sr -> b1 in sr, skipranges) || return next
-        pos, next = next, next + utf8bytes(b1)
+        pos, next = next, next + utf8bytes(bytes, next)
     end
-    next
+    next + 0x1
 end
 
 function ischarat(bytes::DenseVector{UInt8}, pos::Integer, char::Char)
