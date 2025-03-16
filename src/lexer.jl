@@ -33,6 +33,7 @@ function Base.iterate(lex::Lexer, state::LexerState)
     while position <= length(lex.input)
         token, position = @inline lexnext(state, lex.input, position)
         if token.kind in K"elements"
+            ctx = ctx & ~!K"objects"
             lastelement = token.kind
         end
         if token.kind == K"plaintext"
@@ -69,6 +70,9 @@ const NONE_TOKEN = Token(K"", 0, 0), UInt32(0)
 
 function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
     linestart, newlines = @inline skipnewlines(bytes, start)
+    if start == 1 && state.lastelement != K"<paragraph"
+        newlines = 1
+    end
     skipws = skipspaces(bytes, linestart)
     pos = skipws.stop
     if state.lastelement == K""
@@ -95,7 +99,7 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
         lexnext_object(state, bytes, start, linestart, pos, chr)
     end
     if next != NONE_TOKEN
-        if K"paragraph" ∈ state.ctx
+        if newlines != 0 && K"paragraph" ∈ state.ctx
             Token(K">paragraph", start - 0x1, start - 0x1), start
         else
             next
@@ -191,6 +195,8 @@ function lexnext_object(state::LexerState, bytes::DenseVector{UInt8},
             end
             Token(K"<table_cell", pos, pos), pos
         end
+    elseif chr ∈ (UInt8('*'), UInt8('/'), UInt8('_'), UInt8('='), UInt8('~'), UInt8('+'))
+        lex_markup(state, bytes, pos)
     else
         NONE_TOKEN
     end
@@ -548,7 +554,56 @@ end
 
 # TODO: Timestamps
 
-# TODO: Text markup
+function markupkind(delim::UInt8)
+    if delim == UInt8('*')
+        K"bold"
+    elseif delim == UInt8('/')
+        K"italic"
+    elseif delim == UInt8('_')
+        K"underline"
+    elseif delim == UInt8('=')
+        K"verbatim"
+    elseif delim == UInt8('~')
+        K"code"
+    elseif delim == UInt8('+')
+        K"strikethrough"
+    else
+        K""
+    end
+end
+
+const MARKUP_PRE_CHARS = let chars = "-({'\""
+    Tuple(map(UInt8, collect(chars)))
+end
+
+const MARKUP_POST_CHARS = let chars = "-.,;:!?')}[\"\\"
+    Tuple(map(UInt8, collect(chars)))
+end
+
+function lex_markup(state::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
+    posprev = utf8prev(bytes, pos)
+    posnext = utf8next(bytes, pos)
+    side = if (posnext > length(bytes) || !iswhitespace(bytes, posnext)) &&
+        (islinestart(bytes, posprev) || iswhitespace(bytes, posprev) || bytes[posprev] ∈ MARKUP_PRE_CHARS ||
+         (bytes[posprev] != bytes[pos] && markupkind(bytes[posprev]) & state.restriction != K""))
+        K"<"
+    elseif (posprev == 0 || !iswhitespace(bytes, posprev)) &&
+        (islineend(bytes, posnext) || iswhitespace(bytes, posnext) || bytes[posnext] ∈ MARKUP_POST_CHARS ||
+         (bytes[posnext] != bytes[pos] && markupkind(bytes[posnext]) & state.ctx != K""))
+        K">"
+    else
+        return NONE_TOKEN
+    end
+    kind = markupkind(bytes[pos])
+    if kind == K""
+        false
+    elseif side == K"<"
+        kind ∈ state.restriction
+    else
+        kind ∈ state.ctx
+    end || return NONE_TOKEN
+    Token(kind | side, pos, pos), posnext
+end
 
 
 # Utility functions
@@ -603,7 +658,7 @@ const PLAIN_SKIP_TABLE = let canskip = zeros(Bool, 255)
     for c in UInt8('0'):UInt8('9')
         canskip[c] = true
     end
-    for c in "!\"&'(),.;?]}"
+    for c in " !\"&'(),.;?]}"
         canskip[UInt8(c)] = true
     end
     Tuple(canskip)
@@ -687,7 +742,7 @@ function skipplain(bytes::DenseVector{UInt8}, start::I, multiline::Bool = false;
             end
         else
             clen = utf8bytes(chr) % I
-            clen == 1 && pos > start && return pos - 0x1
+            clen == 1 && pos > start && return pos
             pos += clen
         end
     end
@@ -908,6 +963,10 @@ function lineend(bytes::DenseVector{UInt8}, pos::I; limit::I = length(bytes) % I
     limit + 0x1
 end
 
+function islinestart(bytes::DenseVector{UInt8}, pos::Integer)
+    pos < 1 || pos <= length(bytes) && ischarat(bytes, pos, '\n')
+end
+
 function hasprefix(bytes::DenseVector{UInt8}, start::Integer, pattern::String; limit::Integer = length(bytes) % typeof(start))
     limit >= start + ncodeunits(pattern) - 1 || return false
     for (i, c) in enumerate(codeunits(pattern))
@@ -943,7 +1002,7 @@ function untilwhitespace(bytes::DenseVector{UInt8}, pos::I; limit::I = length(by
 end
 
 function skipnewlines(bytes::DenseVector{UInt8}, pos::I; limit::I = length(bytes) % I)::Tuple{I, Int} where {I <: Integer}
-    newlines = Int(pos == 1)
+    newlines = 0
     while true
         if bytes[pos] == UInt8('\n')
             pos += 0x1

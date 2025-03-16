@@ -126,8 +126,6 @@ end
             """)) ==
                 [Token(K"<drawer", 1, 8),
                  Token(K"<paragraph", 10, 10),
-                 Token(K">paragraph", 16, 16),
-                 Token(K"<paragraph", 18, 18),
                  Token(K">paragraph", 34, 34),
                  Token(K">drawer", 36, 40)]
         end
@@ -392,6 +390,42 @@ end
                  Token(K">paragraph", 85, 85),
                  Token(K"latex_environment", 88, 136)]
     end
+    @testset "Markup" begin
+        @test collect(Lexer("*bold*")) ==
+            [Token(K"<paragraph", 1, 1),
+             Token(K"<bold", 1, 1),
+             Token(K">bold", 6, 6)]
+        @test collect(Lexer("*bold* /italic/ _underline_ ~code~ =verbatim= +strikethrough+")) ==
+            [Token(K"<paragraph", 1, 1),
+             Token(K"<bold", 1, 1),
+             Token(K">bold", 6, 6),
+             Token(K"<italic", 8, 8),
+             Token(K">italic", 15, 15),
+             Token(K"<underline", 17, 17),
+             Token(K">underline", 27, 27),
+             Token(K"<code", 29, 29),
+             Token(K">code", 34, 34),
+             Token(K"<verbatim", 36, 36),
+             Token(K">verbatim", 45, 45),
+             Token(K"<strikethrough", 47, 47),
+             Token(K">strikethrough", 61, 61)]
+        @test collect(Lexer("*/italic/*")) ==
+            [Token(K"<paragraph", 1, 1),
+             Token(K"<bold", 1, 1),
+             Token(K"<italic", 2, 2),
+             Token(K">italic", 9, 9),
+             Token(K"<bold", 10, 10)]
+        @test collect(Lexer("=*/italic/*=")) ==
+            [Token(K"<paragraph", 1, 1),
+             Token(K"<verbatim", 1, 1),
+             Token(K">verbatim", 12, 12)]
+        @test collect(Lexer("*hey =and /not italic/ verbatim= there* stuff")) ==
+            [Token(K"<paragraph", 1, 1),
+             Token(K"<bold", 1, 1),
+             Token(K"<verbatim", 6, 6),
+             Token(K">verbatim", 32, 32),
+             Token(K">bold", 39, 39)]
+    end
     @testset "Type inference" begin
         @testset "Utilities" begin
             bytes, pos = codeunits("abc"), UInt32(1)
@@ -430,6 +464,7 @@ end
             @inferred Tuple{Token, UInt32} Org.lex_fixedwidth(lstate, bytes, pos)
             @inferred Tuple{Token, UInt32} Org.lex_hrule(lstate, bytes, pos)
             @inferred Tuple{Token, UInt32} Org.lex_latexenv(lstate, bytes, pos)
+            @inferred Tuple{Token, UInt32} Org.lex_markup(lstate, bytes, pos)
         end
     end
     @testset "Unhandled errors" begin
@@ -470,6 +505,7 @@ end
             @test_call Org.lex_fixedwidth(lstate, bytes, pos)
             @test_call Org.lex_hrule(lstate, bytes, pos)
             @test_call Org.lex_latexenv(lstate, bytes, pos)
+            @test_call Org.lex_markup(lstate, bytes, pos)
         end
         @testset "Iteration" begin
             @test_call iterate(Lexer("abc"), LexerState())
@@ -513,6 +549,7 @@ end
             @test_opt Org.lex_fixedwidth(lstate, bytes, pos)
             @test_opt Org.lex_hrule(lstate, bytes, pos)
             @test_opt Org.lex_latexenv(lstate, bytes, pos)
+            @test_opt Org.lex_markup(lstate, bytes, pos)
         end
         @testset "Iteration" begin
             @test_opt iterate(Lexer("abc"), LexerState())

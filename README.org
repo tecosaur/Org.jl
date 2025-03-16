@@ -84,5 +84,5 @@ TODO
 | Superscript         |      |     |       |     |      |      |
 | TableCell           |      | X   |       |     |      |      |
 | Timestamp           |      |     |       |     |      |      |
+| TextMarkup          |      | X   |       |     |      |      |
 | TextPlain           |      |     |       |     |      |      |
-| TextMarkup          |      |     |       |     |      |      |
