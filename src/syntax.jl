@@ -364,11 +364,9 @@ end
 # Kind restrictions
 
 const DENSE_RESTRICTIONS = (
-    # Objects
-    K"paragraph|item|verse_block|script|markup|citation_reference|footnote_reference|radio_target" => K"standard_objects",
+    K"paragraph|verse_block|script|markup|citation_reference|footnote_reference|radio_target" => K"standard_objects",
     K"citation" => K"citation_reference",
-    K"heading|item" => K"standard_objects" ⊻ K"linebreak",
-    K"keyword" => K"standard_objects" ⊻ K"footnote_reference",
+    K"heading" => K"standard_objects" ⊻ K"linebreak",
     K"regular_link" => K"minimal_objects" | K"export_snippet|inline_call|source_block|macro|statistics_cookie",
     K"table_cell" => K"minimal_objects" | K"citation|export_snippet|footnote_reference|link|macro|radio_target|target|timestamp",
     K"table_row" => K"table_cell",
@@ -378,6 +376,11 @@ const DENSE_RESTRICTIONS = (
     K"table" => K"table_row",
     K"list" => K"item",
     K"greater_elements" => K"greater_elements|lesser_elements" ⊻ K"planning|property_drawer|table_row|item|node_property",
+)
+
+const SECONDARY_RESTRICTIONS = (
+    K"heading|item" => K"standard_objects" ⊻ K"linebreak",
+    K"keyword" => K"standard_objects" ⊻ K"footnote_reference",
 )
 
 function all_restrictions(k::Kind)

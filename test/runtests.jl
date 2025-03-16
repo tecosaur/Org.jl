@@ -153,22 +153,41 @@ end
              Token(K">footnote_definition", 12, 12)]
     end
     @testset "Items" begin
-        @test collect(Lexer("+ item")) == [Token(K"item[1]", 1, 7)]
-        @test collect(Lexer("  + item")) == [Token(K"item[3]", 3, 9)]
-        @test collect(Lexer("- item")) == [Token(K"item[1]", 1, 7)]
-        @test collect(Lexer(" * item")) == [Token(K"item[2]", 2, 8)]
-        @test collect(Lexer("+ item\nmore")) == [Token(K"item[1]", 1, 7)]
-        @test collect(Lexer("+ item\n more")) == [Token(K"item[1]", 1, 13)]
-        @test collect(Lexer("+ item\n  more")) == [Token(K"item[1]", 1, 14)]
-        @test collect(Lexer("+ item\n  \n  more")) == [Token(K"item[1]", 1, 17)]
-        @test collect(Lexer("+ item\n\n  more")) == [Token(K"item[1]", 1, 15)]
-        @test collect(Lexer("+ item\n\n\n  more")) == [Token(K"item[1]", 1, 7)]
-        @test collect(Lexer(" + item\n more")) == [Token(K"item[2]", 2, 8)]
-        @test collect(Lexer(" + item\n  more")) == [Token(K"item[2]", 2, 15)]
-        @test collect(Lexer("1. item")) == [Token(K"item[1]", 1, 8)]
-        @test collect(Lexer("12) item")) == [Token(K"item[1]", 1, 9)]
-        @test collect(Lexer("a. item")) == [Token(K"item[1]", 1, 8)]
-        @test collect(Lexer("ab) item")) == [Token(K"item[1]", 1, 9)]
+        @test collect(Lexer("+ item")) ==
+            [Token(K"<item[1]", 1, 1)]
+        @test collect(Lexer("  + item")) ==
+            [Token(K"<item[3]", 3, 3)]
+        @test collect(Lexer("- item")) ==
+            [Token(K"<item[1]", 1, 1)]
+        @test collect(Lexer(" * item")) ==
+            [Token(K"item[2]", 2, 2)]
+        @test collect(Lexer("+ item\nmore")) ==
+            [Token(K"<item[1]", 1, 1),
+             Token(K">item[1]", 6, 6)]
+        @test collect(Lexer("+ item\n more")) ==
+            [Token(K"<item[1]", 1, 1)]
+        @test collect(Lexer("+ item\n  more")) ==
+            [Token(K"<item[1]", 1, 1)]
+        @test collect(Lexer("+ item\n  \n  more")) ==
+            [Token(K"<item[1]", 1, 1)]
+        @test collect(Lexer("+ item\n\n  more")) ==
+            [Token(K"<item[1]", 1, 1)]
+        @test collect(Lexer("+ item\n\n\n  more")) ==
+            [Token(K"<item[1]", 1, 1),
+             Token(K">item[1]", 6, 6)]
+        @test collect(Lexer(" + item\n more")) ==
+            [Token(K"<item[2]", 2, 2),
+             Token(K">item[2]", 7, 7)]
+        @test collect(Lexer(" + item\n  more")) ==
+            [Token(K"<item[2]", 2, 2)]
+        @test collect(Lexer("1. item")) ==
+            [Token(K"<item[1]", 1, 2)]
+        @test collect(Lexer("12) item")) ==
+            [Token(K"<item[1]", 1, 3)]
+        @test collect(Lexer("a. item")) ==
+            [Token(K"<item[1]", 1, 2)]
+        @test collect(Lexer("ab) item")) ==
+            [Token(K"<item[1]", 1, 3)]
     end
     @testset "Tables" begin
         @test collect(Lexer("|")) ==
@@ -345,7 +364,7 @@ end
             @inferred Tuple{Token, UInt32} Org.lex_heading(lstate, bytes, pos)
             @inferred Tuple{Token, UInt32} Org.lex_drawer(lstate, bytes, pos)
             @inferred Tuple{Token, UInt32} Org.lex_footnotedef(lstate, bytes, pos)
-            @inferred Tuple{Token, UInt32} Org.lex_item(lstate, bytes, pos, 1)
+            @inferred Tuple{Token, UInt32} Org.lex_item(lstate, bytes, pos)
             @inferred Tuple{Token, UInt32} Org.lex_hashplus(lstate, bytes, pos)
             @inferred Tuple{Token, UInt32} Org.lex_block(lstate, bytes, pos)
             @inferred Tuple{Token, UInt32} Org.lex_dynamicblock(lstate, bytes, pos)
@@ -386,7 +405,7 @@ end
             @test_call Org.lex_heading(lstate, bytes, pos)
             @test_call Org.lex_drawer(lstate, bytes, pos)
             @test_call Org.lex_footnotedef(lstate, bytes, pos)
-            @test_call Org.lex_item(lstate, bytes, pos, 1)
+            @test_call Org.lex_item(lstate, bytes, pos)
             @test_call Org.lex_hashplus(lstate, bytes, pos)
             @test_call Org.lex_block(lstate, bytes, pos)
             @test_call Org.lex_dynamicblock(lstate, bytes, pos)
@@ -430,7 +449,7 @@ end
             @test_opt Org.lex_heading(lstate, bytes, pos)
             @test_opt Org.lex_drawer(lstate, bytes, pos)
             @test_opt Org.lex_footnotedef(lstate, bytes, pos)
-            @test_opt Org.lex_item(lstate, bytes, pos, 1)
+            @test_opt Org.lex_item(lstate, bytes, pos)
             @test_opt Org.lex_hashplus(lstate, bytes, pos)
             @test_opt Org.lex_block(lstate, bytes, pos)
             @test_opt Org.lex_dynamicblock(lstate, bytes, pos)

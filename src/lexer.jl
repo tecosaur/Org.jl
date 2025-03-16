@@ -43,7 +43,7 @@ function Base.iterate(lex::Lexer, state::LexerState)
         elseif token.kind ∈ K"block"
             break
         elseif isbegin(token.kind) || isend(token.kind)
-            ctx = ctx ⊻ plain(token.kind)
+            ctx = ctx ⊻ (token.kind & ~!K"<>")
             restriction = restrictions(ctx)
             break
         else
@@ -76,6 +76,8 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)::T
         Token(K">clock", start - 0x01, start - 0x01), start
     elseif newlines > 2 && K"footnote_definition" ∈ state.ctx
         Token(K">footnote_definition", start - 0x1, start - 0x1), start
+    elseif newlines > 2 && K"item" ∈ state.ctx
+        Token(settag(K">item", tag(state.ctx)), start - 0x1, start - 0x1), start
     elseif newlines != 0
         if K"table" ∈ state.ctx
             if chr == UInt8('|')
@@ -88,6 +90,8 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)::T
             else
                 Token(K">table", start - 0x1, start - 0x1), start
             end
+        elseif K"item" ∈ state.ctx && tag(state.ctx) > (pos - linestart)
+            Token(settag(K">item", tag(state.ctx)), start - 0x1, start - 0x1), start
         elseif K"clock" ∈ state.ctx
             Token(K">clock", start - 0x1, start - 0x1), start
         elseif chr == UInt8('*') && pos == linestart && ischarat(bytes, pos + countsame(bytes, pos, '*'), ' ')
@@ -123,7 +127,7 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)::T
             lex_planning(state, bytes, pos)
         else
             if K"item" ∈ state.restriction
-                lex_item(state, bytes, pos, skipws.width)
+                lex_item(state, bytes, linestart)
             else
                 NONE_TOKEN
             end
@@ -206,10 +210,11 @@ function lex_footnotedef(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
     Token(K"<footnote_definition", pos, fnend), fnend + 0x1
 end
 
-function lex_item(::LexerState, bytes::DenseVector{UInt8}, start::UInt32, column::Integer)
+function lex_item(state::LexerState, bytes::DenseVector{UInt8}, linestart::UInt32)
+    column, bstart = skipspaces(bytes, linestart)
     function read_bullet(bytes::DenseVector{UInt8}, pos::Integer)
         pos = if bytes[pos] ∈ (UInt8('-'), UInt8('+'), UInt8('*'))
-            pos + 0x1
+            pos
         else
             bulletend = nextchar(bytes, pos, ('.', ')', '\n', '\r'))
             if bulletend >= length(bytes) ||
@@ -220,27 +225,20 @@ function lex_item(::LexerState, bytes::DenseVector{UInt8}, start::UInt32, column
             bulletend == skipcharsets(bytes, pos, '0':'9') ||
                 bulletend == skipcharsets(bytes, pos, 'a':'z', 'A':'Z') ||
                 return zero(pos)
-            bulletend + 0x1
+            bulletend
         end
-        bytes[pos] ∈ (UInt8(' '), UInt8('\t')) || return zero(pos)
-        skipspaces(bytes, pos).stop
+        pos < length(bytes) && bytes[pos + 0x1] ∈ (UInt8(' '), UInt8('\t')) ||
+            return zero(pos)
+        pos
     end
-    pos = read_bullet(bytes, start)
-    pos != 0 || return NONE_TOKEN
-    contentend = lineend(bytes, pos)
-    while contentend < length(bytes)
-        pos, newlines = skipnewlines(bytes, contentend)
-        newlines > 2 && break
-        ws = skipspaces(bytes, pos)
-        if ws.width <= column
-            break
-        elseif last(read_bullet(bytes, ws.stop)) != 0
-            break
-        else
-            contentend = lineend(bytes, pos)
-        end
+    bstop = read_bullet(bytes, bstart)
+    bstop == 0 && return NONE_TOKEN
+    if K"item" ∈ state.ctx
+        iend = linestart - 0x1
+        Token(settag(K">item", tag(state.ctx)), iend, iend), iend
+    else
+        Token(settag(K"<item", UInt8(column) + 0x1), bstart, bstop), skipspaces(bytes, bstop + 0x1).stop
     end
-    Token(settag(K"item", UInt8(column + one(column))), start, contentend), contentend + 0x1
 end
 
 function lex_hashplus(state::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
