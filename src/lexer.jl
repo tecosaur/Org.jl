@@ -71,15 +71,21 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
     linestart, newlines = @inline skipnewlines(bytes, start)
     skipws = skipspaces(bytes, linestart)
     pos = skipws.stop
+    if state.lastelement == K""
+    elseif state.lastelement ∈ K"<footnote_definition"
+        return Token(K"<paragraph", pos, pos), pos
+    elseif state.lastelement ∈ K"item" && !islineend(bytes, start)
+        return Token(K"<paragraph", pos, pos), pos
+    end
     chr = bytes[pos]
-    next = if newlines > 0 && K"clock" ∈ state.ctx
-        Token(K">clock", start - 0x01, start - 0x01), start
+    next = if newlines > 1 && K"paragraph" ∈ state.ctx
+        Token(K">paragraph", start - 0x1, start - 0x1), start
     elseif newlines > 2 && K"footnote_definition" ∈ state.ctx
         Token(K">footnote_definition", start - 0x1, start - 0x1), start
     elseif newlines > 2 && K"item" ∈ state.ctx
         Token(settag(K">item", tag(state.ctx)), start - 0x1, start - 0x1), start
     elseif newlines != 0
-        if K"table" ∈ state.ctx
+        nextelem = if K"table" ∈ state.ctx
             if chr == UInt8('|')
                 if ischarat(bytes, pos + 0x1, '-')
                     lend = lineend(bytes, pos)
@@ -132,6 +138,11 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
                 NONE_TOKEN
             end
         end
+        if nextelem == NONE_TOKEN && K"paragraph" ∉ state.ctx && K"paragraph" ∈ state.restriction && linestart < length(bytes)
+            Token(K"<paragraph", linestart, linestart), linestart
+        else
+            nextelem
+        end
     else # No newlines
         if K"table" ∈ state.ctx && islineend(bytes, pos + 0x1)
             if K"table_cell" ∈ state.ctx
@@ -157,7 +168,11 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
         end
     end
     if next != NONE_TOKEN
-        next
+        if K"paragraph" ∈ state.ctx
+            Token(K">paragraph", start - 0x1, start - 0x1), start
+        else
+            next
+        end
     else
         npos = @inline skipplain(bytes, pos)
         if pos == npos && pos < length(bytes)
@@ -485,8 +500,6 @@ function lex_latexenv(::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
     end
     NONE_TOKEN
 end
-
-# TODO: Paragraphs
 
 
 # Object lexing

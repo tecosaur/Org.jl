@@ -59,7 +59,7 @@ TODO
 | Affiliated Keywords |      | -   |       |     |      |      |
 | LaTeX Environment   |      | X   |       |     |      |      |
 | NodeProperty        |      | X   |       |     |      |      |
-| Paragraph           |      |     |       |     |      |      |
+| Paragraph           |      | X   |       |     |      |      |
 | TableRow            |      | X   |       |     |      |      |
 | TableHRule          |      | X   |       |     |      |      |
 | BlankLine           |      |     |       |     |      |      |

@@ -42,14 +42,18 @@ end
             #+end_block
             """)) ==
                 [Token(K"<block[30]", 1, 13),
-                Token(K">block[30]", 23, 33)]
+                 Token(K"<paragraph", 15, 15),
+                 Token(K">paragraph", 21, 21),
+                 Token(K">block[30]", 23, 33)]
             @test collect(Lexer("""
             #+BEGIN_BLOCK parameters
             content
             #+END_BLOCK
             """)) ==
                 [Token(K"<block[30]", 1, 24),
-                Token(K">block[30]", 34, 44)]
+                 Token(K"<paragraph", 26, 26),
+                 Token(K">paragraph", 32, 32),
+                 Token(K">block[30]", 34, 44)]
             @test collect(Lexer("""
             #+begin_block
             #+begin_other
@@ -57,9 +61,11 @@ end
             #+end_other
             #+end_block
             """)) ==
-                [Token(K"<block[30]", 1, 13)
-                 Token(K"<block[41]", 15, 27)
-                 Token(K">block[41]", 37, 47)
+                [Token(K"<block[30]", 1, 13),
+                 Token(K"<block[41]", 15, 27),
+                 Token(K"<paragraph", 29, 29),
+                 Token(K">paragraph", 35, 35),
+                 Token(K">block[41]", 37, 47),
                  Token(K">block[30]", 49, 59)]
         end
         @testset "Dynamic blocks" begin
@@ -69,6 +75,8 @@ end
             #+end:
             """)) ==
                 [Token(K"<dynamic_block", 1, 13),
+                 Token(K"<paragraph", 15, 15),
+                 Token(K">paragraph", 21, 21),
                  Token(K">dynamic_block", 23, 28)]
         end
         @testset "Lesser blocks" begin
@@ -87,7 +95,8 @@ end
             #+end_src extra
             """)) ==
                 [Token(K"<source_block", 1, 17),
-                 Token(K">source_block", 37, 51)]
+                 Token(K">source_block", 37, 51),
+                 Token(K"<paragraph", 53, 53)]
             @test collect(Lexer("""
             #+begin_export html
             <b>content</b>
@@ -105,6 +114,8 @@ end
             :end:
             """)) ==
                 [Token(K"<drawer", 1, 8),
+                 Token(K"<paragraph", 10, 10),
+                 Token(K">paragraph", 16, 16),
                  Token(K">drawer", 18, 22)]
             @test collect(Lexer("""
             :drawer:
@@ -114,6 +125,10 @@ end
             :end:
             """)) ==
                 [Token(K"<drawer", 1, 8),
+                 Token(K"<paragraph", 10, 10),
+                 Token(K">paragraph", 16, 16),
+                 Token(K"<paragraph", 18, 18),
+                 Token(K">paragraph", 34, 34),
                  Token(K">drawer", 36, 40)]
         end
         @testset "Property drawers" begin
@@ -143,51 +158,84 @@ end
     end
     @testset "Footnote defs" begin
         @test collect(Lexer("[fn:1] stuff")) ==
-            [Token(K"<footnote_definition", 1, 6)]
+            [Token(K"<footnote_definition", 1, 6),
+             Token(K"<paragraph", 8, 8)]
         @test collect(Lexer("[fn:1] stuff\n[fn:2] more")) ==
             [Token(K"<footnote_definition", 1, 6),
+             Token(K"<paragraph", 8, 8),
+             Token(K">paragraph", 12, 12),
              Token(K">footnote_definition", 12, 12),
-             Token(K"<footnote_definition", 14, 19)]
+             Token(K"<footnote_definition", 14, 19),
+             Token(K"<paragraph", 21, 21)]
         @test collect(Lexer("[fn:1] stuff\n\n\nmore")) ==
             [Token(K"<footnote_definition", 1, 6),
-             Token(K">footnote_definition", 12, 12)]
+             Token(K"<paragraph", 8, 8),
+             Token(K">paragraph", 12, 12),
+             Token(K">footnote_definition", 12, 12),
+             Token(K"<paragraph", 16, 16)]
     end
     @testset "Items" begin
         @test collect(Lexer("+ item")) ==
-            [Token(K"<item[1]", 1, 1)]
+            [Token(K"<item[1]", 1, 1),
+             Token(K"<paragraph", 3, 3)]
         @test collect(Lexer("  + item")) ==
-            [Token(K"<item[3]", 3, 3)]
+            [Token(K"<item[3]", 3, 3),
+             Token(K"<paragraph", 5, 5)]
         @test collect(Lexer("- item")) ==
-            [Token(K"<item[1]", 1, 1)]
+            [Token(K"<item[1]", 1, 1),
+             Token(K"<paragraph", 3, 3)]
         @test collect(Lexer(" * item")) ==
-            [Token(K"item[2]", 2, 2)]
+            [Token(K"<item[2]", 2, 2),
+             Token(K"<paragraph", 4, 4)]
         @test collect(Lexer("+ item\nmore")) ==
             [Token(K"<item[1]", 1, 1),
-             Token(K">item[1]", 6, 6)]
+             Token(K"<paragraph", 3, 3),
+             Token(K">paragraph", 6, 6),
+             Token(K">item[1]", 6, 6),
+             Token(K"<paragraph", 8, 8)]
         @test collect(Lexer("+ item\n more")) ==
-            [Token(K"<item[1]", 1, 1)]
+            [Token(K"<item[1]", 1, 1),
+             Token(K"<paragraph", 3, 3)]
         @test collect(Lexer("+ item\n  more")) ==
-            [Token(K"<item[1]", 1, 1)]
+            [Token(K"<item[1]", 1, 1),
+             Token(K"<paragraph", 3, 3)]
         @test collect(Lexer("+ item\n  \n  more")) ==
-            [Token(K"<item[1]", 1, 1)]
+            [Token(K"<item[1]", 1, 1),
+             Token(K"<paragraph", 3, 3),
+             Token(K">paragraph", 6, 6),
+             Token(K"<paragraph", 11, 11)]
         @test collect(Lexer("+ item\n\n  more")) ==
-            [Token(K"<item[1]", 1, 1)]
+            [Token(K"<item[1]", 1, 1),
+             Token(K"<paragraph", 3, 3),
+             Token(K">paragraph", 6, 6),
+             Token(K"<paragraph", 9, 9)]
         @test collect(Lexer("+ item\n\n\n  more")) ==
             [Token(K"<item[1]", 1, 1),
-             Token(K">item[1]", 6, 6)]
+             Token(K"<paragraph", 3, 3),
+             Token(K">paragraph", 6, 6),
+             Token(K">item[1]", 6, 6),
+             Token(K"<paragraph", 10, 10)]
         @test collect(Lexer(" + item\n more")) ==
             [Token(K"<item[2]", 2, 2),
-             Token(K">item[2]", 7, 7)]
+             Token(K"<paragraph", 4, 4),
+             Token(K">paragraph", 7, 7),
+             Token(K">item[2]", 7, 7),
+             Token(K"<paragraph", 9, 9)]
         @test collect(Lexer(" + item\n  more")) ==
-            [Token(K"<item[2]", 2, 2)]
+            [Token(K"<item[2]", 2, 2),
+             Token(K"<paragraph", 4, 4)]
         @test collect(Lexer("1. item")) ==
-            [Token(K"<item[1]", 1, 2)]
+            [Token(K"<item[1]", 1, 2),
+             Token(K"<paragraph", 4, 4)]
         @test collect(Lexer("12) item")) ==
-            [Token(K"<item[1]", 1, 3)]
+            [Token(K"<item[1]", 1, 3),
+             Token(K"<paragraph", 5, 5)]
         @test collect(Lexer("a. item")) ==
-            [Token(K"<item[1]", 1, 2)]
+            [Token(K"<item[1]", 1, 2),
+             Token(K"<paragraph", 4, 4)]
         @test collect(Lexer("ab) item")) ==
-            [Token(K"<item[1]", 1, 3)]
+            [Token(K"<item[1]", 1, 3)
+             Token(K"<paragraph", 5, 5)]
     end
     @testset "Tables" begin
         @test collect(Lexer("|")) ==
@@ -205,7 +253,8 @@ end
              Token(K"<table_cell", 3, 3),
              Token(K">table_cell", 6, 6),
              Token(K">table_row", 6, 6),
-             Token(K">table", 6, 6)]
+             Token(K">table", 6, 6),
+             Token(K"<paragraph", 8, 8)]
         @test collect(Lexer("| cell | two | three")) ==
             [Token(K"<table", 1, 1),
              Token(K"<table_row", 1, 1),
@@ -246,10 +295,10 @@ end
             [Token(K"<clock", 1, 1)]
         @test collect(Lexer("clock: [2019-03-25 Mon 10:49]--[2019-03-25 Mon 11:31] =>  0:42")) ==
             [Token(K"<clock", 1, 1)]
-        @test collect(Lexer("clock: 12:30")) !=
-            [Token(K"<clock", 1, 1)]
-        @test collect(Lexer("clock: [2024-10-12]--")) !=
-            [Token(K"<clock", 1, 1)]
+        @test collect(Lexer("clock: 12:30")) ==
+            [Token(K"<paragraph", 1, 1)]
+        @test collect(Lexer("clock: [2024-10-12]--")) ==
+            [Token(K"<paragraph", 1, 1)]
     end
     @testset "Diary sexp" begin
        @test collect(Lexer("%%(org-calendar-holiday)")) ==
@@ -298,8 +347,12 @@ end
             [Token(K"fixedwidth", 1, 18)]
     end
     @testset "Horizontal rule" begin
-        @test collect(Lexer("----")) == Token[]
-        @test collect(Lexer("-- ---")) == Token[]
+        @test collect(Lexer("----")) ==
+            [Token(K"<paragraph", 1, 1)]
+        @test collect(Lexer("-- ---")) ==
+            [Token(K"<paragraph", 1, 1)]
+        @test collect(Lexer("----- -----")) ==
+            [Token(K"<paragraph", 1, 1)]
         @test collect(Lexer("-----")) ==
             [Token(K"hrule", 1, 5)]
         @test collect(Lexer("------")) ==
@@ -319,7 +372,7 @@ end
             stuff
             \\end{env}fluff
             """)) ==
-                Token[]
+                [Token(K"<paragraph", 1, 1)]
         @test collect(Lexer("""
             \\begin{equation*}
             \\begin{align}
@@ -334,7 +387,9 @@ end
             x^2 + y^2 = z^2
             \\end{equation*}
             """)) ==
-                [Token(K"latex_environment", 1, 76)
+                [Token(K"latex_environment", 1, 76),
+                 Token(K"<paragraph", 79, 79),
+                 Token(K">paragraph", 85, 85),
                  Token(K"latex_environment", 88, 136)]
     end
     @testset "Type inference" begin
