@@ -67,7 +67,7 @@ introducing type instability.
 """
 const NONE_TOKEN = Token(K"", 0, 0), UInt32(0)
 
-function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)::Tuple{Token, UInt32}
+function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
     linestart, newlines = @inline skipnewlines(bytes, start)
     skipws = skipspaces(bytes, linestart)
     pos = skipws.stop
@@ -143,7 +143,7 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)::T
             end
         elseif K"table_row" ∈ state.ctx
             if K"table_cell" ∈ state.ctx
-                cellend = min(length(bytes), nextchar(bytes, pos, ('|', '\n', '\r')))
+                cellend = min(length(bytes) % UInt32, nextchar(bytes, pos, ('|', '\n', '\r')))
                 cellend -= (bytes[cellend] ∈ (UInt8('\n'), UInt8('\r'))) % UInt32
                 Token(K">table_cell", cellend, cellend), cellend
             else
