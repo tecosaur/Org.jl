@@ -218,9 +218,9 @@ const KIND_SPECIAL_SETS = let n2k(set) = mapreduce(n -> UInt64(1) << (kind_numbe
     minimal_objs = markup | n2k((:plaintext, :entity, :latex_fragment, :superscript, :subscript))
     all_objs = let objmask = UInt64(0)
         kfirst = kind_number(:entity)
-        klast = kind_number(:timestamp)
+        klast = kind_number(:strikethrough)
         for k in kfirst:klast
-            objmask |= UInt64(1) << k
+            objmask |= UInt64(1) << (k - 1)
         end
         objmask
     end
