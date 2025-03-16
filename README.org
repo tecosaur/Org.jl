@@ -47,7 +47,7 @@ TODO
 | PropertyDrawer      |      | X   |       |     |      |      |
 | Table               |      | X   |       |     |      |      |
 |---------------------+------+-----+-------+-----+------+------|
-| BabelCall           |      |     |       |     |      |      |
+| BabelCall           |      | -   |       |     |      |      |
 | Block               |      | X   |       |     |      |      |
 | Clock               |      | X   |       |     |      |      |
 | DiarySexp           |      | X   |       |     |      |      |
@@ -57,7 +57,7 @@ TODO
 | HorizontalRule      |      | X   |       |     |      |      |
 | Keyword             |      | X   |       |     |      |      |
 | Affiliated Keywords |      | -   |       |     |      |      |
-| LaTeX Environment   |      |     |       |     |      |      |
+| LaTeX Environment   |      | X   |       |     |      |      |
 | NodeProperty        |      | X   |       |     |      |      |
 | Paragraph           |      |     |       |     |      |      |
 | TableRow            |      | X   |       |     |      |      |

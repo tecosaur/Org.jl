@@ -288,6 +288,36 @@ end
         @test collect(Lexer("-----   ")) ==
             [Token(K"hrule", 1, 5)]
     end
+    @testset "LaTeX envs" begin
+        @test collect(Lexer("""
+            \\begin{env}
+            stuff
+            \\end{env}
+            """)) ==
+                [Token(K"latex_environment", 1, 27)]
+        @test collect(Lexer("""
+            \\begin{env}
+            stuff
+            \\end{env}fluff
+            """)) ==
+                Token[]
+        @test collect(Lexer("""
+            \\begin{equation*}
+            \\begin{align}
+            a &= b \\\\
+            c &= d
+            \\end{align}
+            \\end{equation*}
+
+            foo bar
+
+            \\begin{equation*}
+            x^2 + y^2 = z^2
+            \\end{equation*}
+            """)) ==
+                [Token(K"latex_environment", 1, 76)
+                 Token(K"latex_environment", 88, 136)]
+    end
     @testset "Type inference" begin
         @testset "Utilities" begin
             bytes, pos = codeunits("abc"), UInt32(1)
@@ -326,6 +356,7 @@ end
             @inferred Tuple{Token, UInt32} Org.lex_comment(lstate, bytes, pos)
             @inferred Tuple{Token, UInt32} Org.lex_fixedwidth(lstate, bytes, pos)
             @inferred Tuple{Token, UInt32} Org.lex_hrule(lstate, bytes, pos)
+            @inferred Tuple{Token, UInt32} Org.lex_latexenv(lstate, bytes, pos)
         end
     end
     @testset "Unhandled errors" begin
@@ -366,6 +397,7 @@ end
             @test_call Org.lex_comment(lstate, bytes, pos)
             @test_call Org.lex_fixedwidth(lstate, bytes, pos)
             @test_call Org.lex_hrule(lstate, bytes, pos)
+            @test_call Org.lex_latexenv(lstate, bytes, pos)
         end
         @testset "Iteration" begin
             @test_call iterate(Lexer("abc"), LexerState())
@@ -409,6 +441,7 @@ end
             @test_opt Org.lex_comment(lstate, bytes, pos)
             @test_opt Org.lex_fixedwidth(lstate, bytes, pos)
             @test_opt Org.lex_hrule(lstate, bytes, pos)
+            @test_opt Org.lex_latexenv(lstate, bytes, pos)
         end
         @testset "Iteration" begin
             @test_opt iterate(Lexer("abc"), LexerState())

@@ -117,6 +117,8 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)::T
             lex_comment(state, bytes, pos)
         elseif chr == UInt8('-') && ischarat(bytes, pos + 0x1, '-')
             lex_hrule(state, bytes, pos)
+        elseif chr == UInt8('\\') && hasprefix(bytes, pos + 0x1, "begin{")
+            lex_latexenv(state, bytes, pos)
         elseif K"heading" ∈ state.lastelement
             lex_planning(state, bytes, pos)
         else
@@ -458,7 +460,33 @@ function lex_hrule(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
     Token(K"hrule", pos, rend - 0x1), lend
 end
 
-# TODO: LaTeX environments
+function lex_latexenv(::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
+    hasprefix(bytes, start, "\\begin{") || return NONE_TOKEN
+    namestart = start + ncodeunits("\\begin{") % UInt32
+    nameend = skipcharsets(bytes, namestart, ('a':'z', 'A':'Z', '0':'9', '*'))
+    nameend < length(bytes) && bytes[nameend] == UInt8('}') || return NONE_TOKEN
+    namelen = nameend - namestart
+    pos = start
+    while pos <= length(bytes)
+        pos = lineend(bytes, pos) + 0x1
+        pos = skipspaces(bytes, pos).stop
+        hasprefix(bytes, pos, "\\end{") || continue
+        pos += ncodeunits("\\end{") % UInt32
+        pos + namelen < length(bytes) || return NONE_TOKEN
+        namematch = true
+        for offset in 0:namelen-0x1
+            if bytes[namestart + offset] != bytes[pos + offset]
+                namematch = false
+                break
+            end
+        end
+        namematch && bytes[pos + namelen] == UInt8('}') || continue
+        islineend(bytes, skipspaces(bytes, pos + namelen + 0x1).stop) ||
+            return NONE_TOKEN
+        return Token(K"latex_environment", start, pos + namelen), lineend(bytes, pos)
+    end
+    NONE_TOKEN
+end
 
 # TODO: Paragraphs
 
