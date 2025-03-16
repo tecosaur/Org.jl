@@ -363,12 +363,8 @@ end
 
 # Kind restrictions
 
-const DENSE_RESTRICTIONS = (
-    K"paragraph|verse_block|script|markup|citation_reference|footnote_reference|radio_target" => K"standard_objects",
-    K"citation" => K"citation_reference",
-    K"heading" => K"standard_objects" ⊻ K"linebreak",
-    K"regular_link" => K"minimal_objects" | K"export_snippet|inline_call|source_block|macro|statistics_cookie",
-    K"table_cell" => K"minimal_objects" | K"citation|export_snippet|footnote_reference|link|macro|radio_target|target|timestamp",
+const ELEMENT_RESTRICTIONS = (
+    K"paragraph|verse_block" => K"standard_objects",
     K"table_row" => K"table_cell",
     K"clock|planning" => K"timestamp",
     K"lesser_elements" => K"plaintext",
@@ -378,19 +374,33 @@ const DENSE_RESTRICTIONS = (
     K"greater_elements" => K"greater_elements|lesser_elements" ⊻ K"planning|property_drawer|table_row|item|node_property",
 )
 
+const OBJECT_RESTRICTIONS = (
+    K"verbatim" => K"verbatim",
+    K"code" => K"code",
+    K"script|markup|citation_reference|footnote_reference|radio_target" => K"standard_objects",
+    K"citation" => K"citation_reference",
+    K"regular_link" => K"minimal_objects" | K"export_snippet|inline_call|source_block|macro|statistics_cookie",
+    K"table_cell" => K"minimal_objects" | K"citation|export_snippet|footnote_reference|link|macro|radio_target|target|timestamp",
+)
+
 const SECONDARY_RESTRICTIONS = (
     K"heading|item" => K"standard_objects" ⊻ K"linebreak",
     K"keyword" => K"standard_objects" ⊻ K"footnote_reference",
 )
 
 function all_restrictions(k::Kind)
-    allowed = K"all"
-    for (rk, res) in DENSE_RESTRICTIONS
-        if k in rk
-            allowed &= res
+    involved, implicit, reslist = if k & K"objects" != K""
+        K"objects", K"elements", OBJECT_RESTRICTIONS
+    else
+        K"all", K"", ELEMENT_RESTRICTIONS
+    end
+    allowed = k | involved
+    for (rk, res) in reslist
+        if !isempty(k & rk)
+            allowed &= (res | implicit)
             k = k & !rk
         end
-        k == K"" && break
+        (k & involved) == K"" && break
     end
     allowed
 end
@@ -403,16 +413,11 @@ const FLAT_RESTRICTIONS = let res = Kind[]
 end
 
 function restrictions(k::Kind)
-    res = if k == K""
+    if k == K""
         K"elements"
     elseif length(k) == 1
         FLAT_RESTRICTIONS[kind_number(k)]
     else
         all_restrictions(k)
-    end
-    if isbegin(k)
-        res | (k ⊻ K"<>")
-    else
-        res
     end
 end
