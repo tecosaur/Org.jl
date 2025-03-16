@@ -100,7 +100,7 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
             Token(settag(K">item", tag(state.ctx)), start - 0x1, start - 0x1), start
         elseif K"clock" ∈ state.ctx
             Token(K">clock", start - 0x1, start - 0x1), start
-        elseif chr == UInt8('*') && pos == linestart && ischarat(bytes, pos + countsame(bytes, pos, '*'), ' ')
+        elseif chr == UInt8('*') && pos == linestart && ischarat(bytes, skipchars(bytes, pos, '*'), ' ')
             lex_heading(state, bytes, pos)
         elseif chr == UInt8(':')
             if length(bytes) > pos && iswhitespace(bytes, pos + 0x1) || islineend(bytes, pos + 0x1)
@@ -186,7 +186,7 @@ end
 # Greater element lexing
 
 function lex_heading(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
-    depth = countsame(bytes, pos, '*')
+    depth = skipchars(bytes, pos, '*') - pos
     Token(settag(K"heading", depth % UInt8), pos, lineend(bytes, pos) - 1),
     pos + depth
 end
@@ -237,8 +237,8 @@ function lex_item(state::LexerState, bytes::DenseVector{UInt8}, linestart::UInt3
                 nextchar(bytes, pos, (' ', '\n', '\r')) < bulletend
                 return zero(pos)
             end
-            bulletend == skipcharsets(bytes, pos, '0':'9') ||
-                bulletend == skipcharsets(bytes, pos, 'a':'z', 'A':'Z') ||
+            bulletend == skipchars(bytes, pos, '0':'9') ||
+                bulletend == skipchars(bytes, pos, 'a':'z', 'A':'Z') ||
                 return zero(pos)
             bulletend
         end
@@ -365,7 +365,7 @@ function lex_clock(::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
     end
     hasduration = if hasprefix(bytes, pos, "=>")
         pos = skipspaces(bytes, pos + ncodeunits("=>") % UInt32).stop
-        pos = skipcharsets(bytes, pos, '0':'9', ':')
+        pos = skipchars(bytes, pos, '0':'9', ':')
         pos = skipspaces(bytes, pos).stop
         true
     else
@@ -464,7 +464,7 @@ function lex_fixedwidth(::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
 end
 
 function lex_hrule(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
-    rend = skipcharsets(bytes, pos, '-')
+    rend = skipchars(bytes, pos, '-')
     rend - pos >= 5 || return NONE_TOKEN
     lend = lineend(bytes, pos)
     rend == lend ||
@@ -476,7 +476,7 @@ end
 function lex_latexenv(::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
     hasprefix(bytes, start, "\\begin{") || return NONE_TOKEN
     namestart = start + ncodeunits("\\begin{") % UInt32
-    nameend = skipcharsets(bytes, namestart, ('a':'z', 'A':'Z', '0':'9', '*'))
+    nameend = skipchars(bytes, namestart, ('a':'z', 'A':'Z', '0':'9', '*'))
     nameend < length(bytes) && bytes[nameend] == UInt8('}') || return NONE_TOKEN
     namelen = nameend - namestart
     pos = start
@@ -768,7 +768,7 @@ function skipwords(bytes::DenseVector{UInt8}, pos::I, extras::NTuple{N, C} = ();
 end
 
 """
-    skipcharsets(bytes::DenseVector{UInt8}, pos::Integer, charsets...) -> Integer
+    skipchars(bytes::DenseVector{UInt8}, pos::Integer, charsets...) -> Integer
 
 Skip over all characters in `bytes` starting at `pos` that are in the given
 character sets.
@@ -780,26 +780,26 @@ Each character set can be a single character or a range of characters.
 ```julia-repl
 julia> strv = codeunits("abc0123 .--");
 
-julia> skipcharsets(strv, 1, 'a':'z')
+julia> skipchars(strv, 1, 'a':'z')
 4
 
-julia> skipcharsets(strv, 1, 'a':'z', '0':'9')
+julia> skipchars(strv, 1, 'a':'z', '0':'9')
 8
 
-julia> skipcharsets(strv, 1, 'a':'z', '0':'9', ' ')
+julia> skipchars(strv, 1, 'a':'z', '0':'9', ' ')
 9
 
-julia> skipcharsets(strv, 1, 'a':'z', '0':'9', ' ', '-')
+julia> skipchars(strv, 1, 'a':'z', '0':'9', ' ', '-')
 9
 
-julia> skipcharsets(strv, 1, 'a':'z', '0':'9', ' ', '.')
+julia> skipchars(strv, 1, 'a':'z', '0':'9', ' ', '.')
 10
 
-julia> skipcharsets(strv, 1, 'a':'z', '0':'9', ' ', '.', '-')
+julia> skipchars(strv, 1, 'a':'z', '0':'9', ' ', '.', '-')
 12
 ```
 """
-function skipcharsets(bytes::DenseVector{UInt8}, pos::Integer, charsets::NTuple{N, Union{StepRange{Char}, Char}}; limit::Integer = length(bytes) % typeof(pos)) where {N}
+function skipchars(bytes::DenseVector{UInt8}, pos::Integer, charsets::NTuple{N, Union{StepRange{Char}, Char}}; limit::Integer = length(bytes) % typeof(pos)) where {N}
     skipranges = map(c -> if c isa Char UInt8(c) else
                          UInt8(first(c)):UInt8(last(c)) end,
                      charsets)
@@ -812,8 +812,8 @@ function skipcharsets(bytes::DenseVector{UInt8}, pos::Integer, charsets::NTuple{
     next
 end
 
-skipcharsets(bytes::DenseVector{UInt8}, pos::Integer, charsets::Union{StepRange{Char}, Char}...; limit::Integer = length(bytes) % typeof(pos)) =
-    skipcharsets(bytes, pos, Tuple(charsets); limit)
+skipchars(bytes::DenseVector{UInt8}, pos::Integer, charsets::Union{StepRange{Char}, Char}...; limit::Integer = length(bytes) % typeof(pos)) =
+    skipchars(bytes, pos, Tuple(charsets); limit)
 
 """
     skipbalanced(bytes::DenseVector{UInt8}, pos::Integer, bpair::Pair{Char, Char},
@@ -901,14 +901,6 @@ function hasprefix(bytes::DenseVector{UInt8}, start::Integer, pattern::String; l
         b == c || b == c ⊻ 0x20 || return false
     end
     true
-end
-
-function countsame(bytes::DenseVector{UInt8}, pos::I, char::Char; limit::I = length(bytes) % I)::I where {I <: Integer}
-    uchar = UInt8(char)
-    for p in pos:limit
-        bytes[p] != uchar && return p - pos
-    end
-    limit + 0x1
 end
 
 function nextchar(bytes::DenseVector{UInt8}, pos::I, char::UInt8; limit::I = length(bytes) % I)::I where {I <: Integer}
