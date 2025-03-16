@@ -85,87 +85,14 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
     elseif newlines > 2 && K"item" ∈ state.ctx
         Token(settag(K">item", tag(state.ctx)), start - 0x1, start - 0x1), start
     elseif newlines != 0
-        nextelem = if K"table" ∈ state.ctx
-            if chr == UInt8('|')
-                if ischarat(bytes, pos + 0x1, '-')
-                    lend = lineend(bytes, pos)
-                    Token(K"table_row[1]", pos, lend - 0x1), lend
-                else
-                    Token(K"<table_row", pos, pos), pos + 0x1
-                end
-            else
-                Token(K">table", start - 0x1, start - 0x1), start
-            end
-        elseif K"item" ∈ state.ctx && tag(state.ctx) > (pos - linestart)
-            Token(settag(K">item", tag(state.ctx)), start - 0x1, start - 0x1), start
-        elseif K"clock" ∈ state.ctx
-            Token(K">clock", start - 0x1, start - 0x1), start
-        elseif chr == UInt8('*') && pos == linestart && ischarat(bytes, skipchars(bytes, pos, '*'), ' ')
-            lex_heading(state, bytes, pos)
-        elseif chr == UInt8(':')
-            if length(bytes) > pos && iswhitespace(bytes, pos + 0x1) || islineend(bytes, pos + 0x1)
-                lex_fixedwidth(state, bytes, pos)
-            else
-                lex_drawer(state, bytes, pos)
-            end
-        elseif chr == UInt8('[') && pos == linestart
-            fndef = lex_footnotedef(state, bytes, pos)
-            if fndef != NONE_TOKEN && K"footnote_definition" ∈ state.ctx
-                Token(K">footnote_definition", start - 0x1, start - 0x1), start
-            else
-                fndef
-            end
-        elseif chr == UInt8('|') && K"table" ∈ state.restriction
-            Token(K"<table", pos, pos), pos
-        elseif chr == UInt8('#') && ischarat(bytes, pos + 0x1, '+')
-            lex_hashplus(state, bytes, pos)
-        elseif chr == UInt8('c') && hasprefix(bytes, pos + 0x1, "lock:")
-            lex_clock(state, bytes, pos)
-        elseif chr == UInt8('%') && ischarat(bytes, pos + 0x1, '%')
-            lex_diarysexp(state, bytes, pos)
-        elseif chr == UInt8('#') && (length(bytes) > pos && iswhitespace(bytes, pos + 0x1) || islineend(bytes, pos + 0x1))
-            lex_comment(state, bytes, pos)
-        elseif chr == UInt8('-') && ischarat(bytes, pos + 0x1, '-')
-            lex_hrule(state, bytes, pos)
-        elseif chr == UInt8('\\') && hasprefix(bytes, pos + 0x1, "begin{")
-            lex_latexenv(state, bytes, pos)
-        elseif K"heading" ∈ state.lastelement
-            lex_planning(state, bytes, pos)
-        else
-            if K"item" ∈ state.restriction
-                lex_item(state, bytes, linestart)
-            else
-                NONE_TOKEN
-            end
-        end
+        nextelem = lexnext_element(state, bytes, start, linestart, pos, chr)
         if nextelem == NONE_TOKEN && K"paragraph" ∉ state.ctx && K"paragraph" ∈ state.restriction && linestart < length(bytes)
             Token(K"<paragraph", linestart, linestart), linestart
         else
             nextelem
         end
     else # No newlines
-        if K"table" ∈ state.ctx && islineend(bytes, pos + 0x1)
-            if K"table_cell" ∈ state.ctx
-                Token(K">table_cell", pos, pos), pos
-            elseif K"table_row" ∈ state.ctx
-                Token(K">table_row", pos, pos), pos + 0x1
-            else
-                NONE_TOKEN
-            end
-        elseif K"table_row" ∈ state.ctx
-            if K"table_cell" ∈ state.ctx
-                cellend = min(length(bytes) % UInt32, nextchar(bytes, pos, ('|', '\n', '\r')))
-                cellend -= (bytes[cellend] ∈ (UInt8('\n'), UInt8('\r'))) % UInt32
-                Token(K">table_cell", cellend, cellend), cellend
-            else
-                if bytes[pos] == UInt8('|')
-                    pos += 0x1
-                end
-                Token(K"<table_cell", pos, pos), pos
-            end
-        else
-            NONE_TOKEN
-        end
+        lexnext_object(state, bytes, start, linestart, pos, chr)
     end
     if next != NONE_TOKEN
         if K"paragraph" ∈ state.ctx
@@ -179,6 +106,93 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
             npos = @inline skipplain(bytes, pos + 0x1)
         end
         Token(K"plaintext", linestart, npos - 0x1), npos
+    end
+end
+
+function lexnext_element(state::LexerState, bytes::DenseVector{UInt8},
+                         start::UInt32, linestart::UInt32, pos::UInt32, chr::UInt8)
+    if K"table" ∈ state.ctx
+        if chr == UInt8('|')
+            if ischarat(bytes, pos + 0x1, '-')
+                lend = lineend(bytes, pos)
+                Token(K"table_row[1]", pos, lend - 0x1), lend
+            else
+                Token(K"<table_row", pos, pos), pos + 0x1
+            end
+        else
+            Token(K">table", start - 0x1, start - 0x1), start
+        end
+    elseif K"item" ∈ state.ctx && tag(state.ctx) > (pos - linestart)
+        Token(settag(K">item", tag(state.ctx)), start - 0x1, start - 0x1), start
+    elseif K"clock" ∈ state.ctx
+        Token(K">clock", start - 0x1, start - 0x1), start
+    elseif chr == UInt8('*') && pos == linestart && ischarat(bytes, skipchars(bytes, pos, '*'), ' ')
+        lex_heading(state, bytes, pos)
+    elseif chr == UInt8(':')
+        if length(bytes) > pos && iswhitespace(bytes, pos + 0x1) || islineend(bytes, pos + 0x1)
+            lex_fixedwidth(state, bytes, pos)
+        else
+            lex_drawer(state, bytes, pos)
+        end
+    elseif chr == UInt8('[') && pos == linestart
+        fndef = lex_footnotedef(state, bytes, pos)
+        if fndef != NONE_TOKEN && K"footnote_definition" ∈ state.ctx
+            Token(K">footnote_definition", start - 0x1, start - 0x1), start
+        else
+            fndef
+        end
+    elseif chr == UInt8('|') && K"table" ∈ state.restriction
+        Token(K"<table", pos, pos), pos
+    elseif chr == UInt8('#')
+        if ischarat(bytes, pos + 0x1, '+')
+            lex_hashplus(state, bytes, pos)
+        elseif length(bytes) > pos && iswhitespace(bytes, pos + 0x1) || islineend(bytes, pos + 0x1)
+            lex_comment(state, bytes, pos)
+        else
+            NONE_TOKEN
+        end
+    elseif chr == UInt8('c') && hasprefix(bytes, pos + 0x1, "lock:")
+        lex_clock(state, bytes, pos)
+    elseif chr == UInt8('%') && ischarat(bytes, pos + 0x1, '%')
+        lex_diarysexp(state, bytes, pos)
+    elseif chr == UInt8('-') && ischarat(bytes, pos + 0x1, '-')
+        lex_hrule(state, bytes, pos)
+    elseif chr == UInt8('\\') && hasprefix(bytes, pos + 0x1, "begin{")
+        lex_latexenv(state, bytes, pos)
+    elseif K"heading" ∈ state.lastelement
+        lex_planning(state, bytes, pos)
+    else
+        if K"item" ∈ state.restriction
+            lex_item(state, bytes, linestart)
+        else
+            NONE_TOKEN
+        end
+    end
+end
+
+function lexnext_object(state::LexerState, bytes::DenseVector{UInt8},
+                         start::UInt32, linestart::UInt32, pos::UInt32, chr::UInt8)
+    if K"table" ∈ state.ctx && islineend(bytes, pos + 0x1)
+        if K"table_cell" ∈ state.ctx
+            Token(K">table_cell", pos, pos), pos
+        elseif K"table_row" ∈ state.ctx
+            Token(K">table_row", pos, pos), pos + 0x1
+        else
+            NONE_TOKEN
+        end
+    elseif K"table_row" ∈ state.ctx
+        if K"table_cell" ∈ state.ctx
+            cellend = min(length(bytes) % UInt32, nextchar(bytes, pos, ('|', '\n', '\r')))
+            cellend -= (bytes[cellend] ∈ (UInt8('\n'), UInt8('\r'))) % UInt32
+            Token(K">table_cell", cellend, cellend), cellend
+        else
+            if bytes[pos] == UInt8('|')
+                pos += 0x1
+            end
+            Token(K"<table_cell", pos, pos), pos
+        end
+    else
+        NONE_TOKEN
     end
 end
 
