@@ -75,6 +75,7 @@ function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
     end
     skipws = skipspaces(bytes, linestart)
     pos = skipws.stop
+    pos > length(bytes) && return NONE_TOKEN
     if state.lastelement == K""
     elseif state.lastelement ∈ K"<footnote_definition"
         return Token(K"<paragraph", pos, pos), pos
@@ -197,6 +198,12 @@ function lexnext_object(state::LexerState, bytes::DenseVector{UInt8},
         end
     elseif chr ∈ (UInt8('*'), UInt8('/'), UInt8('_'), UInt8('='), UInt8('~'), UInt8('+'))
         lex_markup(state, bytes, pos)
+    elseif chr == UInt8('\\')
+        tok = lex_entity(state, bytes, pos)
+        if tok == NONE_TOKEN
+            tok = lex_latexfrag(state, bytes, pos)
+        end
+        tok
     else
         NONE_TOKEN
     end
@@ -524,7 +531,80 @@ end
 
 # Object lexing
 
-# TODO: Entities
+function lex_entity(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
+    bytes[pos] == UInt8('\\') || return NONE_TOKEN
+    nameend = pos + 0x1
+    if hasprefix(bytes, nameend, "frac")
+        nameend = skipchars(bytes, nameend + ncodeunits("frac") % UInt32, '1':'4')
+        nameend == pos + ncodeunits("frac") % UInt32 + 0x3 || return NONE_TOKEN
+    end
+    while nameend <= length(bytes)
+        chr, len = charat(bytes, nameend)
+        isletter(chr) || break
+        nameend += len
+    end
+    # Handle `_SPC` pattern
+    if nameend == pos + 0x1 && hasprefix(bytes, nameend, "_ ")
+        nameend += 0x1
+        while nameend <= min(length(bytes), pos + 0x14)
+            bytes[nameend] == UInt8(' ') || break
+            nameend += 0x1
+        end
+    end
+    nameend == pos + 0x1 && return NONE_TOKEN
+    ehash = strhash(bytes, pos + 0x1, nameend - 0x1)
+    ehash ∈ ENTITY_KEYS || return NONE_TOKEN
+    if nameend < length(bytes) && hasprefix(bytes, nameend, "{}")
+        nameend += 0x2
+    elseif islineend(bytes, nameend) || !isletter(bytes, nameend)
+    else
+        return NONE_TOKEN
+    end
+    eshort = reduce(⊻, reinterpret(NTuple{sizeof(UInt), UInt8}, ehash))
+    Token(settag(K"entity", eshort), pos, nameend - 0x1), nameend
+end
+
+function lex_latexfrag(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
+    pos < length(bytes) && bytes[pos] == UInt8('\\') || return NONE_TOKEN
+    nchar = bytes[pos + 0x1]
+    if nchar ∉ (UInt8('('), UInt8('['))
+        nameend = skipletters(bytes, pos + 0x1)
+        while nameend < length(bytes) && bytes[nameend] ∈ (UInt8('['), UInt8('{'))
+            if bytes[nameend] == UInt8('[')
+                nameend = nextchar(bytes, nameend + 0x1, ('{', '}', '[', ']', '\n'))
+                ischarat(bytes, nameend, ']') || return NONE_TOKEN
+                nameend += 0x1
+            elseif bytes[nameend] == UInt8('{')
+                nameend = nextchar(bytes, nameend + 0x1, ('{', '}', '\n'))
+                ischarat(bytes, nameend, '}') || return NONE_TOKEN
+                nameend += 0x1
+            end
+        end
+        nameend == pos + 0x1 && return NONE_TOKEN
+        return Token(K"latex_fragment[1]", pos, nameend - 0x1), nameend
+    end
+    echar = if nchar == UInt8('(') UInt8(')') else UInt8(']') end
+    texend = pos + 0x2
+    while true
+        texend < length(bytes) || return NONE_TOKEN
+        texend = nextchar(bytes, texend, ('\\', '\n'))
+        texend < length(bytes) || return NONE_TOKEN
+        if bytes[texend] == UInt8('\n')
+            bytes[texend + 0x1] ∈ UInt8('*') && return NONE_TOKEN
+            texend = skipspaces(bytes, texend + 0x1).stop
+            islineend(bytes, texend) && return NONE_TOKEN
+        else
+            texend += 0x1
+            bytes[texend-0x1] == UInt8('\\') && bytes[texend] == echar && break
+        end
+    end
+    kind = if nchar == UInt8('(')
+        K"latex_fragment[2]"
+    else
+        K"latex_fragment[3]"
+    end
+    Token(kind, pos, texend), texend + 0x1
+end
 
 # TODO: Export snippets
 
@@ -788,8 +868,8 @@ julia> charat(cu, 7)
 """
 function charat(bytes::DenseVector{UInt8}, pos::I) where {I <: Integer}
     b1 = bytes[pos]
-    b1 < 0x80 && return UInt32(b1), 1 # ASCII fast-path
-    len = utf8bytes(b1)
+    b1 < 0x80 && return UInt32(b1), one(I) # ASCII fast-path
+    len = utf8bytes(b1) % I
     if len == 2 && length(bytes) >= pos + 1
         b2 = bytes[pos + 1]
         UInt32(b1 & 0x1F) << 6 | b2 & 0x3f
@@ -805,7 +885,32 @@ function charat(bytes::DenseVector{UInt8}, pos::I) where {I <: Integer}
             UInt32(b3 & 0x3f) << 6 | b4 & 0x3f
     else
         0x0000fffd
-    end, len % I
+    end, len
+end
+
+function skipcondition(bytes::DenseVector{UInt8}, pos::I, charcond::F, asciis::NTuple{A, Tuple{Char, Char}}, extras::NTuple{E, Char}; limit::I) where {I <: Integer, F, A, E}
+    len, next = one(pos), pos
+    alsoskip = map(UInt8, extras)
+    ascii8s = map(((c1, c2),) -> (UInt8(c1), UInt8(c2)), asciis)
+    while next <= limit
+        b1 = bytes[next]
+        if b1 < 0x7f
+            len = one(pos)
+            cond = false
+            for (start, stop) in ascii8s
+                if start <= b1 <= stop
+                    cond = true
+                    break
+                end
+            end
+            cond || b1 ∈ alsoskip
+        else
+            chr, len = charat(bytes, next)
+            charcond(chr)
+        end || return next
+        pos, next = next, next + len
+    end
+    next
 end
 
 """
@@ -814,26 +919,75 @@ end
 Skip over all word-constituent characters in `bytes` starting at `pos`.
 
 If `extras` is provided, then any character in `extras` is also considered,
-where `extras` is a tuple of characters as `UInt8`s or `Char`s.
+where `extras` is a tuple of `Char`s.
 """
-function skipwords(bytes::DenseVector{UInt8}, pos::I, extras::NTuple{N, C} = (); limit::I = length(bytes) % I)::I where {I <: Integer, N, C <: Union{Char, UInt8}}
-    len, next = one(pos), pos
-    alsoskip = map(UInt8, extras)
-    while next <= limit
-        b1 = bytes[next]
-        if b1 < 0x7f
-            len = one(pos)
-            UInt8('a') <= b1 <= UInt8('z') ||
-                UInt8('A') <= b1 <= UInt8('Z') ||
-                UInt8('0') <= b1 <= UInt8('9') ||
-                b1 ∈ alsoskip
-        else
-            chr, len = charat(bytes, next)
-            1 <= Base.Unicode.category_code(chr) <= 4
-        end || return next
-        pos, next = next, next + len
-    end
-    pos
+function skipwords(bytes::DenseVector{UInt8}, pos::I, extras::NTuple{N, Char} = (); limit::I = length(bytes) % I)::I where {I <: Integer, N}
+    @inline skipcondition(bytes, pos, isword, (('a', 'z'), ('A', 'Z'), ('0', '9')), extras; limit)
+end
+
+"""
+    isword(chr::UInt32) -> Bool
+    isword(bytes::DenseVector{UInt8}, pos::Integer) -> Bool
+
+Return `true` if the given Unicode codepoint or the character `chr`
+or at position `pos` in the byte array `bytes` is a word-constituent character.
+
+The character must be a member of one of the following Unicode categories:
+- `Ll`: Letter, Lowercase
+- `Lu`: Letter, Uppercase
+- `Lt`: Letter, Titlecase
+- `Lo`: Letter, Other
+- `Lm`: Letter, Modifier
+- `Mn`: Mark, Nonspacing
+- `Mc`: Mark, Spacing Combining
+- `Me`: Mark, Enclosing
+- `Nd`: Number, Decimal Digit
+- `Nl`: Number, Letter
+- `Pc`: Punctuation, Connector
+- `So`: Symbol, Other
+"""
+function isword(chr::UInt32)
+    code = Base.Unicode.category_code(chr)
+    1 <= code <= 10 || code ∈ (12, 22)
+end
+
+function isword(bytes::DenseVector{UInt8}, pos::Integer)
+    isword(first(charat(bytes, pos)))
+end
+
+"""
+    skipletters(bytes::DenseVector{UInt8}, pos::Integer, extras) -> Integer
+
+Skip over all letter-constituent characters in `bytes` starting at `pos`.
+
+If `extras` is provided, then any character in `extras` is also considered,
+where `extras` is a tuple of `Char`s.
+"""
+function skipletters(bytes::DenseVector{UInt8}, pos::I, extras::NTuple{N, Char} = (); limit::I = length(bytes) % I)::I where {I <: Integer, N}
+    @inline skipcondition(bytes, pos, isletter, (('a', 'z'), ('A', 'Z')), extras; limit)
+end
+
+"""
+    isletter(chr::UInt32) -> Bool
+    isletter(bytes::DenseVector{UInt8}, pos::Integer) -> Bool
+
+Return `true` if the given Unicode codepoint or the character `chr` or at
+position `pos` in the byte array `bytes` is a letter character.
+
+The character must be a member of one of the following Unicode categories:
+- `Ll`: Letter, Lowercase
+- `Lu`: Letter, Uppercase
+- `Lt`: Letter, Titlecase
+- `Lo`: Letter, Other
+- `Lm`: Letter, Modifier
+"""
+function isletter(chr::UInt32)
+    code = Base.Unicode.category_code(chr)
+    1 <= code <= 5
+end
+
+function isletter(bytes::DenseVector{UInt8}, pos::Integer)
+    isletter(first(charat(bytes, pos)))
 end
 
 """
@@ -1040,4 +1194,9 @@ function word2tag(bytes::DenseVector{UInt8}, start::Integer, stop::Integer)
     end
     h8 = reinterpret(NTuple{8, UInt8}, h)
     reduce(xor, h8)
+end
+
+Base.@assume_effects :total function strhash(bytes::DenseVector{UInt8}, start::Integer, stop::Integer)
+    ccall(Base.memhash, UInt, (Ptr{UInt8}, Csize_t, UInt32),
+          pointer(bytes, start), (stop - start + 0x1), Base.memhash_seed % UInt32) + Base.memhash_seed
 end

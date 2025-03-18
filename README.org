@@ -64,8 +64,8 @@ TODO
 | TableHRule          |      | X   |       |     |      |      |
 | BlankLine           |      |     |       |     |      |      |
 |---------------------+------+-----+-------+-----+------+------|
-| OrgEntity           |      |     |       |     |      |      |
-| LaTeX Fragment      |      |     |       |     |      |      |
+| OrgEntity           |      | X   |       |     |      |      |
+| LaTeX Fragment      |      | X   |       |     |      |      |
 | ExportSnippet       |      |     |       |     |      |      |
 | FootnoteReference   |      |     |       |     |      |      |
 | InlineBabelCall     |      |     |       |     |      |      |

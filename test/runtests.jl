@@ -1,7 +1,7 @@
 using Org
 using Test
 
-using Org: Lexer, LexerState, Token, Kind, @K_str
+using Org: Org, Lexer, LexerState, Token, Kind, @K_str
 
 # JET doesn't support pre-release versions
 @static if isempty(VERSION.prerelease)
@@ -370,7 +370,8 @@ end
             stuff
             \\end{env}fluff
             """)) ==
-                [Token(K"<paragraph", 1, 1)]
+                [Token(K"<paragraph", 1, 1),
+                 Token(K"latex_fragment[1]", 1, 11)]
         @test collect(Lexer("""
             \\begin{equation*}
             \\begin{align}
@@ -425,6 +426,51 @@ end
              Token(K"<verbatim", 6, 6),
              Token(K">verbatim", 32, 32),
              Token(K">bold", 39, 39)]
+    end
+    @testset "Entities" begin
+        @test collect(Lexer("\\alpha")) ==
+            [Token(K"<paragraph", 1, 1),
+             Token(K"entity[77]", 1, 6)]
+        @test collect(Lexer("\\alpha0")) ==
+            [Token(K"<paragraph", 1, 1),
+             Token(K"entity[77]", 1, 6)]
+        @test collect(Lexer("\\alpha{}")) ==
+            [Token(K"<paragraph", 1, 1),
+             Token(K"entity[77]", 1, 8)]
+        @test collect(Lexer("\\_ ")) ==
+            [Token(K"<paragraph", 1, 1),
+             Token(K"entity[96]", 1, 3)]
+    end
+    @testset "LaTeX fragments" begin
+        @test collect(Lexer("\\LaTeX")) ==
+            [Token(K"<paragraph", 1, 1),
+             Token(K"latex_fragment[1]", 1, 6)]
+        @test collect(Lexer("\\LaTeX{}")) ==
+            [Token(K"<paragraph", 1, 1),
+             Token(K"latex_fragment[1]", 1, 8)]
+        @test collect(Lexer("\\cmd[opt]{stuff}[opt2]{stuff2}")) ==
+            [Token(K"<paragraph", 1, 1),
+             Token(K"latex_fragment[1]", 1, 30)]
+        @test collect(Lexer("\\(x + y\\)")) ==
+            [Token(K"<paragraph", 1, 1),
+             Token(K"latex_fragment[2]", 1, 9)]
+        @test collect(Lexer("\\[x + y\\]")) ==
+            [Token(K"<paragraph", 1, 1),
+             Token(K"latex_fragment[3]", 1, 9)]
+        @test collect(Lexer("\\(x + y\\")) ==
+            [Token(K"<paragraph", 1, 1)]
+        @test collect(Lexer("\\foo \\(bar\\) \\[baz\\]")) ==
+            [Token(K"<paragraph", 1, 1),
+             Token(K"latex_fragment[1]", 1, 4),
+             Token(K"latex_fragment[2]", 6, 12),
+             Token(K"latex_fragment[3]", 14, 20)]
+        @test collect(Lexer("\\(x\ny\nz\\)")) ==
+            [Token(K"<paragraph", 1, 1),
+             Token(K"latex_fragment[2]", 1, 9)]
+        @test collect(Lexer("\\(x\n\ny\\)")) ==
+            [Token(K"<paragraph", 1, 1),
+             Token(K">paragraph", 3, 3),
+             Token(K"<paragraph", 6, 6)]
     end
     @testset "Type inference" begin
         @testset "Utilities" begin
@@ -554,5 +600,12 @@ end
         @testset "Iteration" begin
             @test_opt iterate(Lexer("abc"), LexerState())
         end
+    end
+end
+
+@testset "Display" begin
+    @testset "EntityData" begin
+        @test sprint(show, Org.ENTITIES["alpha"]) ==
+            "Org.EntityData(M Unicode: α, Latin1: alpha, ASCII: alpha, LaTeX: \\alpha, HTML: &alpha;)"
     end
 end

@@ -4,6 +4,7 @@
 module Org
 
 include("syntax.jl")
+include("variables.jl")
 include("lexer.jl")
 
 end
