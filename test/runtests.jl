@@ -472,6 +472,33 @@ end
              Token(K">paragraph", 3, 3),
              Token(K"<paragraph", 6, 6)]
     end
+    @testset "Export snippet" begin
+        @test collect(Lexer("@@format:content@@")) ==
+            [Token(K"<paragraph", 1, 1),
+             Token(K"export_snippet[242]", 1, 18)]
+        @test collect(Lexer("@@nope@@")) ==
+            [Token(K"<paragraph", 1, 1)]
+        @test collect(Lexer("@@:nope@@")) ==
+            [Token(K"<paragraph", 1, 1)]
+        @test collect(Lexer("@@:unterminated")) ==
+            [Token(K"<paragraph", 1, 1)]
+        @test collect(Lexer("@@inv alid:@@")) ==
+            [Token(K"<paragraph", 1, 1)]
+        @test collect(Lexer("@@x:content@@")) ==
+            [Token(K"<paragraph", 1, 1),
+             Token(K"export_snippet[148]", 1, 13)]
+        @test collect(Lexer("@@x:@@")) ==
+            [Token(K"<paragraph", 1, 1),
+             Token(K"export_snippet[148]", 1, 6)]
+        @test collect(Lexer("@@x:@@y@@z:@@")) ==
+            [Token(K"<paragraph", 1, 1),
+             Token(K"export_snippet[148]", 1, 6),
+             Token(K"export_snippet[214]", 8, 13)]
+        @test collect(Lexer("@@x:@@@@y:@@")) ==
+            [Token(K"<paragraph", 1, 1),
+             Token(K"export_snippet[148]", 1, 6),
+             Token(K"export_snippet[178]", 7, 12)]
+    end
     @testset "Type inference" begin
         @testset "Utilities" begin
             bytes, pos = codeunits("abc"), UInt32(1)

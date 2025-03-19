@@ -204,6 +204,8 @@ function lexnext_object(state::LexerState, bytes::DenseVector{UInt8},
             tok = lex_latexfrag(state, bytes, pos)
         end
         tok
+    elseif chr == UInt8('@')
+        lex_exportsnippet(state, bytes, pos)
     else
         NONE_TOKEN
     end
@@ -606,7 +608,26 @@ function lex_latexfrag(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
     Token(kind, pos, texend), texend + 0x1
 end
 
-# TODO: Export snippets
+function lex_exportsnippet(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
+    hasprefix(bytes, pos, "@@") || return NONE_TOKEN
+    closepos = fmtend + 0x1
+    while true
+        closepos < length(bytes) || return NONE_TOKEN
+        closepos = nextchar(bytes, closepos, ('@', '\n'))
+        if bytes[closepos] == UInt8('\n')
+            bytes[closepos + 0x1] == UInt8('*') && return NONE_TOKEN
+            closepos = skipspaces(bytes, closepos + 0x1).stop
+            islineend(bytes, closepos) && return NONE_TOKEN
+        else
+            closepos += 0x1
+            bytes[closepos] == UInt8('@') && break
+        end
+    end
+    fmtend = skipchars(bytes, pos + 0x2, 'a':'z', 'A':'Z', '0':'9', '-')
+    pos + 0x2 < fmtend < length(bytes) && bytes[fmtend] == UInt8(':') || return NONE_TOKEN
+    langtag = word2tag(bytes, pos + 0x2, fmtend - 0x1)
+    Token(settag(K"export_snippet", langtag), pos, closepos), closepos + 0x1
+end
 
 # TODO: Footnote references
 
