@@ -822,11 +822,20 @@ julia> utf8bytes(codeunit("🟣", 1))
 ```
 """
 @inline function utf8bytes(chr::UInt8)
-    clamp(leading_ones(chr), 1, 4)
+    if chr < 0x80
+        1
+    else
+        clamp(leading_ones(chr), 1, 4)
+    end
 end
 
 @inline function utf8bytes(bytes::DenseVector{UInt8}, pos::I)::I where {I <: Integer}
-    clamp(leading_ones(bytes[pos]) % I, I(1), I(4))
+    chr = bytes[pos]
+    if chr < 0x80
+        one(I)
+    else
+        clamp(leading_ones(bytes[pos]) % I, I(1), I(4))
+    end
 end
 
 @inline function utf8next(bytes::DenseVector{UInt8}, pos::Integer)
