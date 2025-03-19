@@ -586,20 +586,8 @@ function lex_latexfrag(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
         return Token(K"latex_fragment[1]", pos, nameend - 0x1), nameend
     end
     echar = if nchar == UInt8('(') UInt8(')') else UInt8(']') end
-    texend = pos + 0x2
-    while true
-        texend < length(bytes) || return NONE_TOKEN
-        texend = nextchar(bytes, texend, ('\\', '\n'))
-        texend < length(bytes) || return NONE_TOKEN
-        if bytes[texend] == UInt8('\n')
-            bytes[texend + 0x1] ∈ UInt8('*') && return NONE_TOKEN
-            texend = skipspaces(bytes, texend + 0x1).stop
-            islineend(bytes, texend) && return NONE_TOKEN
-        else
-            texend += 0x1
-            bytes[texend-0x1] == UInt8('\\') && bytes[texend] == echar && break
-        end
-    end
+    texend = searchparseq(bytes, pos + 0x2, (UInt8('\\'), echar))
+    texend == 0 && return NONE_TOKEN
     kind = if nchar == UInt8('(')
         K"latex_fragment[2]"
     else
@@ -610,21 +598,10 @@ end
 
 function lex_exportsnippet(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
     hasprefix(bytes, pos, "@@") || return NONE_TOKEN
-    closepos = fmtend + 0x1
-    while true
-        closepos < length(bytes) || return NONE_TOKEN
-        closepos = nextchar(bytes, closepos, ('@', '\n'))
-        if bytes[closepos] == UInt8('\n')
-            bytes[closepos + 0x1] == UInt8('*') && return NONE_TOKEN
-            closepos = skipspaces(bytes, closepos + 0x1).stop
-            islineend(bytes, closepos) && return NONE_TOKEN
-        else
-            closepos += 0x1
-            bytes[closepos] == UInt8('@') && break
-        end
-    end
     fmtend = skipchars(bytes, pos + 0x2, 'a':'z', 'A':'Z', '0':'9', '-')
     pos + 0x2 < fmtend < length(bytes) && bytes[fmtend] == UInt8(':') || return NONE_TOKEN
+    closepos = searchparseq(bytes, fmtend, ('@', '@'))
+    closepos == 0 && return NONE_TOKEN
     langtag = word2tag(bytes, pos + 0x2, fmtend - 0x1)
     Token(settag(K"export_snippet", langtag), pos, closepos), closepos + 0x1
 end
@@ -709,6 +686,60 @@ end
 
 # Utility functions
 
+"""
+    searchparseq(bytes::DenseVector{UInt8}, pos::Integer, pattern::NTuple{N, <:Union{Char, UInt8}})
+    searchparseq(bytes::DenseVector{UInt8}, pos::Integer, pattern::String)
+
+Return the final index of `pattern` in `bytes` starting a search at `pos`.
+
+Zero is returned if the pattern is not found, or if the current paragraph has
+been ended by a blank line or heading.
+"""
+function searchparseq(bytes::DenseVector{UInt8}, pos::I, pattern::NTuple{N, C}) where {I <: Integer, N, C <: Union{Char, UInt8}}
+    patfirst = UInt8(pattern[1])
+    patrest = map(UInt8, pattern[2:end])
+    limit = length(bytes) % I
+    while true
+        while true
+            pos = utf8next(bytes, pos)
+            pos <= limit || break
+            bytes[pos] ∈ (patfirst, UInt8('\n')) && break
+        end
+        if pos > limit - length(patrest)
+            return zero(I)
+        elseif bytes[pos] == UInt8('\n')
+            # Check for the start of a heading
+            bytes[pos + 0x1] == UInt8('*') && return zero(I)
+            # Check for a blank line
+            pos = skipspaces(bytes, pos + 0x1).stop
+            islineend(bytes, pos) && return zero(I)
+        elseif isempty(patrest)
+            return pos
+        else
+            match = true
+            for (offset, char) in enumerate(patrest)
+                if bytes[pos + offset % I] != char
+                    match = false
+                    break
+                end
+            end
+            match && return pos + length(patrest) % I
+            pos += 0x1
+        end
+    end
+end
+
+searchparseq(bytes::DenseVector{UInt8}, pos::Integer, pattern::String) =
+    searchparseq(bytes, pos, Tuple(pattern))
+
+"""
+    skipspaces(bytes::DenseVector{UInt8}, pos::Integer, pattern::AbstractString; limit::Integer = length(bytes))
+
+Return the position after `pos` of the first non-space character.
+
+Space characters specifically considers the horizontal spaces `' '` and `'\t'` as
+well as Unicode characters between U+2000 and U+200C.
+"""
 function skipspaces(bytes::DenseVector{UInt8}, pos::I; limit::I = length(bytes) % I) where {I <: Integer}
     wskipped = 0
     while pos <= limit
