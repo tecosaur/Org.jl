@@ -37,6 +37,26 @@ Defined groups are:
 - `"#+"` (elements that start with `#+...`)
 
 See also: `K""`, `isbegin`, `isend`, `tag`, `plain`.
+
+# Extended help
+
+The `tag` byte were specifically motivated by headings and items, but are
+available for all kinds and so have been employed for a wide range of purposes
+whenever there is some sort of useful information that can be stored.
+
+These syntax types use the `tag` byte like so:
+- `heading`: the level of the heading
+- `block`: a small hash of the block name
+- `dynamic_block`: a small hash of the block name
+- `keyword`: a small hash of the keyword
+- `item`: the indentation level of the item
+- `planning`: three bits are used to indicate exitance of each kind of planning.
+- `entity`: a small hash of the entity name
+- `export_snippet`: a small hash of the snippet format
+- `footnote_reference`: the type of footnote reference
+  - `1` is a label-only reference
+  - `2` is a definition-only reference
+  - `3` is a label and definition reference
 """
 primitive type Kind 64 end
 # 53 kinds + 1 special + 2 flags + 8-bit tag = 64 bits
