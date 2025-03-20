@@ -573,6 +573,10 @@ end
             @inferred Tuple{Token, UInt32} Org.lex_hrule(lstate, bytes, pos)
             @inferred Tuple{Token, UInt32} Org.lex_latexenv(lstate, bytes, pos)
             @inferred Tuple{Token, UInt32} Org.lex_markup(lstate, bytes, pos)
+            @inferred Tuple{Token, UInt32} Org.lex_entity(lstate, bytes, pos)
+            @inferred Tuple{Token, UInt32} Org.lex_latexfrag(lstate, bytes, pos)
+            @inferred Tuple{Token, UInt32} Org.lex_exportsnippet(lstate, bytes, pos)
+            @inferred Tuple{Token, UInt32} Org.lex_footnoteref(lstate, bytes, pos)
         end
     end
     @testset "Unhandled errors" begin
@@ -614,6 +618,10 @@ end
             @test_call Org.lex_hrule(lstate, bytes, pos)
             @test_call Org.lex_latexenv(lstate, bytes, pos)
             @test_call Org.lex_markup(lstate, bytes, pos)
+            @test_call Org.lex_entity(lstate, bytes, pos)
+            @test_call Org.lex_latexfrag(lstate, bytes, pos)
+            @test_call Org.lex_exportsnippet(lstate, bytes, pos)
+            @test_call Org.lex_footnoteref(lstate, bytes, pos)
         end
         @testset "Iteration" begin
             @test_call iterate(Lexer("abc"), LexerState())
@@ -658,6 +666,10 @@ end
             @test_opt Org.lex_hrule(lstate, bytes, pos)
             @test_opt Org.lex_latexenv(lstate, bytes, pos)
             @test_opt Org.lex_markup(lstate, bytes, pos)
+            @test_opt Org.lex_entity(lstate, bytes, pos)
+            @test_opt Org.lex_latexfrag(lstate, bytes, pos)
+            @test_opt Org.lex_exportsnippet(lstate, bytes, pos)
+            @test_opt Org.lex_footnoteref(lstate, bytes, pos)
         end
         @testset "Iteration" begin
             @test_opt iterate(Lexer("abc"), LexerState())
