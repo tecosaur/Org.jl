@@ -68,6 +68,28 @@ introducing type instability.
 """
 const NONE_TOKEN = Token(K"", 0, 0), UInt32(0)
 
+"""
+    @sometoken(args...)
+
+Return the first of `args` that is not `NONE_TOKEN`, finally returning
+`NONE_TOKEN` only if all arguments are `NONE_TOKEN`.
+"""
+macro sometoken(args...)
+    expr = :(NONE_TOKEN)
+    for arg in reverse(args)
+        val = gensym("tok")
+        expr = quote
+            $val = $(esc(arg))
+            if $val != NONE_TOKEN
+                $val
+            else
+                $expr
+            end
+        end
+    end
+    expr
+end
+
 function lexnext(state::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
     linestart, newlines = @inline skipnewlines(bytes, start)
     if start == 1 && state.lastelement != K"<paragraph"
@@ -141,10 +163,19 @@ function lexnext_element(state::LexerState, bytes::DenseVector{UInt8},
         end
     elseif chr == UInt8('[') && pos == linestart
         fndef = lex_footnotedef(state, bytes, pos)
-        if fndef != NONE_TOKEN && K"footnote_definition" ∈ state.ctx
-            Token(K">footnote_definition", start - 0x1, start - 0x1), start
+        if fndef != NONE_TOKEN
+            if K"footnote_definition" ∈ state.ctx
+                Token(K">footnote_definition", start - 0x1, start - 0x1), start
+            else
+                fndef
+            end
         else
-            fndef
+            fnref = lex_footnoteref(state, bytes, pos)
+            if fnref != NONE_TOKEN
+                Token(K"<paragraph", pos, pos), pos
+            else
+                NONE_TOKEN
+            end
         end
     elseif chr == UInt8('|') && K"table" ∈ state.restriction
         Token(K"<table", pos, pos), pos
@@ -199,13 +230,12 @@ function lexnext_object(state::LexerState, bytes::DenseVector{UInt8},
     elseif chr ∈ (UInt8('*'), UInt8('/'), UInt8('_'), UInt8('='), UInt8('~'), UInt8('+'))
         lex_markup(state, bytes, pos)
     elseif chr == UInt8('\\')
-        tok = lex_entity(state, bytes, pos)
-        if tok == NONE_TOKEN
-            tok = lex_latexfrag(state, bytes, pos)
-        end
-        tok
+        @sometoken(lex_entity(state, bytes, pos),
+                   lex_latexfrag(state, bytes, pos))
     elseif chr == UInt8('@')
         lex_exportsnippet(state, bytes, pos)
+    elseif chr == UInt8('[') && hasprefix(bytes, pos + 0x1, "fn:")
+        lex_footnoteref(state, bytes, pos)
     else
         NONE_TOKEN
     end
@@ -286,15 +316,14 @@ function lex_item(state::LexerState, bytes::DenseVector{UInt8}, linestart::UInt3
 end
 
 function lex_hashplus(state::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
-    blk = lex_block(state, bytes, pos)
-    blk != NONE_TOKEN && return blk
-    blk = lex_dynamicblock(state, bytes, pos)
-    blk != NONE_TOKEN && return blk
-    if K"keyword" in state.restriction
-        blk = lex_keyword(state, bytes, pos)
-        blk != NONE_TOKEN && return blk
-    end
-    NONE_TOKEN
+    @sometoken(
+        lex_block(state, bytes, pos),
+        lex_dynamicblock(state, bytes, pos),
+        if K"keyword" ∈ state.restriction
+            lex_keyword(state, bytes, pos)
+        else
+            NONE_TOKEN
+        end)
 end
 
 function lex_block((; ctx)::LexerState, bytes::DenseVector{UInt8}, start::UInt32)
@@ -606,7 +635,19 @@ function lex_exportsnippet(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
     Token(settag(K"export_snippet", langtag), pos, closepos), closepos + 0x1
 end
 
-# TODO: Footnote references
+function lex_footnoteref(::LexerState, bytes::DenseVector{UInt8}, pos::UInt32)
+    refend = skipbalanced(bytes, pos, '[' => ']')
+    iszero(refend) && return NONE_TOKEN
+    nameend = skipwords(bytes, pos + ncodeunits("[fn:") % UInt32, ('-', '_'))
+    fnkind = if bytes[nameend] == UInt8(']')
+        0x01 # label
+    elseif bytes[nameend] == UInt8(':')
+        0x02 + UInt8(nameend > pos + ncodeunits("[fn:") % UInt32)
+    else
+        return NONE_TOKEN
+    end
+    Token(settag(K"footnote_reference", fnkind), pos, refend - 0x1), refend
+end
 
 # TODO: Citations
 

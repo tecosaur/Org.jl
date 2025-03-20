@@ -499,6 +499,19 @@ end
              Token(K"export_snippet[148]", 1, 6),
              Token(K"export_snippet[178]", 7, 12)]
     end
+    @testset "Footnote references" begin
+        @test collect(Lexer(" [fn:1]")) ==
+            [Token(K"<paragraph", 1, 1)
+             Token(K"footnote_reference[1]", 2, 7)]
+        @test collect(Lexer("[fn::desc]")) ==
+            [Token(K"<paragraph", 1, 1)
+             Token(K"footnote_reference[2]", 1, 10)]
+        @test collect(Lexer("[fn:label:desc]")) ==
+            [Token(K"<paragraph", 1, 1)
+             Token(K"footnote_reference[3]", 1, 15)]
+        @test collect(Lexer("[fn:in valid]")) ==
+            [Token(K"<paragraph", 1, 1)]
+    end
     @testset "Type inference" begin
         @testset "Utilities" begin
             bytes, pos = codeunits("abc"), UInt32(1)

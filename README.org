@@ -67,7 +67,7 @@ TODO
 | OrgEntity           |      | X   |       |     |      |      |
 | LaTeX Fragment      |      | X   |       |     |      |      |
 | ExportSnippet       |      | X   |       |     |      |      |
-| FootnoteReference   |      |     |       |     |      |      |
+| FootnoteReference   |      | X   |       |     |      |      |
 | InlineBabelCall     |      |     |       |     |      |      |
 | InlineSrcBlock      |      |     |       |     |      |      |
 | RadioLink           |      |     |       |     |      |      |
