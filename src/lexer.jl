@@ -1146,9 +1146,10 @@ skipchars(bytes::DenseVector{UInt8}, pos::Integer, charsets::Union{StepRange{Cha
 
 Skip over a balanced pair of characters (`bpair`) in `bytes` starting at `pos`.
 
-It is expected that `bytes[pos]` is the opening character of the pair, from which
-point all characters until as many closing characters of the pair have been
-encountered as opening characters.
+It is expected that `bytes[pos]` is the opening character of the pair, from
+which point all characters until as many closing characters of the pair have
+been encountered as opening characters. Searching will halt if a heading or
+blank line is encountered.
 
 If `quotes` is provided, then the characters in `quotes` are considered as
 additional opening characters, only characters outside quotes are considered.
@@ -1177,6 +1178,7 @@ function skipbalanced(bytes::DenseVector{UInt8}, pos::Integer, bpair::Pair{Char,
     uclose = UInt8(last(bpair))
     uquotes = map(q -> UInt8(q), quotes)
     uescape = UInt8(something(escapechar, '\0'))
+    afternewline = false
     depth = 1
     currentquote = 0x00
     bytes[pos] == uopen || return zero(pos)
@@ -1184,7 +1186,21 @@ function skipbalanced(bytes::DenseVector{UInt8}, pos::Integer, bpair::Pair{Char,
     while true
         pos <= limit || break
         chr = bytes[pos]
-        if !isnothing(escapechar) && chr == uescape && pos < limit
+        if afternewline
+            chr == UInt8('*') && let starend = skipchars(bytes, pos, '*')
+                starend < length(bytes) && bytes[starend] == UInt8(' ') && break
+            end
+            if iswhitespace(bytes, pos)
+                pos = skipspaces(bytes, pos).stop
+                pos <= limit || break
+                chr = bytes[pos]
+            end
+            chr == UInt8('\n') && break
+            afternewline = false
+        end
+        if chr == UInt8('\n')
+            afternewline = true
+        elseif !isnothing(escapechar) && chr == uescape && pos < limit
             pos += 0x1
         elseif currentquote != 0
             if chr == currentquote

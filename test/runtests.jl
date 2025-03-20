@@ -484,6 +484,13 @@ end
             [Token(K"<paragraph", 1, 1)]
         @test collect(Lexer("@@inv alid:@@")) ==
             [Token(K"<paragraph", 1, 1)]
+        @test collect(Lexer("@@x:multi\nline@@")) ==
+            [Token(K"<paragraph", 1, 1),
+             Token(K"export_snippet[148]", 1, 16)]
+        @test collect(Lexer("@@x:dis\n\ncontinued@@")) ==
+            [Token(K"<paragraph", 1, 1),
+             Token(K">paragraph", 7, 7),
+             Token(K"<paragraph", 10, 10)]
         @test collect(Lexer("@@x:content@@")) ==
             [Token(K"<paragraph", 1, 1),
              Token(K"export_snippet[148]", 1, 13)]
@@ -509,6 +516,21 @@ end
         @test collect(Lexer("[fn:label:desc]")) ==
             [Token(K"<paragraph", 1, 1)
              Token(K"footnote_reference[3]", 1, 15)]
+        @test collect(Lexer("[fn:1:multi\nline]")) ==
+            [Token(K"<paragraph", 1, 1),
+             Token(K"footnote_reference[3]", 1, 17)]
+        @test collect(Lexer("[fn:1:multi\n*bold*\nline]")) ==
+            [Token(K"<paragraph", 1, 1),
+             Token(K"footnote_reference[3]", 1, 24)]
+        @test collect(Lexer("[fn::dis\n* heading\ncontinued]")) ==
+            [Token(K"<paragraph", 1, 1),
+             Token(K">paragraph", 8, 8),
+             Token(K"heading[1]", 10, 18),
+             Token(K"<paragraph", 20, 20)]
+        @test collect(Lexer("[fn::dis\n\ncontinued]")) ==
+            [Token(K"<paragraph", 1, 1),
+             Token(K">paragraph", 8, 8),
+             Token(K"<paragraph", 11, 11)]
         @test collect(Lexer("[fn:in valid]")) ==
             [Token(K"<paragraph", 1, 1)]
     end
